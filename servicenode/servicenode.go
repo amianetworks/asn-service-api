@@ -11,9 +11,9 @@ type API interface {
 
 // Network interface struct
 type Netif struct {
-	Data       string
-	Control    string
-	Management string
+	Data       []string
+	Control    []string
+	Management []string
 }
 
 // This struct will be declared in service side and implemented by ASN Service Node
