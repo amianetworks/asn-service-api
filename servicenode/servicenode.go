@@ -6,6 +6,14 @@ package servicenode
 
 // API provided by ASN Service Node
 type API interface {
+	GetServiceNodeNetif() (Netif, error)
+}
+
+// Network interface struct
+type Netif struct {
+	Data       string
+	Control    string
+	Management string
 }
 
 // This struct will be declared in service side and implemented by ASN Service Node
@@ -20,7 +28,7 @@ type ServiceNode struct {
 type ASNService struct {
 	/*
 		Service name, it is important to have the same name with capi.ASNService.Name
-	 */
+	*/
 	Name string
 
 	/*
