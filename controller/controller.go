@@ -9,9 +9,17 @@ type Network struct {
 	Id string
 }
 
+// Network interface struct
+type Netif struct {
+	Data       string
+	Control    string
+	Management string
+}
+
 // ServiceNode struct TODO: the following is an example of the Service Node struct, NOT finalized
 type ServiceNode struct {
-	Id string
+	Id    string
+	Netif Netif
 }
 
 // Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
