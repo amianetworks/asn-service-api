@@ -71,4 +71,9 @@ type ASNService struct {
 		Get service stats
 	*/
 	GetStats func() ([]byte, error)
+
+	/*
+		Service node is terminated, do the necessary clean up here
+	*/
+	CleanUp func()
 }
