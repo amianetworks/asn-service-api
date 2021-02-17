@@ -14,6 +14,7 @@ type Netif struct {
 	Data       []string
 	Control    []string
 	Management []string
+	Other      []string
 }
 
 // Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
