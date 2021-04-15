@@ -7,6 +7,7 @@ package servicenode
 // API provided by ASN Service Node
 type API interface {
 	GetServiceNodeNetif() (Netif, error)
+	SendMetadataToController(metadata []byte) error
 }
 
 // Network interface struct

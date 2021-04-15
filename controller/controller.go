@@ -14,7 +14,7 @@ type ServiceNode struct {
 	Id    string
 }
 
-// Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
+// ServiceStatus Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
 type ServiceStatus struct {
 	Enabled bool
 }
@@ -54,15 +54,29 @@ type API interface {
 	*/
 	SaveSettings(networkId string, serviceName string, config []byte) error
 	SaveSettingsOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
+
+	/*
+		CRUD (Create, Read, Update, Delete) operation for the service metadata.
+		The metadata []byte is Marshalled by using JSON.Marshall()
+	 */
+	ReadMetadata(networkId string, serviceName string, fileName string) ([]byte, error)
+	ReadMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) ([]byte, error)
+
+	// UpsertMetadata will create the metadata if it is not exist, otherwise will perform update
+	UpsertMetadata(networkId string, serviceName string, fileName string, metadata []byte) error
+	UpsertMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string, metadata []byte) error
+
+	DeleteMetadata(networkId string, serviceName string, fileName string) error
+	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
 }
 
-// This struct will be declared in service side and implemented by ASN controller
+// ASNController struct will be declared in service side and implemented by ASN controller
 type ASNController struct {
 	API API
 }
 
 /*
-	This struct provides the service's API for the ASN Controller usage,
+	ASNService struct provides the service's API for the ASN Controller usage,
 	will be implement by service and used by ASN controller
 */
 type ASNService struct {
@@ -110,4 +124,9 @@ type ASNService struct {
 		ASN Controller may call it in the case reconfiguration is needed for a service node.
 	*/
 	GetServiceOpsOfServiceNode func(serviceNodeId string) []byte
+
+	/*
+		Send the metadata to the service controller
+	 */
+	SendMetadataFromServiceNode func(serviceNodeId string, metadata []byte) error
 }
