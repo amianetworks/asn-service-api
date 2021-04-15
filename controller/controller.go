@@ -126,7 +126,7 @@ type ASNService struct {
 	GetServiceOpsOfServiceNode func(serviceNodeId string) []byte
 
 	/*
-		Send the metadata to the service controller
+		Received the metadata from the service in the service node
 	 */
-	SendMetadataFromServiceNode func(serviceNodeId string, metadata []byte) error
+	ReceivedMetadataFromServiceNode func(serviceNodeId string, metadata []byte) error
 }
