@@ -107,7 +107,7 @@ type ASNService struct {
 	/*
 		Initialize the service
 	*/
-	Init func() error
+	Init func(defaultLogger *shared.ASNLogger) error
 
 	/*
 		Get the default runtime configuration of the service.
