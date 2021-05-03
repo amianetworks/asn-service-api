@@ -1,3 +1,3 @@
-module asn.io/asn-service-api
+module github.com/amianetworks/asn-service-api
 
 go 1.16
