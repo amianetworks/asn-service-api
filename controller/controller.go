@@ -1,17 +1,26 @@
 package controller
 
+import (
+	"asn.io/asn-service-api/shared"
+)
+
 /*
 	Struct used between asn.controller and service.controller,
 */
 
-// Network struct TODO: the following is an example of the Network struct, NOT finalized
+// Network struct
 type Network struct {
 	Id string
 }
 
-// ServiceNode struct TODO: the following is an example of the Service Node struct, NOT finalized
-type ServiceNode struct {
-	Id    string
+// Node struct
+type Node struct {
+	Id             string
+	Type           string
+	NetworkId      string
+	ParentId       string
+	ExternalLinked []string
+	InternalLinked []string
 }
 
 // ServiceStatus Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
@@ -30,7 +39,17 @@ type API interface {
 	/*
 		Get service nodes of network
 	*/
-	GetServiceNodes(networkId string) ([]ServiceNode, error)
+	GetNodesOfNetwork(networkId string) ([]Node, error)
+
+	/*
+		Get all nodes of the network node.
+	*/
+	GetNodesOfParent(networkNodeId string) ([]Node, error)
+
+	/*
+		Get node by id
+	*/
+	GetNodeById(id string) (Node, error)
 
 	/*
 		Send config cmd to the service node with the specific service name, the configCmd is a pre-defined struct.
@@ -58,7 +77,7 @@ type API interface {
 	/*
 		CRUD (Create, Read, Update, Delete) operation for the service metadata.
 		The metadata []byte is Marshalled by using JSON.Marshall()
-	 */
+	*/
 	ReadMetadata(networkId string, serviceName string, fileName string) ([]byte, error)
 	ReadMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) ([]byte, error)
 
@@ -127,6 +146,11 @@ type ASNService struct {
 
 	/*
 		Received the metadata from the service in the service node
-	 */
+	*/
 	ReceivedMetadataFromServiceNode func(serviceNodeId string, metadata []byte) error
+
+	/*
+		GetVersion of the service
+	*/
+	GetVersion func() shared.Version
 }

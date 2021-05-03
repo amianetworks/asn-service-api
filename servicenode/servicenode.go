@@ -1,13 +1,30 @@
 package servicenode
 
+import (
+	"asn.io/asn-service-api/shared"
+)
 /*
 	Struct used for service node and service communication
 */
 
-// API provided by ASN Service Node
+// API provided by ASN Service Node for Service uses
 type API interface {
+	/*
+		Get ASN managed netifs from Service node
+	 */
 	GetServiceNodeNetif() (Netif, error)
+
+	/*
+		Send the metadata to controller
+	 */
 	SendMetadataToController(serviceName string, metadata []byte) error
+
+	/*
+		Init the ASN logger. This logger is different with the 'defaultLogger' that passed by the Init() function.
+			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
+			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
+	 */
+	InitASNLogger(logPath string) *shared.ASNLogger
 }
 
 // Network interface struct
@@ -39,14 +56,21 @@ type ASNService struct {
 	Name string
 
 	/*
-		Initialize the service, this method will be called under a go routine, the return value to channel indicate service state:
-		if error is nil, the service node will assign the state INITIALIZED to the service
-		if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
+		Initialize the service, this method will be called under a go routine
+
+		input parameters:
+		1. configPath: Service must use the this configPath to load the service configurations
+		2. defaultLogger:
+			- If service want output the log to the asn service node's log, use this logger.
+			- If the service want to maintain their own log, please init a new logger. For details, please refer to shared/logger.go
+		3. the return value to channel indicate service state:
+			- if error is nil, the service node will assign the state INITIALIZED to the service
+			- if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
 
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Init func(configPath string, c chan error)
+	Init func(configPath string, defaultLogger *shared.ASNLogger, c chan error)
 
 	/*
 		Apply the configuration to the service, this method will be called under a go routine, the return value to channel indicate service state:
@@ -75,7 +99,14 @@ type ASNService struct {
 	GetStats func() ([]byte, error)
 
 	/*
-		Service node is terminated, do the necessary clean up here
+		Last call before the service node's termination. Do the necessary clean up here.
 	*/
-	CleanUp func()
+	Terminate func() error
+
+	/*
+	GetVersion of the service,
+	share.Version provide the initializer (version parser) and a toString convert,
+	for details, please refer to share/version.go
+	 */
+	GetVersion func() shared.Version
 }
