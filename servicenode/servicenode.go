@@ -3,6 +3,7 @@ package servicenode
 import (
 	"github.com/amianetworks/asn-service-api/shared"
 )
+
 /*
 	Struct used for service node and service communication
 */
@@ -11,20 +12,20 @@ import (
 type API interface {
 	/*
 		Get ASN managed netifs from Service node
-	 */
+	*/
 	GetServiceNodeNetif() (Netif, error)
 
 	/*
 		Send the metadata to controller
-	 */
+	*/
 	SendMetadataToController(serviceName string, metadata []byte) error
 
 	/*
 		Init the ASN logger. This logger is different with the 'defaultLogger' that passed by the Init() function.
 			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
 			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
-	 */
-	InitASNLogger(logPath string) *shared.ASNLogger
+	*/
+	InitASNLogger(logPath string) (*shared.ASNLogger, error)
 }
 
 // Network interface struct
@@ -104,9 +105,9 @@ type ASNService struct {
 	Terminate func() error
 
 	/*
-	GetVersion of the service,
-	share.Version provide the initializer (version parser) and a toString convert,
-	for details, please refer to share/version.go
-	 */
+		GetVersion of the service,
+		share.Version provide the initializer (version parser) and a toString convert,
+		for details, please refer to share/version.go
+	*/
 	GetVersion func() shared.Version
 }
