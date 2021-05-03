@@ -25,7 +25,7 @@ type API interface {
 			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
 			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
 	*/
-	InitASNLogger(logPath string) (*shared.ASNLogger, error)
+	InitASNLogger(serviceName string, logPath string) (*shared.ASNLogger, error)
 }
 
 // Network interface struct

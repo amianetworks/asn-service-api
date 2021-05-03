@@ -87,6 +87,13 @@ type API interface {
 
 	DeleteMetadata(networkId string, serviceName string, fileName string) error
 	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
+
+	/*
+		Init the ASN logger. This logger is different with the 'defaultLogger' that passed by the Init() function.
+			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
+			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
+	*/
+	InitASNLogger(serviceName string, logPath string) (*shared.ASNLogger, error)
 }
 
 // ASNController struct will be declared in service side and implemented by ASN controller
