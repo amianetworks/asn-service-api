@@ -1,7 +1,7 @@
 package servicenode
 
 import (
-	"asn.io/asn-service-api/shared"
+	"github.com/amianetworks/asn-service-api/shared"
 )
 /*
 	Struct used for service node and service communication

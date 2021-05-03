@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"asn.io/asn-service-api/shared"
+	"github.com/amianetworks/asn-service-api/shared"
 )
 
 /*
