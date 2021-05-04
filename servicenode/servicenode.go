@@ -103,13 +103,13 @@ type ASNService struct {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	ServiceOps func(ops []byte, c chan error)
+	ApplyServiceOps func(ops []byte, c chan error)
 
 	/*
 		Read the current configuration of the service,
 		this method cannot be blocked, read the service configuration and return immediately
 	*/
-	DumpConfiguration func() ([]byte, error)
+	DumpConf func() ([]byte, error)
 
 
 	/*

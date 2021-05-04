@@ -83,21 +83,21 @@ type API interface {
 		the config []byte is Marshalled by using JSON.Marshall()
 		Write the service config to a specific service node by ASN controller
 	*/
-	SaveConf(networkId string, serviceName string, config []byte) error
+	SaveConfOfNetwork(networkId string, serviceName string, config []byte) error
 	SaveConfOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
 
 	/*
 		CRUD (Create, Read, Update, Delete) operation for the service metadata.
 		The metadata []byte is Marshalled by using JSON.Marshall()
 	*/
-	ReadMetadata(networkId string, serviceName string, fileName string) ([]byte, error)
+	ReadMetadataOfNetwork(networkId string, serviceName string, fileName string) ([]byte, error)
 	ReadMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) ([]byte, error)
 
 	// UpsertMetadata will create the metadata if it is not exist, otherwise will perform update
-	UpsertMetadata(networkId string, serviceName string, fileName string, metadata []byte) error
+	UpsertMetadataOfNetwork(networkId string, serviceName string, fileName string, metadata []byte) error
 	UpsertMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string, metadata []byte) error
 
-	DeleteMetadata(networkId string, serviceName string, fileName string) error
+	DeleteMetadataOfNetwork(networkId string, serviceName string, fileName string) error
 	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
 
 	/*
@@ -132,7 +132,7 @@ type ASNService struct {
 		Get the default runtime configuration of the service.
 		Service should return nil if no default config needed. //TODO: nil handling
 	*/
-	GetDefaultSettings func() []byte
+	GetDefaultConf func() []byte
 
 	/*
 		Get the *current* configuration of the service network/node.
@@ -148,20 +148,20 @@ type ASNService struct {
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyConfig               func(networkId string, conf []byte) error
+	ApplyConfigToNetwork      func(networkId string, conf []byte) error
 	ApplyConfigToServiceNodes func(serviceNodes []string, conf []byte) error
 
 	/*
 		Get service node's service config status, ENABLED or not.
 		Service Controller must maintain this "status" of configuration and report it accordingly.
 	*/
-	GetServiceStatusOfServiceNode func(serviceNodeId string) ServiceStatus
+	GetStatusOfServiceNode func(serviceNodeId string) ServiceStatus
 
 	/*
 		Get the applied serviceOps of the service node.
 		ASN Controller may call it in the case reconfiguration is needed for a service node.
 	*/
-	GetServiceOpsOfServiceNode func(serviceNodeId string) []byte
+	GetOpsOfServiceNode func(serviceNodeId string) []byte
 
 	/*
 		Received the metadata from the service in the service node
