@@ -1,4 +1,4 @@
-package shared
+package commonapi
 
 import (
 	"log"
@@ -9,5 +9,4 @@ type ASNLogger struct {
 	Warning *log.Logger
 	Info    *log.Logger
 	Debug   *log.Logger
-
 }

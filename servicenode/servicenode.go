@@ -1,7 +1,7 @@
-package servicenode
+package snapi
 
 import (
-	"github.com/amianetworks/asn-service-api/shared"
+	"github.com/amianetworks/asn-service-api/common"
 )
 
 /*
@@ -16,7 +16,7 @@ type API interface {
 	GetServiceNodeNetif() (Netif, error)
 
 	/*
-		Send the metadata to controller
+		Send the metadata to the controller
 	*/
 	SendMetadataToController(serviceName string, metadata []byte) error
 
@@ -25,7 +25,7 @@ type API interface {
 			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
 			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
 	*/
-	InitASNLogger(serviceName string, logPath string) (*shared.ASNLogger, error)
+	InitASNLogger(serviceName string, logPath string) (*commonapi.ASNLogger, error)
 }
 
 // Network interface struct
@@ -60,7 +60,8 @@ type ASNService struct {
 		Initialize the service, this method will be called under a go routine
 
 		input parameters:
-		1. configPath: Service must use the this configPath to load the service configurations
+		1. configPath:
+			Service MUST use this configPath to load the service configurations, if not found
 		2. defaultLogger:
 			- If service want output the log to the asn service node's log, use this logger.
 			- If the service want to maintain their own log, please init a new logger. For details, please refer to shared/logger.go
@@ -71,43 +72,69 @@ type ASNService struct {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Init func(configPath string, defaultLogger *shared.ASNLogger, c chan error)
+	Init func(configPath string, defaultLogger *commonapi.ASNLogger, c chan error)
 
 	/*
+		Start the service with the configuration.
+
+		input parameters:
+		1. config:
+			the configuration of the service. Service MUST update this configuration to the local file.
+			When DumpConfiguration called, service need to return the current configuration to the framework
+		2. the return value to channel indicate service state:
+			- if error is nil, the service node will assign the state CONFIGURED to the service
+			- if error is NOT nil, the service node will try to init the service and re-apply the configuration for 3 times,
+			  after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
+
+		Caution: the service node will have a timeout context (20s) to process the initialization,
+				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
+	 */
+	Start func(config []byte, c chan error)
+
+	/*
+		Apply the service operations to the service.
+		Service operations will not changing the service status (enabled/disabled),
+		but will do some runtime operations such as: insert/delete/getXXX/setXXX
 		Apply the configuration to the service, this method will be called under a go routine, the return value to channel indicate service state:
-		if error is nil, the service node will call GetStatus for assigning the proper state (CONFIGED/INITIALIZED) to the service
-		if error is NOT nil, the service node will call Init function to reset the service
+		if error is nil, the service node will remain the previous state (CONFIGED/INITIALIZED)
+		if error is NOT nil, the service node will try to init the service and re-apply the configuration for 3 times,
+			  after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
 
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	ApplyServiceOps func(conf []byte, c chan error)
+	ServiceOps func(ops []byte, c chan error)
 
 	/*
 		Read the current configuration of the service,
-		this method cannot be blocked, read the service setting and return immediately
+		this method cannot be blocked, read the service configuration and return immediately
 	*/
-	DumpSettings func() ([]byte, error)
+	DumpConfiguration func() ([]byte, error)
+
 
 	/*
-		Get service status
-	*/
-	GetStatus func() Status
+		Stop the service with the configuration.
 
-	/*
-		Get service stats
+		input parameters:
+		1. the return value to channel indicate service state:
+			- if error is nil, the service node will assign the state INITIALIZED to the service
+			- if error is NOT nil, the service node will try to init the service and re-apply the configuration for 3 times,
+			  after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
+
+		Caution: the service node will have a timeout context (20s) to process the initialization,
+				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	GetStats func() ([]byte, error)
+	Stop func(c chan error)
 
 	/*
 		Last call before the service node's termination. Do the necessary clean up here.
 	*/
-	Terminate func() error
+	Finish func() error
 
 	/*
 		GetVersion of the service,
 		share.Version provide the initializer (version parser) and a toString convert,
 		for details, please refer to share/version.go
 	*/
-	GetVersion func() shared.Version
+	GetVersion func() commonapi.Version
 }

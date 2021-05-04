@@ -1,7 +1,7 @@
-package controller
+package capi
 
 import (
-	"github.com/amianetworks/asn-service-api/shared"
+	"github.com/amianetworks/asn-service-api/common"
 )
 
 /*
@@ -52,7 +52,20 @@ type API interface {
 	GetNodeById(id string) (Node, error)
 
 	/*
-		Send config cmd to the service node with the specific service name, the configCmd is a pre-defined struct.
+		Send START cmd to the service node with the specific service name
+		The config is a pre-defined struct. Both of service.controller and service.sn has the same struct,
+		so they can easily use xxx.Marshall() and xxx.Unmarshall() to convert the struct between []byte and the struct
+	*/
+	StartService(serviceNodeId string, serviceName string, config []byte) error
+
+	/*
+		Send STOP cmd to the service node with the specific service name
+	*/
+	StopService(serviceNodeId string, serviceName string) error
+
+
+	/*
+		Send CONFIG cmd to the service node with the specific service name, the configCmd is a pre-defined struct.
 		Both of service.controller and service.sn has the same struct,
 		so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct
 	*/
@@ -93,7 +106,7 @@ type API interface {
 			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
 			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
 	*/
-	InitASNLogger(serviceName string, logPath string) (*shared.ASNLogger, error)
+	InitASNLogger(serviceName string, logPath string) (*commonapi.ASNLogger, error)
 }
 
 // ASNController struct will be declared in service side and implemented by ASN controller
@@ -114,7 +127,7 @@ type ASNService struct {
 	/*
 		Initialize the service
 	*/
-	Init func(defaultLogger *shared.ASNLogger) error
+	Init func(defaultLogger *commonapi.ASNLogger) error
 
 	/*
 		Get the default runtime configuration of the service.
@@ -159,5 +172,5 @@ type ASNService struct {
 	/*
 		GetVersion of the service
 	*/
-	GetVersion func() shared.Version
+	GetVersion func() commonapi.Version
 }
