@@ -75,8 +75,8 @@ type API interface {
 		The setting []byte is the config/rule/policies struct defined in service.controller,
 		Use Unmarshall to converting the []byte to the Conf struct
 	*/
-	ReadSConfOfNetwork(networkId string, serviceName string) ([]byte, error)
-	ReadSConfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
+	ReadConfOfNetwork(networkId string, serviceName string) ([]byte, error)
+	ReadConfOfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
 
 	/*
 		Set the service setting by network id and service name,
