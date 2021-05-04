@@ -63,7 +63,6 @@ type API interface {
 	*/
 	StopService(serviceNodeId string, serviceName string) error
 
-
 	/*
 		Send CONFIG cmd to the service node with the specific service name, the configCmd is a pre-defined struct.
 		Both of service.controller and service.sn has the same struct,
@@ -76,16 +75,16 @@ type API interface {
 		The returning []byte is the config/rule/policies struct defined in service.controller,
 		Use JSON.Unmarshall to converting the []byte to the Config struct
 	*/
-	ReadSettings(networkId string, serviceName string) ([]byte, error)
-	ReadSettingsOfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
+	ReadConfOfNetwork(networkId string, serviceName string) ([]byte, error)
+	ReadConfOfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
 
 	/*
 		Set the service configuration by network id and service name,
 		the config []byte is Marshalled by using JSON.Marshall()
 		Write the service config to a specific service node by ASN controller
 	*/
-	SaveSettings(networkId string, serviceName string, config []byte) error
-	SaveSettingsOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
+	SaveConf(networkId string, serviceName string, config []byte) error
+	SaveConfOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
 
 	/*
 		CRUD (Create, Read, Update, Delete) operation for the service metadata.
@@ -136,12 +135,12 @@ type ASNService struct {
 	GetDefaultSettings func() []byte
 
 	/*
-		Get the *current* Settings of the service network/node.
-		Service may have saved the settings to DB. But it's safer to read current,
-		or latest, settings directly from the service controller.
+		Get the *current* configuration of the service network/node.
+		Service may have saved the configuration to DB,
+		but it's safer to read current or latest configuration directly from the service controller.
 	*/
-	GetSettings              func(networkId string) []byte
-	GetSettingsOfServiceNode func(serviceNodeId string) []byte
+	GetConfOfNetwork     func(networkId string) []byte
+	GetConfOfServiceNode func(serviceNodeId string) []byte
 
 	/*
 		Apply ServiceConfig from client(cli/dashboard), service.controller needs to parse
