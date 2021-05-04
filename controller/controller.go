@@ -143,13 +143,29 @@ type ASNService struct {
 	GetConfOfServiceNode func(serviceNodeId string) []byte
 
 	/*
-		Apply ServiceConfig from client(cli/dashboard), service.controller needs to parse
-		ServiceCONFIG to operations for each service node. This interface has two versions:
+		Apply OPERATION command from client(cli/dashboard), service.controller needs to parse
+		the operations for each service node. This interface has two versions:
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyConfigToNetwork      func(networkId string, conf []byte) error
-	ApplyConfigToServiceNodes func(serviceNodes []string, conf []byte) error
+	ApplyOpsToNetwork      func(networkId string, ops []byte) error
+	ApplyOpsToServiceNodes func(serviceNodes []string, ops []byte) error
+
+	/*
+		Apply START command with the configuration from client(cli/dashboard), This interface has two versions:
+			- ApplyConfig() applies the config on all service nodes in the network.
+			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
+	*/
+	ApplyStartToNetwork      func(networkId string, conf []byte) error
+	ApplyStartToServiceNodes func(serviceNodes []string, conf []byte) error
+
+	/*
+		Apply STOP command from client(cli/dashboard),  This interface has two versions:
+			- ApplyConfig() applies the config on all service nodes in the network.
+			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
+	*/
+	ApplyStopToNetwork      func(networkId string) error
+	ApplyStopToServiceNodes func(serviceNodes []string) error
 
 	/*
 		Get service node's service config status, ENABLED or not.
