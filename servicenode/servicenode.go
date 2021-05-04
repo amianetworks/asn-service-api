@@ -105,12 +105,6 @@ type ASNService struct {
 	*/
 	ApplyServiceOps func(ops []byte, c chan error)
 
-	/*
-		Read the current configuration of the service,
-		this method cannot be blocked, read the service configuration and return immediately
-	*/
-	DumpConf func() ([]byte, error)
-
 
 	/*
 		Stop the service with the configuration.

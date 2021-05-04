@@ -71,31 +71,31 @@ type API interface {
 	SendServiceOps(serviceNodeId string, serviceName string, serviceOps []byte) error
 
 	/*
-		Read the service configuration by network id and service name,
-		The returning []byte is the config/rule/policies struct defined in service.controller,
-		Use JSON.Unmarshall to converting the []byte to the Config struct
+		Read the service COnf by network id and service name,
+		The setting []byte is the config/rule/policies struct defined in service.controller,
+		Use Unmarshall to converting the []byte to the Conf struct
 	*/
-	ReadConfOfNetwork(networkId string, serviceName string) ([]byte, error)
-	ReadConfOfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
+	ReadSConfOfNetwork(networkId string, serviceName string) ([]byte, error)
+	ReadSConfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
 
 	/*
-		Set the service configuration by network id and service name,
-		the config []byte is Marshalled by using JSON.Marshall()
-		Write the service config to a specific service node by ASN controller
+		Set the service setting by network id and service name,
+		the Conf []byte is Marshalled
+		Write the service setting to a specific service node by ASN controller
 	*/
 	SaveConfOfNetwork(networkId string, serviceName string, config []byte) error
 	SaveConfOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
 
 	/*
 		CRUD (Create, Read, Update, Delete) operation for the service metadata.
-		The metadata []byte is Marshalled by using JSON.Marshall()
+		The metadata []byte is Marshalled
 	*/
 	ReadMetadataOfNetwork(networkId string, serviceName string, fileName string) ([]byte, error)
 	ReadMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) ([]byte, error)
 
-	// UpsertMetadata will create the metadata if it is not exist, otherwise will perform update
-	UpsertMetadataOfNetwork(networkId string, serviceName string, fileName string, metadata []byte) error
-	UpsertMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string, metadata []byte) error
+	// SaveMetadata will create the metadata if it is not exist, otherwise will
+	SaveMetadataOfNetwork(networkId string, serviceName string, fileName string, metadata []byte) error
+	SaveMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string, metadata []byte) error
 
 	DeleteMetadataOfNetwork(networkId string, serviceName string, fileName string) error
 	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
