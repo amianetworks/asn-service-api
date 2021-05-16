@@ -11,6 +11,9 @@ type Version struct {
 	Build string
 }
 
+/*
+	Init helper function for the ASN formatted Version
+ */
 func InitVersion(versionStr string) (Version, error) {
 	versionParts := strings.Split(versionStr, ".")
 	if len(versionParts) != 3 {

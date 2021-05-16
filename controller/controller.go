@@ -37,12 +37,12 @@ type API interface {
 	GetNetworks() ([]Network, error)
 
 	/*
-		Get service nodes of network
+		Get all nodes of network
 	*/
 	GetNodesOfNetwork(networkId string) ([]Node, error)
 
 	/*
-		Get all nodes of the network node.
+		Get all nodes of the parent.
 	*/
 	GetNodesOfParent(networkNodeId string) ([]Node, error)
 
@@ -102,7 +102,7 @@ type API interface {
 
 	/*
 		Init the ASN logger. This logger is different with the 'defaultLogger' that passed by the Init() function.
-			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
+			- defaultLogger is the log system that managed by the ASN framework, which is writing log to the specific path defined by the controller
 			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
 	*/
 	InitASNLogger(serviceName string, logPath string) (*commonapi.ASNLogger, error)

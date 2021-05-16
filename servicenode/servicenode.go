@@ -36,11 +36,6 @@ type Netif struct {
 	Other      []string
 }
 
-// Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
-type Status struct {
-	Enabled bool
-}
-
 // This struct will be declared in service side and implemented by ASN Service Node
 type ServiceNode struct {
 	API API
@@ -60,19 +55,17 @@ type ASNService struct {
 		Initialize the service, this method will be called under a go routine
 
 		input parameters:
-		1. configPath:
-			Service MUST use this configPath to load the service configurations, if not found
-		2. defaultLogger:
+		 1. defaultLogger:
 			- If service want output the log to the asn service node's log, use this logger.
 			- If the service want to maintain their own log, please init a new logger. For details, please refer to shared/logger.go
-		3. the return value to channel indicate service state:
+		 2. the return value to channel indicate service state:
 			- if error is nil, the service node will assign the state INITIALIZED to the service
 			- if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
 
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Init func(configPath string, defaultLogger *commonapi.ASNLogger, c chan error)
+	Init func(defaultLogger *commonapi.ASNLogger, c chan error)
 
 	/*
 		Start the service with the configuration.
