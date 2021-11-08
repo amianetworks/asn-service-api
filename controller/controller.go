@@ -40,12 +40,12 @@ type API interface {
 	/*
 		Get all nodes of network
 	*/
-	GetNodesOfNetwork(networkId string) ([]Node, error)
+	GetNodesOfNetwork(networkId, serviceName string) ([]Node, error)
 
 	/*
 		Get all nodes of the parent.
 	*/
-	GetNodesOfParent(networkNodeId string) ([]Node, error)
+	GetNodesOfParent(networkNodeId, serviceName string) ([]Node, error)
 
 	/*
 		Get node by id
