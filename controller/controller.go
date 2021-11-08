@@ -21,6 +21,7 @@ type Node struct {
 	ParentId       string
 	ExternalLinked []string
 	InternalLinked []string
+	Services       map[string]bool
 }
 
 // ServiceStatus Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
