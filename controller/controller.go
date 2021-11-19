@@ -8,17 +8,12 @@ import (
 	Struct used between asn.controller and service.controller,
 */
 
-// Network struct
-type Network struct {
-	Id string
-}
-
 // Node struct
 type Node struct {
 	Id             string
 	Type           string
-	NetworkId      string
 	ParentId       string
+	Group          string
 	ExternalLinked []string
 	InternalLinked []string
 	Services       map[string]bool
@@ -31,16 +26,15 @@ type ServiceStatus struct {
 
 // API provided by ASN controller
 type API interface {
-
-	/*
-		Get all networks under asn controller
-	*/
-	GetNetworks() ([]Network, error)
-
 	/*
 		Get all nodes of network
 	*/
 	GetNodesOfNetwork(networkId, serviceName string) ([]Node, error)
+
+	/*
+		Get all nodes of group
+	*/
+	GetNodesOfGroup(groupName, serviceName string) ([]Node, error)
 
 	/*
 		Get all nodes of the parent.
@@ -77,6 +71,7 @@ type API interface {
 		Use Unmarshall to converting the []byte to the Conf struct
 	*/
 	ReadConfOfNetwork(networkId string, serviceName string) ([]byte, error)
+	ReadConfOfGroup(groupName string, serviceName string) ([]byte, error)
 	ReadConfOfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
 
 	/*
@@ -85,6 +80,7 @@ type API interface {
 		Write the service setting to a specific service node by ASN controller
 	*/
 	SaveConfOfNetwork(networkId string, serviceName string, config []byte) error
+	SaveConfOfGroup(groupName string, serviceName string, config []byte) error
 	SaveConfOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
 
 	/*
@@ -92,13 +88,16 @@ type API interface {
 		The metadata []byte is Marshalled
 	*/
 	ReadMetadataOfNetwork(networkId string, serviceName string, fileName string) ([]byte, error)
+	ReadMetadataOfGroup(groupName string, serviceName string, fileName string) ([]byte, error)
 	ReadMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) ([]byte, error)
 
 	// SaveMetadata will create the metadata if it is not exist, otherwise will
 	SaveMetadataOfNetwork(networkId string, serviceName string, fileName string, metadata []byte) error
+	SaveMetadataOfGroup(groupName string, serviceName string, fileName string, metadata []byte) error
 	SaveMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string, metadata []byte) error
 
 	DeleteMetadataOfNetwork(networkId string, serviceName string, fileName string) error
+	DeleteMetadataOfGroup(groupName string, serviceName string, fileName string) error
 	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
 
 	/*
@@ -141,6 +140,7 @@ type ASNService struct {
 		but it's safer to read current or latest configuration directly from the service controller.
 	*/
 	GetConfOfNetwork     func(networkId string) []byte
+	GetConfOfGroup       func(networkId string) []byte
 	GetConfOfServiceNode func(serviceNodeId string) []byte
 
 	/*
@@ -150,6 +150,7 @@ type ASNService struct {
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
 	ApplyOpsToNetwork      func(networkId string, ops []byte) error
+	ApplyOpsToGroup        func(networkId string, ops []byte) error
 	ApplyOpsToServiceNodes func(serviceNodes []string, ops []byte) error
 
 	/*
@@ -158,6 +159,7 @@ type ASNService struct {
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
 	ApplyStartToNetwork      func(networkId string, conf []byte) error
+	ApplyStartToGroup        func(groupName string, conf []byte) error
 	ApplyStartToServiceNodes func(serviceNodes []string, conf []byte) error
 
 	/*
@@ -166,6 +168,7 @@ type ASNService struct {
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
 	ApplyStopToNetwork      func(networkId string) error
+	ApplyStopToGroup        func(groupName string) error
 	ApplyStopToServiceNodes func(serviceNodes []string) error
 
 	/*
