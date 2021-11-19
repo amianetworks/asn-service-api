@@ -29,7 +29,7 @@ type API interface {
 	/*
 		Get all nodes of network
 	*/
-	GetNodesOfNetwork(networkId, serviceName string) ([]Node, error)
+	GetNodesOfNetwork(serviceName string) ([]Node, error)
 
 	/*
 		Get all nodes of group
@@ -39,12 +39,12 @@ type API interface {
 	/*
 		Get all nodes of the parent.
 	*/
-	GetNodesOfParent(networkNodeId, serviceName string) ([]Node, error)
+	GetNodesOfParent(parentNodeId, serviceName string) ([]Node, error)
 
 	/*
 		Get node by id
 	*/
-	GetNodeById(id string) (Node, error)
+	GetNodeById(id, serviceName string) (Node, error)
 
 	/*
 		Send START cmd to the service node with the specific service name
@@ -70,7 +70,7 @@ type API interface {
 		The setting []byte is the config/rule/policies struct defined in service.controller,
 		Use Unmarshall to converting the []byte to the Conf struct
 	*/
-	ReadConfOfNetwork(networkId string, serviceName string) ([]byte, error)
+	ReadConfOfNetwork(serviceName string) ([]byte, error)
 	ReadConfOfGroup(groupName string, serviceName string) ([]byte, error)
 	ReadConfOfServiceNode(serviceNodeId string, serviceName string) ([]byte, error)
 
@@ -79,7 +79,7 @@ type API interface {
 		the Conf []byte is Marshalled
 		Write the service setting to a specific service node by ASN controller
 	*/
-	SaveConfOfNetwork(networkId string, serviceName string, config []byte) error
+	SaveConfOfNetwork(serviceName string, config []byte) error
 	SaveConfOfGroup(groupName string, serviceName string, config []byte) error
 	SaveConfOfServiceNode(serviceNodeId string, serviceName string, config []byte) error
 
@@ -87,16 +87,15 @@ type API interface {
 		CRUD (Create, Read, Update, Delete) operation for the service metadata.
 		The metadata []byte is Marshalled
 	*/
-	ReadMetadataOfNetwork(networkId string, serviceName string, fileName string) ([]byte, error)
+	ReadMetadataOfNetwork(serviceName string, fileName string) ([]byte, error)
 	ReadMetadataOfGroup(groupName string, serviceName string, fileName string) ([]byte, error)
 	ReadMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) ([]byte, error)
 
-	// SaveMetadata will create the metadata if it is not exist, otherwise will
-	SaveMetadataOfNetwork(networkId string, serviceName string, fileName string, metadata []byte) error
+	SaveMetadataOfNetwork(serviceName string, fileName string, metadata []byte) error
 	SaveMetadataOfGroup(groupName string, serviceName string, fileName string, metadata []byte) error
 	SaveMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string, metadata []byte) error
 
-	DeleteMetadataOfNetwork(networkId string, serviceName string, fileName string) error
+	DeleteMetadataOfNetwork(serviceName string, fileName string) error
 	DeleteMetadataOfGroup(groupName string, serviceName string, fileName string) error
 	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
 
