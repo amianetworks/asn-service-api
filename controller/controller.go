@@ -138,8 +138,8 @@ type ASNService struct {
 		Service may have saved the configuration to DB,
 		but it's safer to read current or latest configuration directly from the service controller.
 	*/
-	GetConfOfNetwork     func(networkId string) []byte
-	GetConfOfGroup       func(networkId string) []byte
+	GetConfOfNetwork     func() []byte
+	GetConfOfGroup       func(groupName string) []byte
 	GetConfOfServiceNode func(serviceNodeId string) []byte
 
 	/*
@@ -148,8 +148,8 @@ type ASNService struct {
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyOpsToNetwork      func(networkId string, ops []byte) error
-	ApplyOpsToGroup        func(networkId string, ops []byte) error
+	ApplyOpsToNetwork      func(ops []byte) error
+	ApplyOpsToGroup        func(groupName string, ops []byte) error
 	ApplyOpsToServiceNodes func(serviceNodes []string, ops []byte) error
 
 	/*
@@ -157,7 +157,7 @@ type ASNService struct {
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyStartToNetwork      func(networkId string, conf []byte) error
+	ApplyStartToNetwork      func(conf []byte) error
 	ApplyStartToGroup        func(groupName string, conf []byte) error
 	ApplyStartToServiceNodes func(serviceNodes []string, conf []byte) error
 
@@ -166,7 +166,7 @@ type ASNService struct {
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyStopToNetwork      func(networkId string) error
+	ApplyStopToNetwork      func() error
 	ApplyStopToGroup        func(groupName string) error
 	ApplyStopToServiceNodes func(serviceNodes []string) error
 
