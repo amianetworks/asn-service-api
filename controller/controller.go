@@ -19,6 +19,11 @@ type Node struct {
 	Services       map[string]bool
 }
 
+type Group struct {
+	Name  string
+	Nodes []string
+}
+
 // ServiceStatus Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
 type ServiceStatus struct {
 	Enabled bool
@@ -30,6 +35,11 @@ type API interface {
 		Get all nodes of network
 	*/
 	GetNodesOfNetwork(serviceName string) ([]Node, error)
+
+	/*
+		Get all groups of network
+	*/
+	GetGroupsOfNetwork(serviceName string) ([]Group, error)
 
 	/*
 		Get all nodes of group
