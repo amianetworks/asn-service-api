@@ -26,6 +26,11 @@ type API interface {
 			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
 	*/
 	InitASNLogger(serviceName string, logPath string) (*commonapi.ASNLogger, error)
+
+	/*
+		Get ASN Service Node running Mode, currently support 'cluster', 'standalone' and 'hybrid' mode
+	*/
+	GetServiceNodeRunningMode() (string, error)
 }
 
 // Network interface struct
@@ -81,7 +86,7 @@ type ASNService struct {
 
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	 */
+	*/
 	Start func(config []byte, c chan error)
 
 	/*
@@ -97,7 +102,6 @@ type ASNService struct {
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
 	ApplyServiceOps func(ops []byte, c chan error)
-
 
 	/*
 		Stop the service with the configuration.
