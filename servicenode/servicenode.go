@@ -31,6 +31,11 @@ type API interface {
 		Get ASN Service Node running Mode, currently support 'cluster', 'standalone' and 'hybrid' mode
 	*/
 	GetServiceNodeRunningMode() (string, error)
+
+	/*
+		Get ASN Service Node type, currently support 'server', 'appliance'
+	 */
+	GetServiceNodeType() string
 }
 
 // Network interface struct
