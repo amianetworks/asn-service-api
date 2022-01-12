@@ -148,9 +148,9 @@ type ASNService struct {
 		Service may have saved the configuration to DB,
 		but it's safer to read current or latest configuration directly from the service controller.
 	*/
-	GetConfOfNetwork     func() ([]byte,error)
-	GetConfOfGroup       func(groupName string) ([]byte,error)
-	GetConfOfServiceNode func(serviceNodeId string) ([]byte,error)
+	GetConfOfNetwork     func() []byte
+	GetConfOfGroup       func(groupName string) ([]byte, error)
+	GetConfOfServiceNode func(serviceNodeId string) ([]byte, error)
 
 	/*
 		Apply OPERATION command from client(cli/dashboard), service.controller needs to parse
@@ -184,13 +184,13 @@ type ASNService struct {
 		Get service node's service config status, ENABLED or not.
 		Service Controller must maintain this "status" of configuration and report it accordingly.
 	*/
-	GetStatusOfServiceNode func(serviceNodeId string) (ServiceStatus,error)
+	GetStatusOfServiceNode func(serviceNodeId string) (ServiceStatus, error)
 
 	/*
 		Get the applied serviceOps of the service node.
 		ASN Controller may call it in the case reconfiguration is needed for a service node.
 	*/
-	GetOpsOfServiceNode func(serviceNodeId string) ([]byte,error)
+	GetOpsOfServiceNode func(serviceNodeId string) ([]byte, error)
 
 	/*
 		Received the metadata from the service in the service node
