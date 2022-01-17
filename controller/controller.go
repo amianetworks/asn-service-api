@@ -57,6 +57,11 @@ type API interface {
 	GetNodeById(id, serviceName string) (Node, error)
 
 	/*
+		Get group by group name
+	 */
+	GetGroupByName(groupName string)(Group, error)
+
+	/*
 		Send START cmd to the service node with the specific service name
 		The config is a pre-defined struct. Both of service.controller and service.sn has the same struct,
 		so they can easily use xxx.Marshall() and xxx.Unmarshall() to convert the struct between []byte and the struct
