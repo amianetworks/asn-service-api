@@ -58,8 +58,8 @@ type API interface {
 
 	/*
 		Get group by group name
-	 */
-	GetGroupByName(groupName string)(Group, error)
+	*/
+	GetGroupByName(groupName string) (Group, error)
 
 	/*
 		Send START cmd to the service node with the specific service name
@@ -189,6 +189,8 @@ type ASNService struct {
 		Get service node's service config status, ENABLED or not.
 		Service Controller must maintain this "status" of configuration and report it accordingly.
 	*/
+	GetStatusOfNetwork     func() ServiceStatus
+	GetStatusOfGroup       func(groupName string) (ServiceStatus, error)
 	GetStatusOfServiceNode func(serviceNodeId string) (ServiceStatus, error)
 
 	/*
