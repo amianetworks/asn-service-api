@@ -24,9 +24,14 @@ type Group struct {
 	Nodes []string
 }
 
-// ServiceStatus Service status struct, this is a MUST have! ServiceStatus.Enabled indicates the service state from the asn.controller's view
+/*
+	ServiceStatus Service status struct, this is a MUST have!
+	ServiceStatus.Enabled indicates the service state from the asn.controller's view
+	ServiceStatus.Extra is an option for the service providing extra status
+ */
 type ServiceStatus struct {
 	Enabled bool
+	Extra   []byte
 }
 
 // API provided by ASN controller
