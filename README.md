@@ -1,20 +1,22 @@
 # ASN Service API
 
 ## Description
-The repository is a shared package ASN Services built as plugins.
-The latest release is 1.0.0.
+ASN(AI-Driving Secure Networking) is a distributed framework of secure network functions.
+This API package is shared by all ANS severices built as plugins. To build a ASN Distributed Service, use the template package to start.
+
+
+The latest stable version is 1.8.0.
 
 ## API Layout
     .
-    ├── controller    // API for Service Controller
-    ├── logger        // ASN formatted logger
-    └── servicenode   // API for Service Node
+    ├── controller    // Local API for Service Controller, which manage distributed services.
+    ├── servicenode   // Local API for Service Node, which connects to the controller or run in standalone mode.
+    └── logger        // Formatted logger
 
-## Preparations
-1. Make sure you're using the lastest stable versions of ASN Controller and Service Node, which should have been built with the latest tagged API.
-2. Build an example project, e.g. firewall, and try to load it as a plugin module.
-3. Check with ASN Controller/Service Node developer about the API version in use.
+## Development Preparations
+1. Check the versions of ASN Controller and Service Nodes, and check out the corresponding version of API.
+2. It's strongly suggested to use the latest stable version of ASN framework.
+3. A ASN service will be built as a plugins. (Please search and learn how Golang plugin works)
 
-## Which version to use
-1. It's recommended starting a new project based on a template project, so that you don't need to specify the API version.
-2. The latest tagged release is always recommended, unless you know which specific version, tagged, you need
+## NEED TO KNOW
+This is a sub-project and has API only.
