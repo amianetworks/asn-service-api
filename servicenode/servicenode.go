@@ -54,6 +54,19 @@ type ASNService interface {
 	GetName() string
 
 	/*
+		Initialize the service, this method will be called under a go routine
+
+		input parameters:
+		 c: the return value to channel indicate service state:
+			- if error is nil, the service node will assign the state INITIALIZED to the service
+			- if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
+
+		Caution: the service node will have a timeout context (20s) to process the initialization,
+				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
+	*/
+	Init(c chan error)
+
+	/*
 		Start the service with the configuration.
 
 		input parameters:
