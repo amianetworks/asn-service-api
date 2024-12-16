@@ -5,15 +5,14 @@ import (
 	"strconv"
 	"strings"
 )
+
 type Version struct {
 	Major uint64
 	Minor uint64
 	Build string
 }
 
-/*
-	Init helper function for the ASN formatted Version
- */
+// InitVersion /*
 func InitVersion(versionStr string) (Version, error) {
 	versionParts := strings.Split(versionStr, ".")
 	if len(versionParts) != 3 {

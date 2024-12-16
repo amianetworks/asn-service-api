@@ -1,7 +1,7 @@
 package snapi
 
 import (
-	"github.com/amianetworks/asn-service-api/common"
+	commonapi "github.com/amianetworks/asn-service-api/v2/common"
 )
 
 /*
@@ -21,11 +21,9 @@ type API interface {
 	SendMetadataToController(serviceName string, metadata []byte) error
 
 	/*
-		Init the ASN logger. This logger is different with the 'defaultLogger' that passed by the Init() function.
-			- defaultLogger is the log system that managed by the ASN framework, which is writing log to '/var/log/asn.log'
-			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
+		Write the log to your service path. This is based on am.module logs
 	*/
-	InitASNLogger(serviceName string, logPath string) (*commonapi.ASNLogger, error)
+	PrintLog(logType, logLevel, op, subject, object, data, code string, err error, meta map[string]interface{}) error
 
 	/*
 		Get ASN Service Node running Mode, currently support 'cluster', 'standalone' and 'hybrid' mode
@@ -34,11 +32,13 @@ type API interface {
 
 	/*
 		Get ASN Service Node type, currently support 'server', 'appliance'
-	 */
+	*/
 	GetServiceNodeType() string
 }
 
-// Network interface struct
+/*
+Netif Network interface struct
+*/
 type Netif struct {
 	Data       []string
 	Control    []string
@@ -46,15 +46,12 @@ type Netif struct {
 	Other      []string
 }
 
-// This struct will be declared in service side and implemented by ASN Service Node
+// ServiceNode /*
 type ServiceNode struct {
 	API API
 }
 
-/*
-	This struct provides the service's API for the Service Node usage,
-	will be implement by service and used by ASN Service Node
-*/
+// ASNService /*
 type ASNService struct {
 	/*
 		Service name, it is important to have the same name with capi.ASNService.Name
@@ -65,17 +62,14 @@ type ASNService struct {
 		Initialize the service, this method will be called under a go routine
 
 		input parameters:
-		 1. defaultLogger:
-			- If service want output the log to the asn service node's log, use this logger.
-			- If the service want to maintain their own log, please init a new logger. For details, please refer to shared/logger.go
-		 2. the return value to channel indicate service state:
+		 c: the return value to channel indicate service state:
 			- if error is nil, the service node will assign the state INITIALIZED to the service
 			- if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
 
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Init func(defaultLogger *commonapi.ASNLogger, c chan error)
+	Init func(c chan error)
 
 	/*
 		Start the service with the configuration.
@@ -96,10 +90,10 @@ type ASNService struct {
 
 	/*
 		Apply the service operations to the service.
-		Service operations will not changing the service status (enabled/disabled),
+		Service operations will not change the service status (enabled/disabled),
 		but will do some runtime operations such as: insert/delete/getXXX/setXXX
 		Apply the configuration to the service, this method will be called under a go routine, the return value to channel indicate service state:
-		if error is nil, the service node will remain the previous state (CONFIGED/INITIALIZED)
+		if error is nil, the service node will remain the previous state (CONFIGURED/INITIALIZED)
 		if error is NOT nil, the service node will try to init the service and re-apply the configuration for 3 times,
 			  after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
 

@@ -1,7 +1,7 @@
 package capi
 
 import (
-	"github.com/amianetworks/asn-service-api/common"
+	commonapi "github.com/amianetworks/asn-service-api/v2/common"
 )
 
 /*
@@ -25,10 +25,10 @@ type Group struct {
 }
 
 /*
-	ServiceStatus Service status struct, this is a MUST have!
-	ServiceStatus.Enabled indicates the service state from the asn.controller's view
-	ServiceStatus.Extra is an option for the service providing extra status
- */
+ServiceStatus Service status struct, this is a MUST-have!
+ServiceStatus.Enabled indicates the service state from the asn.controller's view
+ServiceStatus.Extra is an option for the service providing extra status
+*/
 type ServiceStatus struct {
 	Enabled bool
 	Extra   []byte
@@ -120,11 +120,9 @@ type API interface {
 	DeleteMetadataOfServiceNode(serviceNodeId string, serviceName string, fileName string) error
 
 	/*
-		Init the ASN logger. This logger is different with the 'defaultLogger' that passed by the Init() function.
-			- defaultLogger is the log system that managed by the ASN framework, which is writing log to the specific path defined by the controller
-			- By using this API, you can init a private logger that is distinguished with the defaultLogger which mean you can save the log to the service defined path
+		Write the log to your service path. This is based on am.module logs
 	*/
-	InitASNLogger(serviceName string, logPath string) (*commonapi.ASNLogger, error)
+	PrintLog(logType, logLevel, op, subject, object, data, code string, err error, meta map[string]interface{}) error
 }
 
 // ASNController struct will be declared in service side and implemented by ASN controller
@@ -133,8 +131,8 @@ type ASNController struct {
 }
 
 /*
-	ASNService struct provides the service's API for the ASN Controller usage,
-	will be implement by service and used by ASN controller
+ASNService struct provides the service's API for the ASN Controller usage,
+will be implemented by service and used by ASN controller
 */
 type ASNService struct {
 	/*
@@ -145,7 +143,7 @@ type ASNService struct {
 	/*
 		Initialize the service
 	*/
-	Init func(defaultLogger *commonapi.ASNLogger) error
+	Init func() error
 
 	/*
 		Get the default runtime configuration of the service.
