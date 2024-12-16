@@ -34,8 +34,8 @@ type ServiceStatus struct {
 	Extra   []byte
 }
 
-// API provided by ASN controller
-type API interface {
+// ASNController API provided by ASN controller
+type ASNController interface {
 	/*
 		Get all nodes of network
 	*/
@@ -125,40 +125,30 @@ type API interface {
 	PrintLog(logType, logLevel, op, subject, object, data, code string, err error, meta map[string]interface{}) error
 }
 
-// ASNController struct will be declared in service side and implemented by ASN controller
-type ASNController struct {
-	API API
-}
-
 /*
-ASNService struct provides the service's API for the ASN Controller usage,
+ASNService interface provides the service's API for the ASN Controller usage,
 will be implemented by service and used by ASN controller
 */
-type ASNService struct {
+type ASNService interface {
 	/*
 		Service name, it is important to have the same name with capi.ASNService.Name
 	*/
-	Name string
-
-	/*
-		Initialize the service
-	*/
-	Init func() error
+	GetName() string
 
 	/*
 		Get the default runtime configuration of the service.
 		Service should return nil if no default config needed. //TODO: nil handling
 	*/
-	GetDefaultConf func() []byte
+	GetDefaultConf() []byte
 
 	/*
 		Get the *current* configuration of the service network/node.
 		Service may have saved the configuration to DB,
 		but it's safer to read current or latest configuration directly from the service controller.
 	*/
-	GetConfOfNetwork     func() []byte
-	GetConfOfGroup       func(groupName string) ([]byte, error)
-	GetConfOfServiceNode func(serviceNodeId string) ([]byte, error)
+	GetConfOfNetwork() []byte
+	GetConfOfGroup(groupName string) ([]byte, error)
+	GetConfOfServiceNode(serviceNodeId string) ([]byte, error)
 
 	/*
 		Apply OPERATION command from client(cli/dashboard), service.controller needs to parse
@@ -166,49 +156,49 @@ type ASNService struct {
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyOpsToNetwork      func(ops []byte) error
-	ApplyOpsToGroup        func(groupName string, ops []byte) error
-	ApplyOpsToServiceNodes func(serviceNodes []string, ops []byte) error
+	ApplyOpsToNetwork(ops []byte) error
+	ApplyOpsToGroup(groupName string, ops []byte) error
+	ApplyOpsToServiceNodes(serviceNodes []string, ops []byte) error
 
 	/*
 		Apply START command with the configuration from client(cli/dashboard), This interface has two versions:
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyStartToNetwork      func(conf []byte) error
-	ApplyStartToGroup        func(groupName string, conf []byte) error
-	ApplyStartToServiceNodes func(serviceNodes []string, conf []byte) error
+	ApplyStartToNetwork(conf []byte) error
+	ApplyStartToGroup(groupName string, conf []byte) error
+	ApplyStartToServiceNodes(serviceNodes []string, conf []byte) error
 
 	/*
 		Apply STOP command from client(cli/dashboard),  This interface has two versions:
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyStopToNetwork      func() error
-	ApplyStopToGroup        func(groupName string) error
-	ApplyStopToServiceNodes func(serviceNodes []string) error
+	ApplyStopToNetwork() error
+	ApplyStopToGroup(groupName string) error
+	ApplyStopToServiceNodes(serviceNodes []string) error
 
 	/*
 		Get service node's service config status, ENABLED or not.
 		Service Controller must maintain this "status" of configuration and report it accordingly.
 	*/
-	GetStatusOfNetwork     func() ServiceStatus
-	GetStatusOfGroup       func(groupName string) (ServiceStatus, error)
-	GetStatusOfServiceNode func(serviceNodeId string) (ServiceStatus, error)
+	GetStatusOfNetwork() ServiceStatus
+	GetStatusOfGroup(groupName string) (ServiceStatus, error)
+	GetStatusOfServiceNode(serviceNodeId string) (ServiceStatus, error)
 
 	/*
 		Get the applied serviceOps of the service node.
 		ASN Controller may call it in the case reconfiguration is needed for a service node.
 	*/
-	GetOpsOfServiceNode func(serviceNodeId string) ([]byte, error)
+	GetOpsOfServiceNode(serviceNodeId string) ([]byte, error)
 
 	/*
 		Received the metadata from the service in the service node
 	*/
-	ReceivedMetadataFromServiceNode func(serviceNodeId string, metadata []byte) error
+	ReceivedMetadataFromServiceNode(serviceNodeId string, metadata []byte) error
 
 	/*
 		GetVersion of the service
 	*/
-	GetVersion func() commonapi.Version
+	GetVersion() commonapi.Version
 }

@@ -8,8 +8,8 @@ import (
 	Struct used for service node and service communication
 */
 
-// API provided by ASN Service Node for Service uses
-type API interface {
+// ASNServiceNode provided by ASN Service Node for Service uses
+type ASNServiceNode interface {
 	/*
 		Get ASN managed netifs from Service node
 	*/
@@ -46,30 +46,12 @@ type Netif struct {
 	Other      []string
 }
 
-// ServiceNode /*
-type ServiceNode struct {
-	API API
-}
-
 // ASNService /*
-type ASNService struct {
+type ASNService interface {
 	/*
 		Service name, it is important to have the same name with capi.ASNService.Name
 	*/
-	Name string
-
-	/*
-		Initialize the service, this method will be called under a go routine
-
-		input parameters:
-		 c: the return value to channel indicate service state:
-			- if error is nil, the service node will assign the state INITIALIZED to the service
-			- if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
-
-		Caution: the service node will have a timeout context (20s) to process the initialization,
-				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	*/
-	Init func(c chan error)
+	GetName() string
 
 	/*
 		Start the service with the configuration.
@@ -86,7 +68,7 @@ type ASNService struct {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Start func(config []byte, c chan error)
+	Start(config []byte, c chan error)
 
 	/*
 		Apply the service operations to the service.
@@ -100,7 +82,7 @@ type ASNService struct {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	ApplyServiceOps func(ops []byte, c chan error)
+	ApplyServiceOps(ops []byte, c chan error)
 
 	/*
 		Stop the service with the configuration.
@@ -114,17 +96,17 @@ type ASNService struct {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Stop func(c chan error)
+	Stop(c chan error)
 
 	/*
 		Last call before the service node's termination. Do the necessary clean up here.
 	*/
-	Finish func() error
+	Finish() error
 
 	/*
 		GetVersion of the service,
 		share.Version provide the initializer (version parser) and a toString convert,
 		for details, please refer to share/version.go
 	*/
-	GetVersion func() commonapi.Version
+	GetVersion() commonapi.Version
 }
