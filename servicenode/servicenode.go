@@ -1,7 +1,7 @@
 package snapi
 
 import (
-	commonapi "github.com/amianetworks/asn-service-api/v2/common"
+	commonapi "github.com/amianetworks/asn-service-api/v25/common"
 )
 
 /*

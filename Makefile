@@ -1,4 +1,4 @@
-PACKAGE := github.com/amianetworks/asn-service-api/v2
+PACKAGE := github.com/amianetworks/asn-service-api/v25
 
 .PHONY: code-cleanup dependency-update code-inspection
 

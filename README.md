@@ -5,7 +5,7 @@ ASN(AI-Driving Secure Networking) is a distributed framework of secure network f
 This API package is shared by all ANS services built as plugins. To build an ASN Distributed Service, use the template package to start.
 
 
-The latest stable version is 1.8.0. 2.0.0 is also launched, but with a slightly different API design.
+The latest stable version is 1.8.0. 25.0.0 is also launched, but with a slightly different API design.
 
 ## API Layout
     .
