@@ -2,6 +2,7 @@ package snapi
 
 import (
 	commonapi "github.com/amianetworks/asn-service-api/v25/common"
+	"github.com/amianetworks/asn-service-api/v25/log"
 )
 
 /*
@@ -23,7 +24,7 @@ type ASNServiceNode interface {
 	/*
 		Write the log to your service path. This is based on am.module logs
 	*/
-	PrintLog(logType, logLevel, op, subject, object, data, code string, err error, meta map[string]interface{}) error
+	GetLogger(serviceName string) (*log.Logger, error)
 
 	/*
 		Get ASN Service Node running Mode, currently support 'cluster', 'standalone' and 'hybrid' mode
