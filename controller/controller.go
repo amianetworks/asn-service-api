@@ -124,6 +124,7 @@ type ASNController interface {
 		Write the log to your service path. This is based on am.module logs
 	*/
 	GetLogger(serviceName string) (*log.Logger, error)
+	GetIAM() (IAM, error)
 }
 
 /*
