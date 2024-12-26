@@ -139,16 +139,16 @@ type ASNService interface {
 
 	/*
 		Get the default runtime configuration of the service.
-		Service should return nil if no default config needed. //TODO: nil handling
+		Service should return nil if no default config needed.
 	*/
-	GetDefaultConf() []byte
+	GetDefaultConf() ([]byte, error)
 
 	/*
 		Get the *current* configuration of the service network/node.
 		Service may have saved the configuration to DB,
 		but it's safer to read current or latest configuration directly from the service controller.
 	*/
-	GetConfOfNetwork() []byte
+	GetConfOfNetwork() ([]byte, error)
 	GetConfOfGroup(groupName string) ([]byte, error)
 	GetConfOfServiceNode(serviceNodeId string) ([]byte, error)
 
@@ -184,7 +184,7 @@ type ASNService interface {
 		Get service node's service config status, ENABLED or not.
 		Service Controller must maintain this "status" of configuration and report it accordingly.
 	*/
-	GetStatusOfNetwork() ServiceStatus
+	GetStatusOfNetwork() (ServiceStatus, error)
 	GetStatusOfGroup(groupName string) (ServiceStatus, error)
 	GetStatusOfServiceNode(serviceNodeId string) (ServiceStatus, error)
 
