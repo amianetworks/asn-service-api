@@ -50,9 +50,9 @@ service Manager {
   rpc GetSNsServiceStateOfGroup (GetSNsServiceStateRequest) returns (Service.Services) {}
   rpc GetSNsServiceStateOfSNs (GetSNsServiceStateRequest) returns (Service.Services) {}
 
-  rpc GetServicesConfigOfNetwork (Empty) returns (GetServicesConfigResponse) {}
-  rpc GetServicesConfigOfGroup (Id) returns (GetServicesConfigResponse) {}
-  rpc GetServicesConfigOfNode(Id) returns (GetServicesConfigResponse) {}
+  rpc GetServicesConfigOfNetwork (Name) returns (GetServicesConfigResponse) {}
+  rpc GetServicesConfigOfGroup (NameAndID) returns (GetServicesConfigResponse) {}
+  rpc GetServicesConfigOfNode(NameAndID) returns (GetServicesConfigResponse) {}
 
   rpc ApplyServiceOps (ConfigRequest) returns (GeneralResponse) {}
   rpc StartService (ConfigRequest) returns (GeneralResponse) {}
@@ -96,6 +96,15 @@ message Empty{}
 
 message Id {
   string id = 1;
+}
+
+message Name {
+  string name = 1;
+}
+
+message NameAndID {
+  string name = 1;
+  string id = 2;
 }
 
 message LoginRequest {
@@ -182,9 +191,7 @@ message GetSNsServiceStateRequest {
 }
 
 message GetServicesConfigResponse {
-  bytes dmsConfig =  1;
-  bytes fwConfig = 2;
-  bytes myServiceConfig = 3;
+  bytes config = 1;
 }
 
 message ConfigRequest {
@@ -373,7 +380,7 @@ message Service {
     }
     string mode = 10;
   }
-  
+
   message Services {
     repeated Service services = 1;
   }
