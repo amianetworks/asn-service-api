@@ -21,8 +21,7 @@ ENV PATH="${PATH}:/etc/go/bin"
 
 # Plugin # TODO change this as needed
 RUN mkdir -p controller/build/plugins controller/build/config node/build/plugins servicenode/build/config
-RUN cd services/<PLUGIN>; \
-    make build; \
+RUN make build; \
     cp build/controller/*.so ../../controller/build/plugins/; \
     cp build/controller/*.conf ../../controller/build/config/; \
     cp build/servicenode/*.so ../../node/build/plugins/; \
