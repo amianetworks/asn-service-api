@@ -20,11 +20,7 @@ ENV PATH="${PATH}:/etc/go/bin"
 #RUN chmod 400 /root/.ssh/id_rsa
 
 # Plugin # TODO change this as needed
-RUN mkdir -p controller/build/plugins controller/build/config node/build/plugins servicenode/build/config
-RUN make build; \
-    cp build/controller/*.so ../../controller/build/plugins/; \
-    cp build/controller/*.conf ../../controller/build/config/; \
-    cp build/servicenode/*.so ../../node/build/plugins/; \
-    cp build/servicenode/*.conf ../../servicenode/build/config/
+COPY . /asn-compiler-dev
+RUN make build
 
 ENTRYPOINT ["bash"]
