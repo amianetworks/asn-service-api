@@ -21,6 +21,6 @@ ENV PATH="${PATH}:/etc/go/bin"
 
 # Plugin # TODO change this as needed
 COPY . /asn-compiler-dev
-RUN make build
+RUN make local
 
 ENTRYPOINT ["bash"]

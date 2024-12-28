@@ -1,18 +1,17 @@
 // Copyright 2024 Amiasys Corporation and/or its affiliates. All rights reserved.
 
-package cluster_test
+package main
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
-	"testing"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
-
-const n = 100
 
 type ASNC struct {
 	Log         Log         `yaml:"log"`
@@ -170,9 +169,22 @@ type SNService struct {
 	ConfigTimeout int    `yaml:"config_timeout"`
 }
 
-func TestGenerateCluster(t *testing.T) {
+func main() {
+	var n int
+	var err error
+	if len(os.Args) != 2 {
+		log.Println("args error, using default value: 100")
+		n = 1
+	} else {
+		n, err = strconv.Atoi(os.Args[1])
+		if err != nil {
+			log.Println("args error, using default value: 100")
+			n = 1
+		}
+	}
+
 	// generate controller file
-	err := os.MkdirAll("controller", 0755)
+	err = os.MkdirAll("controller", 0755)
 	err = os.MkdirAll("controller/config", 0755)
 	err = os.MkdirAll("controller/log", 0755)
 	if err != nil {
@@ -337,7 +349,7 @@ func TestGenerateCluster(t *testing.T) {
 		Restart:   "always",
 		DependsOn: []string{"asn-mdb", "asn-idb"},
 		Ports:     []string{"50051:50051"},
-		Volumes:   []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/"},
+		Volumes:   []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/", "./plugins/:/asn/plugins/"},
 	}
 
 	asncYaml, err := yaml.Marshal(asncD)
@@ -351,6 +363,11 @@ func TestGenerateCluster(t *testing.T) {
 
 	// make service node file
 	err = os.MkdirAll("servicenode", 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.MkdirAll("servicenode/plugins", 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -432,7 +449,7 @@ func TestGenerateCluster(t *testing.T) {
 					Image:         "registry.amiasys.com/asnsn:v25.0.0",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
-					Volumes:       []string{"./config/:/asn/config/", "./log/:/asn/log/"},
+					Volumes:       []string{"./config/:/asn/config/", "./log/:/asn/log/", "../plugins/:/asn/plugins/"},
 				}},
 		}
 		asnDY, err := yaml.Marshal(asnD)
