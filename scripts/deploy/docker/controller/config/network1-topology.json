@@ -1,0 +1,48 @@
+{
+  "network_id": "network1",
+  "network_name": "My test Network",
+  "topology": [
+    {
+      "node_name": "node1",
+      "nodeType": "networkNode",
+      "location": {"coordinates": {"latitude": 40.2539 , "longitude": 116.4551}, "address": "xxx street"},
+      "label": "CORE",
+      "external_linked": ["node2"],
+      "sub_nodes": [
+        {
+          "node_name": "switch1",
+          "nodeType": "switch",
+          "location": {"coordinates": {"latitude": 40.2539 , "longitude": 116.4551}, "address": "xxx street"},
+          "label": "CORE",
+          "external_linked": ["node2.switch1"],
+          "internal_linked": ["server1"]
+        },
+        {
+          "node_name": "server1",
+          "nodeType": "server",
+          "location": {"coordinates": {"latitude": 40.2539 , "longitude": 116.4551}, "address": "xxx street"},
+          "label": "CORE",
+          "external_linked": [],
+          "internal_linked": ["switch1"]
+        }
+      ]
+    },
+    {
+      "node_name": "node2",
+      "nodeType": "networkNode",
+      "location": {"coordinates": {"latitude": 32.084999, "longitude":118.800887}, "address": "xxx street"},
+      "label": "CORE",
+      "external_linked": ["node1"],
+      "sub_nodes": [
+        {
+          "node_name": "switch1",
+          "nodeType": "switch",
+          "location": {"coordinates": {"latitude": 40.2539 , "longitude": 116.4551}, "address": "xxx street"},
+          "label": "CORE",
+          "external_linked": ["node1.switch1"],
+          "internal_linked": []
+        }
+      ]
+    }
+  ]
+}

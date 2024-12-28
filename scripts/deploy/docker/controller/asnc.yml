@@ -1,0 +1,45 @@
+services:
+  asn-mdb:
+    container_name: asn-mdb
+    image: mongo:7.0  # the mongodb version
+    restart: always   # auto restart the container if it fails
+    ulimits:
+      nofile: 100000
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: amia  # db root username,
+      MONGO_INITDB_ROOT_PASSWORD: 2022  # db root user password
+    ports:
+      - "127.0.0.1:27017:27017"  # port forwarding (localPort:containerPort)
+    volumes:
+      - ./data/:/data/db  # data volumes, (localDirectory:containerDirectory)
+    command: --bind_ip_all --auth
+  asn-idb:
+    image: influxdb:1.11.8
+    container_name: asn-idb
+    ports:
+      - "127.0.0.1:8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    environment:
+      INFLUXDB_DB: asn
+      INFLUXDB_ADMIN_USER: amia
+      INFLUXDB_ADMIN_PASSWORD: 2022
+      INFLUXDB_USER: amia
+      INFLUXDB_USER_PASSWORD: 2022
+  asnc:
+    restart: always
+    image: registry.amiasys.com/asnc:v25.0.0
+    ports:
+      - "50051:50051"
+    depends_on:
+      - "asn-mdb"
+      - "asn-idb"
+    volumes:
+      - ./cert/:/asn/cert/
+      - ./config/:/asn/config/
+      - ./log/:/asn/log/
+      - ./plugins:/asn/plugins/
+
+volumes:
+  influxdb_data:
+    driver: local
