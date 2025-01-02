@@ -11,6 +11,7 @@ RUN wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
     tar -C /etc -xzf go1.23.4.linux-amd64.tar.gz && \
     rm -f go1.23.4.linux-amd64.tar.gz
 ENV PATH="${PATH}:/etc/go/bin"
+ENV GOPROXY="https://goproxy.io,direct"
 
 # TODO enable this if private repos are used
 #RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/"
