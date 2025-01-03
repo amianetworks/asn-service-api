@@ -13,11 +13,11 @@ RUN wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
 ENV PATH="${PATH}:/etc/go/bin"
 
 # TODO enable this if private repos are used
-#RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/"
-#ENV GOPRIVATE="github.com/amianetworks/*"
-#RUN mkdir -p /root/.ssh
-#COPY ./ssh /root/.ssh
-#RUN chmod 400 /root/.ssh/id_rsa
+RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/"
+ENV GOPRIVATE="github.com/amianetworks/*"
+RUN mkdir -p /root/.ssh
+COPY ./ssh /root/.ssh
+RUN chmod 400 /root/.ssh/id_rsa
 
 # Plugin # TODO change this as needed
 COPY . /asn-compiler-dev

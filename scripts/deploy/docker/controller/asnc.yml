@@ -9,7 +9,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: amia  # db root username,
       MONGO_INITDB_ROOT_PASSWORD: 2022  # db root user password
     ports:
-      - "127.0.0.1:27017:27017"  # port forwarding (localPort:containerPort)
+      - "27017:27017"  # port forwarding (localPort:containerPort)
     volumes:
       - ./data/:/data/db  # data volumes, (localDirectory:containerDirectory)
     command: --bind_ip_all --auth
@@ -17,7 +17,7 @@ services:
     image: influxdb:1.11.8
     container_name: asn-idb
     ports:
-      - "127.0.0.1:8086:8086"
+      - "8086:8086"
     volumes:
       - influxdb_data:/var/lib/influxdb
     environment:
@@ -28,7 +28,7 @@ services:
       INFLUXDB_USER_PASSWORD: 2022
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.0
+    image: registry.amiasys.com/asnc:v25.0.4
     ports:
       - "50051:50051"
     depends_on:
