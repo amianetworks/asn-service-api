@@ -28,7 +28,7 @@ services:
       INFLUXDB_USER_PASSWORD: 2022
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.4
+    image: registry.amiasys.com/asnc:v25.0.5
     ports:
       - "50051:50051"
     depends_on:
