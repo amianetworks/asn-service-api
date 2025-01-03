@@ -344,10 +344,25 @@ func main() {
 			"INFLUXDB_USER_PASSWORD":  "2022",
 		},
 	}
+	asncD.Services["sapphire-ldap"] = DockerService{
+		ContainerName: "sapphire-ldap",
+		Image:         "registry.amiasys.com/iam:v1.1.0",
+		Restart:       "always",
+		Ports:         []string{"18389:389/udp", "18389:389/tcp"},
+		Command:       ">\n      sh -c \"/etc/init.d/slapd start && tail -f /dev/null\"",
+	}
+	asncD.Services["sapphire-iam"] = DockerService{
+		ContainerName: "sapphire-iam",
+		Image:         "registry.amiasys.com/sapphire.iam:v25.0.1",
+		Restart:       "always",
+		Ports:         []string{"17930:17930", "17931:17931"},
+		Volumes:       []string{"./config/:/usr/local/sapphire/"},
+		DependsOn:     []string{"sapphire-ldap"},
+	}
 	asncD.Services["asnc"] = DockerService{
-		Image:     "registry.amiasys.com/asnc:v25.0.0",
+		Image:     "registry.amiasys.com/asnc:v25.0.5",
 		Restart:   "always",
-		DependsOn: []string{"asn-mdb", "asn-idb"},
+		DependsOn: []string{"asn-mdb", "asn-idb", "sapphire-ldap", "sapphire-iam"},
 		Ports:     []string{"50051:50051"},
 		Volumes:   []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/", "./plugins/:/asn/plugins/"},
 	}
@@ -446,7 +461,7 @@ func main() {
 		asnD := asncDocker{
 			Services: map[string]DockerService{
 				"asnsn": {
-					Image:         "registry.amiasys.com/asnsn:v25.0.0",
+					Image:         "registry.amiasys.com/asnsn:v25.0.1",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
 					Volumes:       []string{"./config/:/asn/config/", "./log/:/asn/log/", "../plugins/:/asn/plugins/"},

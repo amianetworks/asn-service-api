@@ -9,7 +9,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: amia  # db root username,
       MONGO_INITDB_ROOT_PASSWORD: 2022  # db root user password
     ports:
-      - "127.0.0.1:27017:27017"  # port forwarding (localPort:containerPort)
+      - "27017:27017"  # port forwarding (localPort:containerPort)
     volumes:
       - ./data/:/data/db  # data volumes, (localDirectory:containerDirectory)
     command: --bind_ip_all --auth
@@ -17,7 +17,7 @@ services:
     image: influxdb:1.11.8
     container_name: asn-idb
     ports:
-      - "127.0.0.1:8086:8086"
+      - "8086:8086"
     volumes:
       - influxdb_data:/var/lib/influxdb
     environment:
@@ -26,14 +26,37 @@ services:
       INFLUXDB_ADMIN_PASSWORD: 2022
       INFLUXDB_USER: amia
       INFLUXDB_USER_PASSWORD: 2022
+  sapphire-ldap:
+    image: registry.amiasys.com/iam:v1.1.0
+    container_name: sapphire-ldap
+    privileged: true
+    restart: always
+    ports:
+      - "18389:389/udp"
+      - "18389:389/tcp"
+    command: >
+      sh -c "/etc/init.d/slapd start && tail -f /dev/null"
+  sapphire-iam:
+    image: registry.amiasys.com/sapphire.iam:v25.0.1
+    container_name: sapphire-iam
+    restart: always
+    ports:
+      - "17930:17930"
+      - "17931:17931"
+    depends_on:
+      - "sapphire-ldap"
+    volumes:
+      - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.0
+    image: registry.amiasys.com/asnc:v25.0.5
     ports:
       - "50051:50051"
     depends_on:
       - "asn-mdb"
       - "asn-idb"
+      - "sapphire-ldap"
+      - "sapphire-iam"
     volumes:
       - ./cert/:/asn/cert/
       - ./config/:/asn/config/
