@@ -3,7 +3,6 @@
 package capi
 
 import (
-	"github.com/amianetworks/asn-service-api/v25/docdb"
 	"github.com/amianetworks/asn-service-api/v25/log"
 )
 
@@ -117,9 +116,4 @@ type ASNController interface {
 	*/
 	GetLogger(serviceName string) (*log.Logger, error)
 	GetIAM() (IAM, error)
-	GetDocDB(serviceName string) (docdb.Database, error)
-}
-
-type ASNDocDB[T any] interface {
-	FindOrCreateCollection(serviceName, collName string, options *docdb.CollOptions) (docdb.Collection[T], error)
 }
