@@ -117,9 +117,9 @@ type ASNController interface {
 	*/
 	GetLogger(serviceName string) (*log.Logger, error)
 	GetIAM() (IAM, error)
-	GetDocDB() (docdb.Database, error)
+	GetDocDB(serviceName string) (docdb.Database, error)
 }
 
 type ASNDocDB[T any] interface {
-	FindOrCreateCollection(name string, options *docdb.CollOptions) (docdb.Collection[T], error)
+	FindOrCreateCollection(serviceName, collName string, options *docdb.CollOptions) (docdb.Collection[T], error)
 }
