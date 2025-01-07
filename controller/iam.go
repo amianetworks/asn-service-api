@@ -35,7 +35,7 @@ type IAM interface {
 	Logout(sysType, username string) (err error)                                                                                                         // Logout allows the user logout and redirect to login page.
 
 	TokenRefresh(sysType, userClaims, refreshToken, accessToken string) (newAccessToken string, err error)                                            // TokenRefresh allows the user system to refresh access token.
-	TokenVerify(sysType, accessToken string) (err error)                                                                                              // TokenVerify allows the user system to verify valid of access token.
+	TokenVerify(sysType, accessToken string) (username string, userClaims string, err error)                                                          // TokenVerify allows the user system to verify valid of access token.
 	TokenRevoke(sysType, accessToken string) (err error)                                                                                              // TokenRefresh allows the user system to revoke access token.
 	RoleAdd(sysType, roleName, remark string) (err error)                                                                                             // RoleAdd allows the user system to add a new role.
 	RoleDelete(sysType, roleName string) (err error)                                                                                                  // RoleDelete allows the user system to delete a role.
