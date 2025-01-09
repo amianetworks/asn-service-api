@@ -3,6 +3,6 @@
 package capi
 
 type Lock interface {
-	Lock(string) error
-	Unlock(string) error
+	Lock(key, identifier string) error
+	Unlock(key, identifier string) error
 }
