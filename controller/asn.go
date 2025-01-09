@@ -116,4 +116,6 @@ type ASNController interface {
 	*/
 	GetLogger(serviceName string) (*log.Logger, error)
 	GetIAM() (IAM, error)
+	GetDBConfig(dbType string) (*DBConf, error)
+	GetLock() (Lock, error)
 }

@@ -353,14 +353,14 @@ func main() {
 	}
 	asncD.Services["sapphire-iam"] = DockerService{
 		ContainerName: "sapphire-iam",
-		Image:         "registry.amiasys.com/sapphire.iam:v25.0.1",
+		Image:         "registry.amiasys.com/sapphire.iam:v25.0.2",
 		Restart:       "always",
 		Ports:         []string{"17930:17930", "17931:17931"},
 		Volumes:       []string{"./config/:/usr/local/sapphire/"},
 		DependsOn:     []string{"sapphire-ldap"},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:     "registry.amiasys.com/asnc:v25.0.8",
+		Image:     "registry.amiasys.com/asnc:v25.0.9",
 		Restart:   "always",
 		DependsOn: []string{"asn-mdb", "asn-idb", "sapphire-ldap", "sapphire-iam"},
 		Ports:     []string{"50051:50051"},
@@ -461,7 +461,7 @@ func main() {
 		asnD := asncDocker{
 			Services: map[string]DockerService{
 				"asnsn": {
-					Image:         "registry.amiasys.com/asnsn:v25.0.5",
+					Image:         "registry.amiasys.com/asnsn:v25.0.6",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
 					Volumes:       []string{"./config/:/asn/config/", "./log/:/asn/log/", "../plugins/:/asn/plugins/"},

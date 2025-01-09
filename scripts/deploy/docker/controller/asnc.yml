@@ -36,7 +36,7 @@ services:
       - "18389:389/tcp"
     command: sh -c "/etc/init.d/slapd start && tail -f /dev/null"
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.0.1
+    image: registry.amiasys.com/sapphire.iam:v25.0.2
     container_name: sapphire-iam
     restart: always
     ports:
@@ -48,7 +48,7 @@ services:
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.8
+    image: registry.amiasys.com/asnc:v25.0.9
     ports:
       - "50051:50051"
     depends_on:
