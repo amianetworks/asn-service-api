@@ -115,7 +115,7 @@ type ASNController interface {
 		Write the log to your service path. This is based on am.module logs
 	*/
 	GetLogger(serviceName string) (*log.Logger, error)
-	GetIAM() (IAM, error)
-	GetDBConfig(dbType string) (*DBConf, error)
-	GetLock() (Lock, error)
+	GetIAM(serviceName string) (IAM, error)
+	GetDBConfig(serviceName string, dbType string) (*DBConf, error)
+	GetLock(serviceName string) (Lock, error)
 }
