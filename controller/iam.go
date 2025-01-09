@@ -3,18 +3,18 @@
 package capi
 
 type IAM interface {
-	AccountCreate(username string, password []byte, info map[string]string) (err error)        // AccountCreate allows the user system to create a new account.
-	AccountRemove(username string) (err error)                                                 // AccountRemove allows the user system to remove an existed account by username.
-	AccountList(filter map[string]string) (userList []string, err error)                       // AccountList allows the user system to query the existed account list.
-	AccountListReverse(filter, reverseFilter map[string]string) (userList []string, err error) // AccountListReverse allows the user system to query the existed account list.
-	AccountSelfDefineSearch(filter string) (userList []string, err error)                      // AccountSelfDefineSearch allows the user system to query the existed account list.
-	AccountInfoQuery(username string, info []string) (infoMap map[string]string, err error)    // AccountInfoQuery allows the user system to query information of an existed account.
-	AccountInfosQuery(username string, info []string) (infoMap map[string][]string, err error) // AccountInfosQuery allows the user system to query information of an existed account.
-	AccountInfoUpdate(username string, info map[string]string) (err error)                     // AccountInfoUpdate allows the user system to update information of an existed account.
-	AccountPasswordUpdate(username string, oldPassword, newPassword []byte) (err error)        // AccountPasswordUpdate allows the user system to update password of an existed account.
-	AccountPasswordReset(username string, newPassword []byte) (err error)                      // AccountPasswordReset allows the user system to reset password of an existed account.
-	AccountRecoverEmailSend(username string) (err error)                                       // AccountRecoverEmailSend allows the user system to send a verify code to user email.
-	AccountRecoverByEmail(username string, newPassword []byte, code string) (err error)        // AccountRecoverByEmail allows the user system to recover account by email.
+	AccountCreate(username string, password []byte, info map[string]string) (err error)                                    // AccountCreate allows the user system to create a new account.
+	AccountRemove(username string) (err error)                                                                             // AccountRemove allows the user system to remove an existed account by username.
+	AccountList(filter map[string]string) (userListFromASN, userListFromService []string, err error)                       // AccountList allows the user system to query the existed account list.
+	AccountListReverse(filter, reverseFilter map[string]string) (userListFromASN, userListFromService []string, err error) // AccountListReverse allows the user system to query the existed account list.
+	AccountSelfDefineSearch(filter string) (userListFromASN, userListFromService []string, err error)                      // AccountSelfDefineSearch allows the user system to query the existed account list.
+	AccountInfoQuery(username string, info []string) (infoMapFromASN, infoMapFromService map[string]string, err error)     // AccountInfoQuery allows the user system to query information of an existed account.
+	AccountInfosQuery(username string, info []string) (infoMapFromASN, infoMapFromService map[string][]string, err error)  // AccountInfosQuery allows the user system to query information of an existed account.
+	AccountInfoUpdate(username string, info map[string]string) (err error)                                                 // AccountInfoUpdate allows the user system to update information of an existed account.
+	AccountPasswordUpdate(username string, oldPassword, newPassword []byte) (err error)                                    // AccountPasswordUpdate allows the user system to update password of an existed account.
+	AccountPasswordReset(username string, newPassword []byte) (err error)                                                  // AccountPasswordReset allows the user system to reset password of an existed account.
+	AccountRecoverEmailSend(username string) (err error)                                                                   // AccountRecoverEmailSend allows the user system to send a verify code to user email.
+	AccountRecoverByEmail(username string, newPassword []byte, code string) (err error)                                    // AccountRecoverByEmail allows the user system to recover account by email.
 
 	UserGroupAdd(groupName string) (groupID string, err error)                       // UserGroupAdd allows the user system to add a new user group.
 	UserGroupDelete(groupID string) (err error)                                      // UserGroupDelete allows the user system to delete a new user group.
