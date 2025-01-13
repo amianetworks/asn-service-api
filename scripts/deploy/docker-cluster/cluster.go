@@ -315,6 +315,8 @@ func main() {
 		Services: map[string]DockerService{},
 		Volumes: map[string]Volume{
 			"influxdb_data": {Driver: "local"},
+			"ldap_slap":     {Driver: "local"},
+			"ldap_data":     {Driver: "local"},
 		},
 	}
 	asncD.Services["asn-mdb"] = DockerService{
@@ -349,6 +351,7 @@ func main() {
 		Image:         "registry.amiasys.com/iam:v1.1.0",
 		Restart:       "always",
 		Ports:         []string{"18389:389/udp", "18389:389/tcp"},
+		Volumes:       []string{"ldap_slap:/etc/ldap/slapd.d/", "ldap_data:/var/lib/ldap/"},
 		Command:       `sh -c "/etc/init.d/slapd start && tail -f /dev/null"`,
 	}
 	asncD.Services["sapphire-iam"] = DockerService{

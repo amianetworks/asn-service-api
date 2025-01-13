@@ -34,6 +34,9 @@ services:
     ports:
       - "18389:389/udp"
       - "18389:389/tcp"
+    volumes:
+      - ldap_slap:/etc/ldap/slapd.d/
+      - ldap_data:/var/lib/ldap/
     command: sh -c "/etc/init.d/slapd start && tail -f /dev/null"
   sapphire-iam:
     image: registry.amiasys.com/sapphire.iam:v25.0.2
@@ -64,4 +67,8 @@ services:
 
 volumes:
   influxdb_data:
+    driver: local
+  ldap_slap:
+    driver: local
+  ldap_data:
     driver: local
