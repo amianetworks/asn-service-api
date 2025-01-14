@@ -120,6 +120,7 @@ type DockerService struct {
 	Restart       string            `yaml:"restart,omitempty"`
 	Ulimits       map[string]int    `yaml:"ulimits,omitempty"`
 	Environment   map[string]string `yaml:"environment,omitempty"`
+	NetworkMode   string            `yaml:"network_mode,omitempty"`
 	Ports         []string          `yaml:"ports,omitempty"`
 	Volumes       []string          `yaml:"volumes,omitempty"`
 	Command       string            `yaml:"command,omitempty"`
@@ -214,14 +215,14 @@ func main() {
 			},
 		},
 		Mongodb: DB{
-			Host:     "172.17.0.1",
+			Host:     "localhost",
 			Port:     "27017",
 			Database: "asn",
 			Username: "amia",
 			Password: "2022",
 		},
 		Influx: DB{
-			Host:     "172.17.0.1",
+			Host:     "localhost",
 			Port:     "8086",
 			Database: "asn",
 			Username: "amia",
@@ -363,11 +364,11 @@ func main() {
 		DependsOn:     []string{"sapphire-ldap"},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:     "registry.amiasys.com/asnc:v25.0.11",
-		Restart:   "always",
-		DependsOn: []string{"asn-mdb", "asn-idb", "sapphire-ldap", "sapphire-iam"},
-		Ports:     []string{"50051:50051"},
-		Volumes:   []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/", "./plugins/:/asn/plugins/"},
+		Image:       "registry.amiasys.com/asnc:v25.0.11",
+		Restart:     "always",
+		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-ldap", "sapphire-iam"},
+		NetworkMode: "host",
+		Volumes:     []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/", "./plugins/:/asn/plugins/"},
 	}
 
 	asncYaml, err := yaml.Marshal(asncD)
