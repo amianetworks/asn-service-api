@@ -1,6 +1,9 @@
 package capi
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/cobra"
+
 	commonapi "github.com/amianetworks/asn-service-api/v25/common"
 )
 
@@ -90,4 +93,9 @@ type ASNService interface {
 		GetVersion of the service
 	*/
 	GetVersion() commonapi.Version
+}
+
+type ASNServiceAPIs interface {
+	GetCLICommands() *cobra.Command
+	GetWebHandler() *gin.RouterGroup
 }
