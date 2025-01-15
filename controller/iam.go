@@ -3,8 +3,6 @@
 package capi
 
 type IAM interface {
-	PluginRegister(sysType string) error
-
 	AccountCreate(username string, password []byte, info map[string]string) (err error)                                    // AccountCreate allows the user system to create a new account.
 	AccountRemove(username string) (err error)                                                                             // AccountRemove allows the user system to remove an existed account by username.
 	AccountList(filter map[string]string) (userListFromASN, userListFromService []string, err error)                       // AccountList allows the user system to query the existed account list.

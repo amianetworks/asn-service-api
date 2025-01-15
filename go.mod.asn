@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/amianetworks/am.modules/v25 v25.0.25
-	github.com/amianetworks/asn-service-api/v25 v25.1.23
+	github.com/amianetworks/asn-service-api/v25 v25.1.24
 	github.com/goccy/go-json v0.10.4
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/shirou/gopsutil/v3 v3.24.5
