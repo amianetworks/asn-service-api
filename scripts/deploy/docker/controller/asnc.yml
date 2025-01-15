@@ -39,7 +39,7 @@ services:
       - ldap_data:/var/lib/ldap/
     command: sh -c "/etc/init.d/slapd start && tail -f /dev/null"
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.0.2
+    image: registry.amiasys.com/sapphire.iam:v25.0.3
     container_name: sapphire-iam
     restart: always
     ports:
