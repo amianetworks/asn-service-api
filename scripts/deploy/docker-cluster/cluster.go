@@ -395,7 +395,7 @@ func main() {
 		DependsOn:     []string{"sapphire-ldap"},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:       "registry.amiasys.com/asnc:v25.0.13",
+		Image:       "registry.amiasys.com/asnc:v25.0.14",
 		Restart:     "always",
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-ldap", "sapphire-iam"},
 		NetworkMode: "host",
