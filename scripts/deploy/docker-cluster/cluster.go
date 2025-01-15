@@ -15,8 +15,7 @@ import (
 
 type ASNC struct {
 	Log         Log         `yaml:"log"`
-	Mongodb     DB          `yaml:"mongodb"`
-	Influx      DB          `yaml:"influxdbv1"`
+	DB          DBAll       `yaml:"db"`
 	Iam         Iam         `yaml:"iam"`
 	Grpc        GRPC        `yaml:"grpc"`
 	Network     Network     `yaml:"network"`
@@ -45,6 +44,16 @@ type DB struct {
 	Database string `yaml:"database_name"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+}
+
+type DBPair struct {
+	MongoDB  DB `yaml:"mongodb"`
+	InfluxDB DB `yaml:"influxdb"`
+}
+
+type DBAll struct {
+	Default DBPair            `yaml:"default"`
+	Plugins map[string]DBPair `yaml:"plugins"`
 }
 
 type Iam struct {
@@ -214,19 +223,41 @@ func main() {
 				Level:    "info",
 			},
 		},
-		Mongodb: DB{
-			Host:     "localhost",
-			Port:     "27017",
-			Database: "asn",
-			Username: "amia",
-			Password: "2022",
-		},
-		Influx: DB{
-			Host:     "localhost",
-			Port:     "8086",
-			Database: "asn",
-			Username: "amia",
-			Password: "2022",
+		DB: DBAll{
+			Default: DBPair{
+				MongoDB: DB{
+					Host:     "localhost",
+					Port:     "27017",
+					Database: "asn",
+					Username: "amia",
+					Password: "2022",
+				},
+				InfluxDB: DB{
+					Host:     "localhost",
+					Port:     "8086",
+					Database: "asn",
+					Username: "amia",
+					Password: "2022",
+				},
+			},
+			Plugins: map[string]DBPair{
+				"myservice": {
+					MongoDB: DB{
+						Host:     "localhost",
+						Port:     "27017",
+						Database: "asn",
+						Username: "amia",
+						Password: "2022",
+					},
+					InfluxDB: DB{
+						Host:     "localhost",
+						Port:     "8086",
+						Database: "asn",
+						Username: "amia",
+						Password: "2022",
+					},
+				},
+			},
 		},
 		Iam: Iam{
 			Host: "localhost",
