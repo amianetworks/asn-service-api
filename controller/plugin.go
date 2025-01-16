@@ -97,9 +97,9 @@ type ASNService interface {
 
 type ASNServiceAPIs interface {
 	GetCLICommands(
-		sendServiceApplyOpsCmdToNetwork func(plugin string, ops []byte),
-		sendServiceApplyOpsCmdToGroup func(plugin, group string, ops []byte),
-		sendServiceApplyOpsCmdToNodes func(plugin string, nodes []string, ops []byte),
+		sendServiceApplyOpsCmdToNetwork func(ops []byte),
+		sendServiceApplyOpsCmdToGroup func(group string, ops []byte),
+		sendServiceApplyOpsCmdToNodes func(nodes []string, ops []byte),
 	) []*cobra.Command // no need to include start/stop/show/status, only include ops
 
 	MountWebHandler() func(group *gin.RouterGroup) error
