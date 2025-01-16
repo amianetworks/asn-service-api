@@ -96,6 +96,6 @@ type ASNService interface {
 }
 
 type ASNServiceAPIs interface {
-	GetCLICommands() *cobra.Command
+	GetCLICommands() []*cobra.Command // no need to include start/stop/show/status, only include ops
 	MountWebHandler() func(group *gin.RouterGroup) error
 }
