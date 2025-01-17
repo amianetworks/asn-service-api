@@ -1,3 +1,5 @@
+# Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+
 FROM ubuntu:22.04
 
 WORKDIR /asn-compiler-dev

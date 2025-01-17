@@ -1,3 +1,5 @@
+# Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+
 COMPILE_PLUGIN_IMAGE_NAME_DEV := asn-compiler-dev
 
 build: build-clean

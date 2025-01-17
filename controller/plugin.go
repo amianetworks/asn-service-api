@@ -1,3 +1,5 @@
+// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+
 package capi
 
 import (

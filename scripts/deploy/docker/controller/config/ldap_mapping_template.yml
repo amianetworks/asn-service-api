@@ -1,3 +1,5 @@
+# Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+
 #This is an example file of the LDAP synchronization format.
 #You can refer to this file to fill in the format mapping of the external LDAP.
 ldap_mapping:

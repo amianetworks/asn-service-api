@@ -1,16 +1,20 @@
-/*
-  generate .pb.go file: 'protoc -I api api/api.proto --go_out=plugins:api'
- */
+// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+
 syntax = "proto3";
 
-option go_package = "github.com/amianetworks/asn-service-api/v25/controller";
+option go_package = "./;manager";
 
 package asn_controller;
 
 // The greeting service definition.
 service Manager {
+  // ASNC related operations
+  rpc GetInfo(Empty) returns (ControllerInfo) {}
+  rpc UpdatePort(UpdatePortReq) returns (Empty) {}
+
   //Auth API
   rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc TokenRefresh(TokenRefreshRequest) returns (AccessToken) {}
   rpc CheckAuthToken(Empty) returns (GeneralResponse) {}
   rpc GetTokenAuth(Empty) returns (GetTokenAuthResponse) {}
   rpc CreateUser(CreateUserRequest) returns (GeneralResponse){}
@@ -51,38 +55,38 @@ service Manager {
   rpc GetSNsServiceStateOfSNs (GetSNsServiceStateRequest) returns (Service.Services) {}
 
   rpc GetServicesConfigOfNetwork (Name) returns (GetServicesConfigResponse) {}
-  rpc GetServicesConfigOfGroup (NameAndID) returns (GetServicesConfigResponse) {}
-  rpc GetServicesConfigOfNode(NameAndID) returns (GetServicesConfigResponse) {}
+  rpc GetServicesConfigOfGroup (NameAndId) returns (GetServicesConfigResponse) {}
+  rpc GetServicesConfigOfNode(NameAndId) returns (GetServicesConfigResponse) {}
 
   rpc ApplyServiceOps (ConfigRequest) returns (GeneralResponse) {}
   rpc StartService (ConfigRequest) returns (GeneralResponse) {}
   rpc StopService (ConfigRequest) returns (GeneralResponse) {}
 
   // Get Stats
-  rpc GetCPUUsage(StatsRequest) returns (Network.Stats.Percentage) {}
+  rpc GetCpuUsage(StatsRequest) returns (Network.Stats.Percentage) {}
   rpc GetSystemLoad(StatsRequest) returns (Network.Stats.Percentage) {}
-  rpc GetRAMUsage(StatsRequest) returns (Network.Stats.Percentage) {}
+  rpc GetRamUsage(StatsRequest) returns (Network.Stats.Percentage) {}
 
   rpc GetReceivedBits(StatsRequest) returns (Network.Stats.Traffic) {}
   rpc GetSentBits(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetASNReceivedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetASNBlockedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetASNReceivedBits(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetASNBlockedBits(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetAsnReceivedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetAsnBlockedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetAsnReceivedBits(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetAsnBlockedBits(StatsRequest) returns (Network.Stats.Traffic) {}
   rpc GetThroughput(StatsRequest) returns (Network.Stats) {}
 
   rpc GetTotalReceivedBits(StatsRequest) returns (Network.Stats.Traffic) {}
   rpc GetTotalSentBits(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetTotalASNReceivedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetTotalASNBlockedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetTotalASNReceivedBits(StatsRequest) returns (Network.Stats.Traffic) {}
-  rpc GetTotalASNBlockedBits(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetTotalAsnReceivedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetTotalAsnBlockedPackets(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetTotalAsnReceivedBits(StatsRequest) returns (Network.Stats.Traffic) {}
+  rpc GetTotalAsnBlockedBits(StatsRequest) returns (Network.Stats.Traffic) {}
   rpc GetTotalTraffic(StatsRequest) returns (Network.Stats) {}
 
-  rpc GetASNReceivedPacketsByTime(StatsRequest) returns (TimeSerialTraffics) {}
-  rpc GetASNBlockedPacketsByTime(StatsRequest) returns (TimeSerialTraffics) {}
-  rpc GetASNReceivedBitsByTime(StatsRequest) returns (TimeSerialTraffics) {}
-  rpc GetASNBlockedBitsByTime(StatsRequest) returns (TimeSerialTraffics) {}
+  rpc GetAsnReceivedPacketsByTime(StatsRequest) returns (TimeSerialTraffics) {}
+  rpc GetAsnBlockedPacketsByTime(StatsRequest) returns (TimeSerialTraffics) {}
+  rpc GetAsnReceivedBitsByTime(StatsRequest) returns (TimeSerialTraffics) {}
+  rpc GetAsnBlockedBitsByTime(StatsRequest) returns (TimeSerialTraffics) {}
   rpc GetTimeSerialTraffic(StatsRequest) returns (Network.StatsList){}
 
   rpc GetNetReceivedBitsByTime(StatsRequest) returns (TimeSerialTraffics) {}
@@ -92,6 +96,23 @@ service Manager {
 /*
   Request message
  */
+message ControllerInfo {
+  message PluginVersion {
+    string min = 1;
+    string max = 2;
+    string current = 3;
+  }
+
+  string asnc_version = 1;
+  map<string, PluginVersion> plugin_versions = 2;
+  uint32 port = 3;
+  uint32 port_pending = 4;
+}
+
+message UpdatePortReq {
+  uint32 port = 1;
+}
+
 message Empty{}
 
 message Id {
@@ -102,7 +123,7 @@ message Name {
   string name = 1;
 }
 
-message NameAndID {
+message NameAndId {
   string name = 1;
   string id = 2;
 }
@@ -110,6 +131,15 @@ message NameAndID {
 message LoginRequest {
   string username = 1;
   string password = 2;
+}
+
+message TokenRefreshRequest {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message AccessToken {
+  string access_token = 1;
 }
 
 message CreateUserRequest {
@@ -133,13 +163,13 @@ message Users {
 
 message User {
   message GroupAuth {
-    string groupName = 1;
-    string userRole = 2;
+    string group_name = 1;
+    string user_role = 2;
   }
 
   string username = 1;
   bool supervisor = 3;
-  repeated GroupAuth groupAuth = 4;
+  repeated GroupAuth group_auth = 4;
 }
 
 message Groups {
@@ -154,25 +184,26 @@ message Group {
   }
 
   string name = 1;
-  map<string, ManagedService> managedServices = 2;
+  map<string, ManagedService> managed_services = 2;
   repeated string nodes = 3;
 }
 
 message LoginResponse {
-  string accessToken = 1;
-  bool supervisor = 2;
+  string access_token = 1;
+  string refresh_token = 2;
+  bool supervisor = 3;
 }
 
 message GetTokenAuthResponse{
-  bool isSupervisor = 1;
+  bool is_supervisor = 1;
 }
 
 message StatsRequest {
-  bool allNetwork = 1;
+  bool all_network = 1;
   string group = 2;
   repeated string netifs = 3;
-  string startTime = 4;
-  string endTime = 5;
+  string start_time = 4;
+  string end_time = 5;
 }
 
 message GeneralResponse {
@@ -185,9 +216,9 @@ message GeneralResponse {
 }
 
 message GetSNsServiceStateRequest {
-  string groupName = 1;
+  string group_name = 1;
   repeated string nodes = 2;
-  string serviceName = 3;
+  string service_name = 3;
 }
 
 message GetServicesConfigResponse {
@@ -195,10 +226,10 @@ message GetServicesConfigResponse {
 }
 
 message ConfigRequest {
-  bool allNetwork = 1;
+  bool all_network = 1;
   string group = 2;
-  repeated string serviceNodes = 3;
-  string serviceName = 4;
+  repeated string service_nodes = 3;
+  string service_name = 4;
   bytes metadata = 5;
 }
 
@@ -207,8 +238,8 @@ message GetLogsByLimitRequest {
 }
 
 message RegistrationResponse {
-  string clientName = 1;
-  string serverName = 2;
+  string client_name = 1;
+  string server_name = 2;
   /* uint64 clientCookie = 3; Cookie assigned by the server which is used in further communications */
 }
 
@@ -239,12 +270,12 @@ message Network {
     string type = 2;
     string name = 3;
     string group = 4;
-    string networkId = 5;
-    string parentId = 6;
+    string network_id = 5;
+    string parent_id = 6;
     Location location = 7;
-    repeated string externalLinked = 8;
-    repeated string internalLinked = 9;
-    Service.Node serviceNode = 10;
+    repeated string external_linked = 8;
+    repeated string internal_linked = 9;
+    Service.Node service_node = 10;
     Stats stats = 11;
     repeated Port.Desc ports = 12;
     repeated Interface interfaces = 13;
@@ -262,9 +293,9 @@ message Network {
     message Port {
       string id = 1;
       string name = 2;
-      string nodeId = 3;
+      string node_id = 3;
       int64 capacity = 4;
-      repeated string linkedPorts = 5;
+      repeated string linked_ports = 5;
       string stats = 6;
       message Desc {
         string id = 1;
@@ -274,24 +305,17 @@ message Network {
     message Stats {
       uint64 rx = 1;
       uint64 tx = 2;
-      uint64 ASNReceivedPackets = 3;
-      uint64 ASNBlockedPackets = 4;
-      uint64 ASNReceivedBits = 5;
-      uint64 ASNBlockedBits = 6;
-      float  cpuUsage = 7;
-    }
-    message DMSStats {
-      string nodeId = 1;
-      string nodeName = 2;
-      uint64 receivedPackets = 3;
-      uint64 blockedPackets = 4;
-
+      uint64 asn_received_packets = 3;
+      uint64 asn_blocked_packets = 4;
+      uint64 asn_received_bits = 5;
+      uint64 asn_blocked_bits = 6;
+      float  cpu_usage = 7;
     }
     message NetStats {
-      string nodeId = 1;
-      string nodeName = 2;
-      uint64 sendBits = 3;
-      uint64 receivedBits = 4;
+      string node_id = 1;
+      string node_name = 2;
+      uint64 send_bits = 3;
+      uint64 received_bits = 4;
     }
   }
   message Links {
@@ -300,8 +324,8 @@ message Network {
   message Link {
     string id = 1;
     string name = 2;
-    repeated string portPair = 3;
-    repeated Network.Node nodePair = 4;
+    repeated string port_pair = 3;
+    repeated Network.Node node_pair = 4;
     Stats stats = 5;
 
     message Desc {
@@ -309,8 +333,8 @@ message Network {
       string name = 2;
     }
     message Stats {
-      uint64 node1ToNode2 = 1;
-      uint64 node2ToNode1 = 2;
+      uint64 node1_to_node2 = 1;
+      uint64 node2_to_node1 = 2;
     }
   }
   message NodePair{
@@ -323,12 +347,12 @@ message Network {
   }
 
   message Stats {
-    uint64  receivedBits = 1;
-    uint64  sentBits = 2;
-    uint64  asnReceivedBits = 3;
-    uint64  asnBlockedBits = 4;
-    uint64  asnReceivedPkts = 5;
-    uint64  asnBlockedPkts = 6;
+    uint64  received_bits = 1;
+    uint64  sent_bits = 2;
+    uint64  asn_received_bits = 3;
+    uint64  asn_blocked_bits = 4;
+    uint64  asn_received_pkts = 5;
+    uint64  asn_blocked_pkts = 6;
     string  timestamp = 7;
     message Percentage {
       float value = 1;
@@ -348,19 +372,19 @@ message Service {
     repeated Node nodes = 1;
   }
   message Node {
-    string networkId = 1;
-    string hostId = 2;
-    string lastBeat = 3;
+    string network_id = 1;
+    string host_id = 2;
+    string last_beat = 3;
     string type = 4;
     map<string, bool> capabilities = 5;
-    SystemInfo systemInfo = 66;
+    SystemInfo system_info = 66;
     string state = 7;
     message SystemInfo {
       Cpu cpu = 1;
       Memory memory = 2;
       Disk disk = 3;
-      int64 networkCapacity = 4;
-      string machineId = 5;
+      int64 network_capacity = 4;
+      string machine_id = 5;
 
       message Cpu {
         int64 core = 1;
@@ -386,69 +410,11 @@ message Service {
   }
 
   message Service {
-    string serviceNodeId = 1;
+    string service_node_id = 1;
     string state = 2;
     bytes config = 3;
     bytes status =4;
   }
-
-  message Myservice {
-    message Conf {
-      string mode = 1;
-    }
-    message Ops {
-      string command = 1;
-      string message = 2;
-    }
-  }
-
-  message DMS {
-    message Conf {
-      bool enabled = 2;
-      string mode = 3;
-      string strategy = 4;
-      repeated string network = 5;
-      repeated string coverage = 6;
-    }
-  }
-
-  message Firewall {
-    message Conf {
-      bool  enabled = 1;
-      string mode = 2;
-      repeated Policy allowed = 3;
-      repeated Policy denied = 4;
-      message Policy {
-        string action = 1;
-        string name = 2;
-        string direction = 3;
-        string netif = 4;
-        string ip = 5;
-        int64 mask = 6;
-        int64 port = 7;
-        string protocol = 8;
-        string appName = 9;
-        int64 priority = 10;
-        string uuid = 11;
-      }
-    }
-    message Ops {
-      string command = 1;
-      Conf policies = 2;
-    }
-  }
-}
-
-message ASNService {
-  string network = 1;
-  string serviceName = 2;
-}
-
-message Log {
-  string object = 1;
-  string type = 2;
-  string message = 3;
-  string timestamp = 4;
 }
 
 message TimeSerialTraffics {
