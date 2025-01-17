@@ -7,6 +7,7 @@ require (
 	github.com/amianetworks/asn-service-api/v25 v25.1.29
 	github.com/gin-gonic/gin v1.10.0
 	github.com/goccy/go-json v0.10.4
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/spf13/cobra v1.8.1
@@ -35,7 +36,6 @@ require (
 	github.com/go-redsync/redsync/v4 v4.13.0 // indirect
 	github.com/gogf/gf v1.16.9 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect

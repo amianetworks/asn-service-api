@@ -57,8 +57,13 @@ type DBAll struct {
 }
 
 type Iam struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
+	Provider string `yaml:"provider"`
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	TLS      bool   `yaml:"tls"`
+	CaCert   string `yaml:"ca_cert"`
+	CertPem  string `yaml:"cert_pem"`
+	KeyPem   string `yaml:"key_pem"`
 }
 
 type Network struct {
@@ -260,8 +265,13 @@ func main() {
 			},
 		},
 		Iam: Iam{
-			Host: "localhost",
-			Port: "17930",
+			Provider: "sapphire",
+			Host:     "localhost",
+			Port:     "17930",
+			TLS:      false,
+			CaCert:   "./cert/ca-cert",
+			CertPem:  "./cert/cert-pem",
+			KeyPem:   "./cert/key-pem",
 		},
 		Grpc: GRPC{50051},
 		Network: Network{
