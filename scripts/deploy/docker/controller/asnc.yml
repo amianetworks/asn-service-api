@@ -41,7 +41,7 @@ services:
       - ldap_data:/var/lib/ldap/
     command: sh -c "/etc/init.d/slapd start && tail -f /dev/null"
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.0.4
+    image: registry.amiasys.com/sapphire.iam:v25.0.5
     container_name: sapphire-iam
     restart: always
     ports:
@@ -53,7 +53,7 @@ services:
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.16
+    image: registry.amiasys.com/asnc:v25.0.17
     network_mode: host
     depends_on:
       - "asn-mdb"
