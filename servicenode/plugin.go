@@ -53,7 +53,7 @@ type ASNService interface {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	ApplyServiceOps(opCmd string, opParam interface{}, c chan error)
+	ApplyServiceOps(opCmd string, opParams []string, c chan error)
 
 	/*
 		Stop the service with the configuration.

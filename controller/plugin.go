@@ -50,9 +50,9 @@ type ASNService interface {
 			- ApplyConfig() applies the config on all service nodes in the network.
 			- ApplyConfigToServiceNodes() only applies to a list of service nodes.
 	*/
-	ApplyOpsToNetwork(opCmd string, opParam interface{}) error
-	ApplyOpsToGroup(groupName string, opCmd string, opParam interface{}) error
-	ApplyOpsToServiceNodes(serviceNodes []string, opCmd string, opParam interface{}) error
+	ApplyOpsToNetwork(opCmd string, opParams []string) error
+	ApplyOpsToGroup(groupName string, opCmd string, opParams []string) error
+	ApplyOpsToServiceNodes(serviceNodes []string, opCmd string, opParams []string) error
 
 	/*
 		Apply START command with the configuration from client(cli/dashboard), This interface has two versions:
@@ -84,7 +84,7 @@ type ASNService interface {
 		Get the applied serviceOps of the service node.
 		ASN Controller may call it in the case reconfiguration is needed for a service node.
 	*/
-	GetOpsOfServiceNode(serviceNodeId string) ([]string, []interface{}, error)
+	GetOpsOfServiceNode(serviceNodeId string) ([]string, [][]string, error)
 
 	/*
 		Received the metadata from the service in the service node
@@ -99,9 +99,9 @@ type ASNService interface {
 
 type ASNServiceAPIs interface {
 	GetCLICommands(
-		sendServiceApplyOpsCmdToNetwork func(opCmd string, opParam interface{}),
-		sendServiceApplyOpsCmdToGroup func(group string, opCmd string, opParam interface{}),
-		sendServiceApplyOpsCmdToNodes func(nodes []string, opCmd string, opParam interface{}),
+		sendServiceApplyOpsCmdToNetwork func(opCmd string, opParams []string),
+		sendServiceApplyOpsCmdToGroup func(group string, opCmd string, opParams []string),
+		sendServiceApplyOpsCmdToNodes func(nodes []string, opCmd string, opParams []string),
 	) []*cobra.Command // no need to include start/stop/show/status, only include ops
 
 	MountWebHandler() func(group *gin.RouterGroup) error
