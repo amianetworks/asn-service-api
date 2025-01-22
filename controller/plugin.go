@@ -84,7 +84,7 @@ type ASNService interface {
 		Get the applied serviceOps of the service node.
 		ASN Controller may call it in the case reconfiguration is needed for a service node.
 	*/
-	GetOpsOfServiceNode(serviceNodeId string) ([]string, [][]string, error)
+	GetOpsOfServiceNode(serviceNodeId string) (string, []string, error)
 
 	/*
 		Received the metadata from the service in the service node
