@@ -75,7 +75,7 @@ type ASNController interface {
 		Both of service.controller and service.sn has the same struct,
 		so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct
 	*/
-	SendServiceOps(serviceNodeId string, serviceName string, serviceOps []byte) error
+	SendServiceOps(serviceNodeId string, serviceName string, serviceOpCmd string, serviceOpParam interface{}) error
 
 	/*
 		Read the service COnf by network id and service name,
