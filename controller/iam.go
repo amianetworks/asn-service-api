@@ -24,15 +24,15 @@ type IAM interface {
 	UserJoinUserGroup(username []string, userGroupID string) (err error)             // UserJoinUserGroup allows the user system to bind a account to a user group.
 	UserLeaveUserGroup(username []string, userGroupID string) (err error)            // UserLeaveUserGroup allows the user system to unbind a account from a user group.
 
-	Login(username string, password []byte, userClaims string) (needMFAVerify bool, qrImg, secret, accessToken, refreshToken string, err error) // Login allows the user system to  login.
-	PasswordVerify(username string, password []byte) (err error)                                                                                // PasswordVerify allows the user system to check password of user.
-	MFAVerify(username string, mfaCode int32, mfaType string) (err error)                                                                       // MFAVerify allows the user system to perform Multi-Factor Authentication.
-	MFALoginVerify(username string, mfaCode int32, mfaType, userClaims string) (accessToken, refreshToken string, err error)                    // MFALoginVerify allows the user system to perform Multi-Factor Authentication while login.
-	AuthenticatorBindConfirm(username string, mfaCode int32, secret string) (err error)                                                         // AuthenticatorBindConfirm allows the user system to perform Multi-Factor Authentication.
-	AuthenticatorBind(username string) (qrImg, secret string, err error)                                                                        // AuthenticatorBind allows the user to bind when Authenticator is needed.
-	AuthenticatorBindStatus(username string) (bind bool, err error)                                                                             // AuthenticatorBindStatus allows the user to bind when Authenticator is needed.
-	AuthenticatorUnbind(username string) (err error)                                                                                            // AuthenticatorUnbind allows the user to unbind when Authenticator isn't needed or rebind.
-	Logout(username string) (err error)                                                                                                         // Logout allows the user logout and redirect to login page.
+	Login(username string, password []byte, userClaims string) (needMFAVerify bool, accessToken, refreshToken string, err error) // Login allows the user system to  login.
+	PasswordVerify(username string, password []byte) (err error)                                                                 // PasswordVerify allows the user system to check password of user.
+	MFAVerify(username string, mfaCode int32, mfaType string) (err error)                                                        // MFAVerify allows the user system to perform Multi-Factor Authentication.
+	MFALoginVerify(username string, mfaCode int32, mfaType, userClaims string) (accessToken, refreshToken string, err error)     // MFALoginVerify allows the user system to perform Multi-Factor Authentication while login.
+	AuthenticatorBindConfirm(username string, mfaCode int32, secret string) (err error)                                          // AuthenticatorBindConfirm allows the user system to perform Multi-Factor Authentication.
+	AuthenticatorBind(username string) (qrImg, secret string, err error)                                                         // AuthenticatorBind allows the user to bind when Authenticator is needed.
+	AuthenticatorBindStatus(username string) (bind bool, err error)                                                              // AuthenticatorBindStatus allows the user to bind when Authenticator is needed.
+	AuthenticatorUnbind(username string) (err error)                                                                             // AuthenticatorUnbind allows the user to unbind when Authenticator isn't needed or rebind.
+	Logout(username string) (err error)                                                                                          // Logout allows the user logout and redirect to login page.
 
 	TokenRefresh(userClaims, refreshToken, accessToken string) (newAccessToken string, err error)                                            // TokenRefresh allows the user system to refresh access token.
 	TokenVerify(accessToken string) (username string, userClaims string, err error)                                                          // TokenVerify allows the user system to verify valid of access token.
