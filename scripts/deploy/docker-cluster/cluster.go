@@ -131,6 +131,7 @@ type asncDocker struct {
 type DockerService struct {
 	ContainerName string            `yaml:"container_name,omitempty"`
 	Image         string            `yaml:"image,omitempty"`
+	Privileged    bool              `yaml:"privileged,omitempty"`
 	Restart       string            `yaml:"restart,omitempty"`
 	Ulimits       map[string]int    `yaml:"ulimits,omitempty"`
 	Environment   map[string]string `yaml:"environment,omitempty"`
@@ -388,26 +389,22 @@ func main() {
 			"INFLUXDB_USER_PASSWORD":  "2022",
 		},
 	}
-	asncD.Services["sapphire-ldap"] = DockerService{
-		ContainerName: "sapphire-ldap",
-		Image:         "registry.amiasys.com/iam:v1.1.0",
-		Restart:       "always",
-		Ports:         []string{"18389:389/udp", "18389:389/tcp"},
-		Volumes:       []string{"ldap_slap:/etc/ldap/slapd.d/", "ldap_data:/var/lib/ldap/"},
-		Command:       `sh -c "/etc/init.d/slapd start && tail -f /dev/null"`,
-	}
 	asncD.Services["sapphire-iam"] = DockerService{
 		ContainerName: "sapphire-iam",
-		Image:         "registry.amiasys.com/sapphire.iam:v25.0.6",
+		Image:         "registry.amiasys.com/sapphire.iam:v25.0.7",
 		Restart:       "always",
+		Privileged:    true,
 		Ports:         []string{"17930:17930", "17931:17931"},
-		Volumes:       []string{"./config/:/usr/local/sapphire/"},
-		DependsOn:     []string{"sapphire-ldap"},
+		Volumes: []string{
+			"ldap_slap:/etc/ldap/slapd.d/",
+			"ldap_data:/var/lib/ldap/",
+			"./config/:/usr/local/sapphire/",
+		},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:       "registry.amiasys.com/asnc:v25.0.19",
+		Image:       "registry.amiasys.com/asnc:v25.0.20",
 		Restart:     "always",
-		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-ldap", "sapphire-iam"},
+		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
 		Volumes:     []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/", "./plugins/:/asn/plugins/"},
 	}
@@ -506,7 +503,7 @@ func main() {
 		asnD := asncDocker{
 			Services: map[string]DockerService{
 				"asnsn": {
-					Image:         "registry.amiasys.com/asnsn:v25.0.13",
+					Image:         "registry.amiasys.com/asnsn:v25.0.14",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
 					Volumes:       []string{"./config/:/asn/config/", "./log/:/asn/log/", "../plugins/:/asn/plugins/"},
@@ -596,11 +593,11 @@ echo "All tasks completed."`
 #  logfile: "/var/log/iam/iam.log"
 #
 ## API Configurations
-api:
+# api:
   #  grpc:
   #    port: 17930 # gRPC API port. Default:17930
   #    tls: true
-  ldap: # LDAP Service
+  # ldap: # LDAP Service
     #    # The API Service enable to provide LDAP Server as an exposed service. Default: false
     #    # If set to false, the LDAP service will not be exposed externally.
     #    # If set to true, the LDAP service will be exposed externally by port 18389.
@@ -609,8 +606,8 @@ api:
     #    # The bind dn is used for binding (signing on) to the LDAP server.
     #    bind_dn: "cn=admin,dc=asn,dc=vpn,dc=com"
     #    credentials: "@ASN2021!" # Password of the bind dn.
-    host: 172.17.0.1
-    port: 18389
+    # host: 172.17.0.1
+    # port: 18389
 #
 #    # LDAP Server to sync up with.
 #    external_ldap:

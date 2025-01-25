@@ -28,37 +28,25 @@ services:
       INFLUXDB_ADMIN_PASSWORD: 2022
       INFLUXDB_USER: amia
       INFLUXDB_USER_PASSWORD: 2022
-  sapphire-ldap:
-    image: registry.amiasys.com/iam:v1.1.0
-    container_name: sapphire-ldap
-    privileged: true
-    restart: always
-    ports:
-      - "18389:389/udp"
-      - "18389:389/tcp"
-    volumes:
-      - ldap_slap:/etc/ldap/slapd.d/
-      - ldap_data:/var/lib/ldap/
-    command: sh -c "/etc/init.d/slapd start && tail -f /dev/null"
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.0.6
+    image: registry.amiasys.com/sapphire.iam:v25.0.7
     container_name: sapphire-iam
+    privileged: true
     restart: always
     ports:
       - "17930:17930"
       - "17931:17931"
-    depends_on:
-      - "sapphire-ldap"
     volumes:
+      - ldap_slap:/etc/ldap/slapd.d/
+      - ldap_data:/var/lib/ldap/
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.19
+    image: registry.amiasys.com/asnc:v25.0.20
     network_mode: host
     depends_on:
       - "asn-mdb"
       - "asn-idb"
-      - "sapphire-ldap"
       - "sapphire-iam"
     volumes:
       - ./cert/:/asn/cert/
