@@ -17,12 +17,12 @@ type IAM interface {
 	AccountRecoverByEmail(username string, newPassword []byte, code string) (err error)                                    // AccountRecoverByEmail allows the user system to recover account by email.
 
 	UserGroupAdd(groupName string) (groupID string, err error)                       // UserGroupAdd allows the user system to add a new user group.
-	UserGroupDelete(groupID string) (err error)                                      // UserGroupDelete allows the user system to delete a new user group.
-	UserGroupRename(groupID, groupName string) (err error)                           // UserGroupRename allows the user system to rename the user group.
+	UserGroupDelete(groupName string) (err error)                                    // UserGroupDelete allows the user system to delete a new user group.
+	UserGroupRename(oldName, newName string) (err error)                             // UserGroupRename allows the user system to rename the user group.
 	UserGroupList(filter map[string]string) (groupList map[string]string, err error) // UserGroupList allows the user system to query the existed user group list.
-	UserGroupMemberList(groupID string) (memberList []string, err error)             // UserGroupMemberList allows the user system to query the members of the user group.
-	UserJoinUserGroup(username []string, userGroupID string) (err error)             // UserJoinUserGroup allows the user system to bind a account to a user group.
-	UserLeaveUserGroup(username []string, userGroupID string) (err error)            // UserLeaveUserGroup allows the user system to unbind a account from a user group.
+	UserGroupMemberList(groupName string) (memberList []string, err error)           // UserGroupMemberList allows the user system to query the members of the user group.
+	UserJoinUserGroup(username []string, userGroupName string) (err error)           // UserJoinUserGroup allows the user system to bind an account to a user group.
+	UserLeaveUserGroup(username []string, userGroupName string) (err error)          // UserLeaveUserGroup allows the user system to unbind an account from a user group.
 
 	Login(username string, password []byte, userClaims string) (needMFAVerify bool, accessToken, refreshToken string, err error) // Login allows the user system to  login.
 	PasswordVerify(username string, password []byte) (err error)                                                                 // PasswordVerify allows the user system to check password of user.
