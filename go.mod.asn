@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/amianetworks/am.modules/v25 v25.0.30
-	github.com/amianetworks/asn-service-api/v25 v25.1.35
+	github.com/amianetworks/asn-service-api/v25 v25.1.36
 	github.com/gin-gonic/gin v1.10.0
 	github.com/goccy/go-json v0.10.4
 	github.com/golang-jwt/jwt/v5 v5.2.1

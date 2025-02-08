@@ -14,6 +14,7 @@ import (
 type Node struct {
 	Id             string
 	Type           string
+	State          string
 	ParentId       string
 	Group          string
 	ExternalLinked []string

@@ -402,7 +402,7 @@ func main() {
 		},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:       "registry.amiasys.com/asnc:v25.0.20",
+		Image:       "registry.amiasys.com/asnc:v25.0.21",
 		Restart:     "always",
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",

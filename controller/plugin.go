@@ -95,6 +95,11 @@ type ASNService interface {
 		GetVersion of the service
 	*/
 	GetVersion() commonapi.Version
+
+	/*
+		Finish the service when ASN Controller finishes work
+	*/
+	Finish()
 }
 
 type ASNServiceAPIs interface {
