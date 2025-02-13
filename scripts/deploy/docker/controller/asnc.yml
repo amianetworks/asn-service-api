@@ -29,7 +29,7 @@ services:
       INFLUXDB_USER: amia
       INFLUXDB_USER_PASSWORD: 2022
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.0.7
+    image: registry.amiasys.com/sapphire.iam:v25.0.8
     container_name: sapphire-iam
     privileged: true
     restart: always
@@ -42,7 +42,7 @@ services:
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.21
+    image: registry.amiasys.com/asnc:v25.0.22
     network_mode: host
     depends_on:
       - "asn-mdb"
