@@ -13,7 +13,7 @@ services:
     ports:
       - "27017:27017"  # port forwarding (localPort:containerPort)
     volumes:
-      - ./data/:/data/db  # data volumes, (localDirectory:containerDirectory)
+      - mongodb_data:/data/db  # data volumes, (localDirectory:containerDirectory)
     command: --bind_ip_all --auth
   asn-idb:
     image: influxdb:1.11.8
@@ -42,7 +42,7 @@ services:
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.23
+    image: registry.amiasys.com/asnc:v25.0.24
     network_mode: host
     depends_on:
       - "asn-mdb"
@@ -55,6 +55,8 @@ services:
       - ./plugins:/asn/plugins/
 
 volumes:
+  mongodb_data:
+    driver: local
   influxdb_data:
     driver: local
   ldap_slap:

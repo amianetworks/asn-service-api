@@ -109,5 +109,5 @@ type ASNServiceAPIs interface {
 		sendServiceApplyOpsCmdToNodes func(nodes []string, opCmd, opParams string),
 	) []*cobra.Command // no need to include start/stop/show/status, only include ops
 
-	MountWebHandler() func(group *gin.RouterGroup) error
+	MountWebHandler(staticPath string) func(group *gin.RouterGroup) error
 }
