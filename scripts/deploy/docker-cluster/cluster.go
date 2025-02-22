@@ -18,9 +18,15 @@ type ASNC struct {
 	DB          DBAll       `yaml:"db"`
 	Iam         Iam         `yaml:"iam"`
 	Grpc        GRPC        `yaml:"grpc"`
+	Restful     ASNCRestful `yaml:"restful"`
 	Network     Network     `yaml:"network"`
 	ServiceNode ServiceNode `yaml:"servicenode"`
 	Service     Service     `yaml:"service"`
+}
+
+type ASNCRestful struct {
+	Port    uint16            `yaml:"port"`
+	Statics map[string]string `yaml:"statics"`
 }
 
 type Log struct {
@@ -275,6 +281,13 @@ func main() {
 			KeyPem:   "./cert/key-pem",
 		},
 		Grpc: GRPC{50051},
+		Restful: ASNCRestful{
+			Port: 58080,
+			Statics: map[string]string{
+				"asn":       "./web/asn",
+				"myservice": "./web/myservice",
+			},
+		},
 		Network: Network{
 			Id:       "network1",
 			TopoFile: "./config/100nodes-topology.json",
