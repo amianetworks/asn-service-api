@@ -29,7 +29,7 @@ services:
       INFLUXDB_USER: amia
       INFLUXDB_USER_PASSWORD: 2022
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.0.8
+    image: registry.amiasys.com/sapphire.iam:v25.0.9
     container_name: sapphire-iam
     privileged: true
     restart: always
