@@ -42,7 +42,7 @@ services:
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.25
+    image: registry.amiasys.com/asnc:v25.0.26
     network_mode: host
     depends_on:
       - "asn-mdb"

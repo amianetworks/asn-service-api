@@ -3,6 +3,7 @@
 package capi
 
 import (
+	commonapi "github.com/amianetworks/asn-service-api/v25/common"
 	"github.com/amianetworks/asn-service-api/v25/log"
 )
 
@@ -76,7 +77,7 @@ type ASNController interface {
 		Both of service.controller and service.sn has the same struct,
 		so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct
 	*/
-	SendServiceOps(serviceNodeId, serviceName, serviceOpCmd, serviceOpParams string) error
+	SendServiceOps(serviceNodeId, serviceName, serviceOpCmd, serviceOpParams string) (serviceResponse chan *commonapi.ServiceOpRes, frameworkErr error)
 
 	/*
 		Read the service COnf by network id and service name,
