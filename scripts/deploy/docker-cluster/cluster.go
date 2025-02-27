@@ -14,24 +14,22 @@ import (
 )
 
 type ASNC struct {
-	Log         Log         `yaml:"log"`
-	DB          DBAll       `yaml:"db"`
-	Iam         Iam         `yaml:"iam"`
-	Grpc        GRPC        `yaml:"grpc"`
-	Restful     ASNCRestful `yaml:"restful"`
-	Network     Network     `yaml:"network"`
-	ServiceNode ServiceNode `yaml:"servicenode"`
-	Service     Service     `yaml:"service"`
+	Log         Log                `yaml:"log"`
+	DB          DBPair             `yaml:"db"`
+	Iam         Iam                `yaml:"iam"`
+	Grpc        GRPC               `yaml:"grpc"`
+	Restful     ASNCRestful        `yaml:"restful"`
+	Network     Network            `yaml:"network"`
+	ServiceNode ServiceNode        `yaml:"servicenode"`
+	Service     map[string]Service `yaml:"service"`
 }
 
 type ASNCRestful struct {
-	Port    uint16            `yaml:"port"`
-	Statics map[string]string `yaml:"statics"`
+	Port uint16 `yaml:"port"`
 }
 
 type Log struct {
 	Demo   bool      `yaml:"demo"`
-	Path   string    `yaml:"path"`
 	Prefix string    `yaml:"prefix"`
 	ALog   LogConfig `yaml:"api_log"`
 	RLog   LogConfig `yaml:"runtime_log"`
@@ -55,11 +53,6 @@ type DB struct {
 type DBPair struct {
 	MongoDB  DB `yaml:"mongodb"`
 	InfluxDB DB `yaml:"influxdb"`
-}
-
-type DBAll struct {
-	Default DBPair            `yaml:"default"`
-	Plugins map[string]DBPair `yaml:"plugins"`
 }
 
 type Iam struct {
@@ -86,11 +79,12 @@ type ServiceNode struct {
 }
 
 type Service struct {
-	Dir       string               `yaml:"dir"`
-	Supported map[string]MyService `yaml:"supported"`
+	AutoStart bool           `yaml:"auto_start"`
+	Version   ServiceVersion `yaml:"version"`
+	DB        DBPair         `yaml:"db"`
 }
 
-type MyService struct {
+type ServiceVersion struct {
 	Min string `yaml:"min"`
 	Max string `yaml:"max"`
 }
@@ -187,8 +181,7 @@ type TSDB struct {
 }
 
 type SNService struct {
-	Dir           string `yaml:"dir"`
-	ConfigTimeout int    `yaml:"config_timeout"`
+	ConfigTimeout int `yaml:"config_timeout"`
 }
 
 func main() {
@@ -216,7 +209,6 @@ func main() {
 	asnConf := ASNC{
 		Log: Log{
 			Demo:   true,
-			Path:   "./log",
 			Prefix: "asn",
 			ALog: LogConfig{
 				FileName: "api.log",
@@ -235,25 +227,48 @@ func main() {
 				Level:    "info",
 			},
 		},
-		DB: DBAll{
-			Default: DBPair{
-				MongoDB: DB{
-					Host:     "localhost",
-					Port:     "27017",
-					Database: "asn",
-					Username: "amia",
-					Password: "2022",
-				},
-				InfluxDB: DB{
-					Host:     "localhost",
-					Port:     "8086",
-					Database: "asn",
-					Username: "amia",
-					Password: "2022",
-				},
+		DB: DBPair{
+			MongoDB: DB{
+				Host:     "localhost",
+				Port:     "27017",
+				Database: "asn",
+				Username: "amia",
+				Password: "2022",
 			},
-			Plugins: map[string]DBPair{
-				"myservice": {
+			InfluxDB: DB{
+				Host:     "localhost",
+				Port:     "8086",
+				Database: "asn",
+				Username: "amia",
+				Password: "2022",
+			},
+		},
+		Iam: Iam{
+			Provider: "sapphire",
+			Host:     "localhost",
+			Port:     "17930",
+			TLS:      false,
+			CaCert:   "/etc/asnc/cert/ca-cert",
+			CertPem:  "/etc/asnc/cert/cert-pem",
+			KeyPem:   "/etc/asnc/cert/key-pem",
+		},
+		Grpc: GRPC{50051},
+		Restful: ASNCRestful{
+			Port: 58080,
+		},
+		Network: Network{
+			Id:       "network1",
+			TopoFile: "/etc/asnc/config/100nodes-topology.json",
+		},
+		ServiceNode: ServiceNode{3},
+		Service: map[string]Service{
+			"myservice": {
+				AutoStart: false,
+				Version: ServiceVersion{
+					Min: "v2.2.0",
+					Max: "v2.2.0",
+				},
+				DB: DBPair{
 					MongoDB: DB{
 						Host:     "localhost",
 						Port:     "27017",
@@ -269,34 +284,6 @@ func main() {
 						Password: "2022",
 					},
 				},
-			},
-		},
-		Iam: Iam{
-			Provider: "sapphire",
-			Host:     "localhost",
-			Port:     "17930",
-			TLS:      false,
-			CaCert:   "./cert/ca-cert",
-			CertPem:  "./cert/cert-pem",
-			KeyPem:   "./cert/key-pem",
-		},
-		Grpc: GRPC{50051},
-		Restful: ASNCRestful{
-			Port: 58080,
-			Statics: map[string]string{
-				"asn":       "./web/asn",
-				"myservice": "./web/myservice",
-			},
-		},
-		Network: Network{
-			Id:       "network1",
-			TopoFile: "./config/100nodes-topology.json",
-		},
-		ServiceNode: ServiceNode{3},
-		Service: Service{
-			Dir: "./plugins/",
-			Supported: map[string]MyService{
-				"myservice": {Min: "v2.2.0", Max: "v2.2.0"},
 			},
 		},
 	}
@@ -415,11 +402,16 @@ func main() {
 		},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:       "registry.amiasys.com/asnc:v25.0.26",
+		Image:       "registry.amiasys.com/asnc:v25.0.27",
 		Restart:     "always",
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
-		Volumes:     []string{"./cert/:/asn/cert/", "./config/:/asn/config/", "./log/:/asn/log/", "./plugins/:/asn/plugins/"},
+		Volumes: []string{
+			"./cert/:/etc/asnc/cert/",
+			"./config/:/etc/asnc/config/",
+			"./log/:/var/log/asnc/log/",
+			"./service:/etc/asnc/service/",
+		},
 	}
 
 	asncYaml, err := yaml.Marshal(asncD)
@@ -437,7 +429,7 @@ func main() {
 		panic(err)
 	}
 
-	err = os.MkdirAll("servicenode/plugins", 0755)
+	err = os.MkdirAll("servicenode/service", 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -453,7 +445,6 @@ func main() {
 
 		asnC := ASNSN{
 			Log: Log{
-				Path:   "./log",
 				Prefix: "asn",
 				ALog: LogConfig{
 					FileName: "api.log",
@@ -495,7 +486,6 @@ func main() {
 				Password: "2022",
 			},
 			Service: SNService{
-				Dir:           "./plugins/",
 				ConfigTimeout: 20,
 			},
 			NetIf: map[string]string{
@@ -516,10 +506,14 @@ func main() {
 		asnD := asncDocker{
 			Services: map[string]DockerService{
 				"asnsn": {
-					Image:         "registry.amiasys.com/asnsn:v25.0.19",
+					Image:         "registry.amiasys.com/asnsn:v25.0.20",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
-					Volumes:       []string{"./config/:/asn/config/", "./log/:/asn/log/", "../plugins/:/asn/plugins/"},
+					Volumes: []string{
+						"./config/:/etc/asnc/config/",
+						"./log/:/var/log/asnc/log/",
+						"../service:/etc/asnc/service/",
+					},
 				}},
 		}
 		asnDY, err := yaml.Marshal(asnD)

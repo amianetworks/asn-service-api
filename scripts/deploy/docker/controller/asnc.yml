@@ -42,17 +42,17 @@ services:
       - ./config/:/usr/local/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.26
+    image: registry.amiasys.com/asnc:v25.0.27
     network_mode: host
     depends_on:
       - "asn-mdb"
       - "asn-idb"
       - "sapphire-iam"
     volumes:
-      - ./cert/:/asn/cert/
-      - ./config/:/asn/config/
-      - ./log/:/asn/log/
-      - ./plugins:/asn/plugins/
+      - ./cert/:/etc/asnc/cert/
+      - ./config/:/etc/asnc/config/
+      - ./log/:/var/log/asnc/log/
+      - ./service:/etc/asnc/service/
 
 volumes:
   mongodb_data:
