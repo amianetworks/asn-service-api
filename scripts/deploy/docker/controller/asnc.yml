@@ -51,7 +51,7 @@ services:
     volumes:
       - ./cert/:/etc/asnc/cert/
       - ./config/:/etc/asnc/config/
-      - ./log/:/var/log/asnc/log/
+      - ./log/:/var/log/asnc/
       - ./service:/etc/asnc/service/
 
 volumes:

@@ -409,7 +409,7 @@ func main() {
 		Volumes: []string{
 			"./cert/:/etc/asnc/cert/",
 			"./config/:/etc/asnc/config/",
-			"./log/:/var/log/asnc/log/",
+			"./log/:/var/log/asnc/",
 			"./service:/etc/asnc/service/",
 		},
 	}
@@ -510,9 +510,9 @@ func main() {
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
 					Volumes: []string{
-						"./config/:/etc/asnc/config/",
-						"./log/:/var/log/asnc/log/",
-						"../service:/etc/asnc/service/",
+						"./config/:/etc/asnsn/config/",
+						"./log/:/var/log/asnsn/",
+						"../service:/etc/asnsn/service/",
 					},
 				}},
 		}
