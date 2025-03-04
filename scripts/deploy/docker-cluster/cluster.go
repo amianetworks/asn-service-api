@@ -411,6 +411,7 @@ func main() {
 			"./config/:/etc/asnc/config/",
 			"./log/:/var/log/asnc/",
 			"./service:/etc/asnc/service/",
+			"./web:/var/www/asnc/",
 		},
 	}
 
