@@ -66,8 +66,9 @@ type Iam struct {
 }
 
 type Network struct {
-	Id       string `yaml:"id"`
-	TopoFile string `yaml:"topo_file"`
+	Id          string `yaml:"id"`
+	TopoFile    string `yaml:"topo_file"`
+	TokenSecret string `yaml:"token_secret"`
 }
 
 type GRPC struct {
@@ -169,6 +170,7 @@ type Controller struct {
 	IP            string `yaml:"ip"`
 	Port          int    `yaml:"port"`
 	RetryInterval int    `yaml:"retry_interval"`
+	TokenSecret   string `yaml:"token_secret"`
 }
 
 type TSDB struct {
@@ -257,8 +259,9 @@ func main() {
 			Port: 58080,
 		},
 		Network: Network{
-			Id:       "network1",
-			TopoFile: "/etc/asnc/config/100nodes-topology.json",
+			Id:          "network1",
+			TopoFile:    "/etc/asnc/config/100nodes-topology.json",
+			TokenSecret: "asn-example-token-secret/FIXME_when_deploy",
 		},
 		ServiceNode: ServiceNode{3},
 		Service: map[string]Service{
@@ -402,7 +405,7 @@ func main() {
 		},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:       "registry.amiasys.com/asnc:v25.0.27",
+		Image:       "registry.amiasys.com/asnc:v25.0.28",
 		Restart:     "always",
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
@@ -477,6 +480,7 @@ func main() {
 				IP:            "172.17.0.1",
 				Port:          50051,
 				RetryInterval: 5,
+				TokenSecret:   "asn-example-token-secret/FIXME_when_deploy",
 			},
 			Tsdb: TSDB{
 				Type:     "influxdbv1",
@@ -507,7 +511,7 @@ func main() {
 		asnD := asncDocker{
 			Services: map[string]DockerService{
 				"asnsn": {
-					Image:         "registry.amiasys.com/asnsn:v25.0.20",
+					Image:         "registry.amiasys.com/asnsn:v25.0.21",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
 					Volumes: []string{
