@@ -3,7 +3,7 @@ module asn.amiasys.com
 go 1.23
 
 require (
-	github.com/amianetworks/am.modules/v25 v25.1.11
+	github.com/amianetworks/am.modules/v25 v25.1.12
 	github.com/amianetworks/asn-service-api/v25 v25.1.43
 	github.com/gin-gonic/gin v1.10.0
 	github.com/goccy/go-json v0.10.4
