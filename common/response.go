@@ -2,7 +2,8 @@
 
 package commonapi
 
-type ServiceOpRes struct {
-	Response string
-	Error    error
+type Response struct {
+	Response   string
+	Error      error
+	ErrorFatal bool
 }

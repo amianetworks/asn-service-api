@@ -12,17 +12,16 @@ type ASNService interface {
 	GetName() string
 
 	/*
-		Initialize the service, this method will be called under a go routine
-
-		input parameters:
-		 c: the return value to channel indicate service state:
-			- if error is nil, the service node will assign the state INITIALIZED to the service
-			- if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
-
-		Caution: the service node will have a timeout context (20s) to process the initialization,
-				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
+		GetVersion of the service,
+		share.Version provide the initializer (version parser) and a toString convert,
+		for details, please refer to share/version.go
 	*/
-	Init(c chan error)
+	GetVersion() commonapi.Version
+
+	/*
+		Initialize the service
+	*/
+	Init()
 
 	/*
 		Start the service with the configuration.
@@ -39,7 +38,7 @@ type ASNService interface {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Start(config []byte, c chan error)
+	Start(config []byte) error
 
 	/*
 		Apply the service operations to the service.
@@ -53,7 +52,7 @@ type ASNService interface {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	ApplyServiceOps(opCmd, opParams string, serviceResponse chan *commonapi.ServiceOpRes)
+	ApplyServiceOps(opCmd, opParams string, serviceResponse chan *commonapi.Response)
 
 	/*
 		Stop the service with the configuration.
@@ -67,17 +66,10 @@ type ASNService interface {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Stop(c chan error)
+	Stop() error
 
 	/*
 		Last call before the service node's termination. Do the necessary clean up here.
 	*/
-	Finish() error
-
-	/*
-		GetVersion of the service,
-		share.Version provide the initializer (version parser) and a toString convert,
-		for details, please refer to share/version.go
-	*/
-	GetVersion() commonapi.Version
+	Finish()
 }
