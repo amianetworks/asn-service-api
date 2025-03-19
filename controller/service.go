@@ -24,23 +24,9 @@ will be implemented by service and used by ASN controller
 */
 type ASNService interface {
 	/*
-		Service name, it is important to have the same name with capi.ASNService.Name
-	*/
-	GetName() string
-
-	/*
 		GetVersion of the service
 	*/
 	GetVersion() commonapi.Version
-
-	/*
-		Get the *current* configuration of the service network/node.
-		Service may have saved the configuration to DB,
-		but it's safer to read current or latest configuration directly from the service controller.
-	*/
-	GetConfOfNetwork() ([]byte, error)
-	GetConfOfGroup(groupName string) ([]byte, error)
-	GetConfOfServiceNode(serviceNodeId string) ([]byte, error)
 
 	/*
 		Received the metadata from the service in the service node

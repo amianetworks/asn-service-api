@@ -7,11 +7,6 @@ import commonapi "github.com/amianetworks/asn-service-api/v25/common"
 // ASNService /*
 type ASNService interface {
 	/*
-		Service name, it is important to have the same name with capi.ASNService.Name
-	*/
-	GetName() string
-
-	/*
 		GetVersion of the service,
 		share.Version provide the initializer (version parser) and a toString convert,
 		for details, please refer to share/version.go
@@ -38,7 +33,7 @@ type ASNService interface {
 		Caution: the service node will have a timeout context (20s) to process the initialization,
 				 if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
 	*/
-	Start(config []byte) error
+	Start(config []byte) (globalErrChan chan error, err error)
 
 	/*
 		Apply the service operations to the service.

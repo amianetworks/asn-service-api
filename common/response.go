@@ -3,7 +3,6 @@
 package commonapi
 
 type Response struct {
-	Response   string
-	Error      error
-	ErrorFatal bool
+	Response string
+	Error    error
 }

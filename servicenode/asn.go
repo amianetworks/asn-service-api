@@ -20,17 +20,12 @@ type ASNServiceNode interface {
 	/*
 		Send the metadata to the controller
 	*/
-	SendMetadataToController(serviceName string, metadata []byte) error
+	SendMetadataToController(metadata []byte) error
 
 	/*
 		Write the log to your service path. This is based on am.module logs
 	*/
-	GetLogger(serviceName string) (*log.Logger, error)
-
-	/*
-		Get ASN Service Node running Mode, currently support 'cluster', 'standalone' and 'hybrid' mode
-	*/
-	GetServiceNodeRunningMode() (string, error)
+	GetLogger() (*log.Logger, error)
 
 	/*
 		Get ASN Service Node type, currently support 'server', 'appliance'
