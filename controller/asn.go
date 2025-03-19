@@ -90,9 +90,10 @@ type ASNController interface {
 		the Conf []byte is Marshalled
 		Write the service setting to a specific service node by ASN controller
 	*/
-	SaveDefaultConfig(config []byte) error
-	SaveConfigOfGroup(groupName string, config []byte) error
-	SaveConfigOfServiceNode(serviceNodeId string, config []byte) error
+	SaveDefaultClusterConfig(config []byte) error
+	SaveClusterConfigOfGroup(groupName string, config []byte) error
+	SaveClusterConfigOfServiceNode(serviceNodeId string, config []byte) error
+	SaveInstanceConfigOfServiceNode(serviceNodeId string, config []byte) error
 
 	/*
 		Write the log to your service path. This is based on am.module logs
