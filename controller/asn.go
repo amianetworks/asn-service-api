@@ -14,13 +14,14 @@ import (
 
 // Node struct
 type Node struct {
-	Id             string
-	Type           string
-	State          int
-	ParentId       string
-	Group          string
-	ExternalLinked []string
-	InternalLinked []string
+	Id               string
+	Type             string
+	ServiceNodeState int
+	ServiceState     int
+	ParentId         string
+	Group            string
+	ExternalLinked   []string
+	InternalLinked   []string
 }
 
 type Group struct {
