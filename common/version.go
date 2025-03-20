@@ -14,7 +14,7 @@ type Version struct {
 	Build string
 }
 
-// InitVersion /*
+// InitVersion converts a version string, e.g., "v25.0.1", into Version structure.
 func InitVersion(versionStr string) (Version, error) {
 	versionParts := strings.Split(versionStr, ".")
 	if len(versionParts) != 3 {
@@ -36,11 +36,13 @@ func InitVersion(versionStr string) (Version, error) {
 	}, nil
 }
 
+// ToString converts a Version structure back to the version string.
 func (v Version) ToString() string {
 	return fmt.Sprintf("v%d.%d.%s", v.Major, v.Minor, v.Build)
 }
 
-func (v Version) GreaterAndEqualThan(target Version) bool {
+// GreaterThanAndEqualTo returns if the current version is greater than or equal to the given version.
+func (v Version) GreaterThanAndEqualTo(target Version) bool {
 	if v.Major > target.Major {
 		return true
 	} else if v.Major == target.Major && v.Minor >= target.Minor {

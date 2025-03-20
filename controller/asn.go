@@ -8,11 +8,9 @@ import (
 	commonapi "github.com/amianetworks/asn-service-api/v25/common"
 )
 
-/*
-	Struct used between asn.controller and service.controller,
-*/
+// Structs used between asn.controller and service.controller.
 
-// Node struct
+// Node is the structure for a network node.
 type Node struct {
 	Id               string
 	Type             string
@@ -24,83 +22,70 @@ type Node struct {
 	InternalLinked   []string
 }
 
+// Group is the structure for a configuration group.
 type Group struct {
 	Name   string
 	Remark string
 	Nodes  []string
 }
 
-// ASNController API provided by ASN controller
+// ASNController contains the APIs provided by ASN controller.
 type ASNController interface {
-	/*
-		Get all nodes of network
-	*/
+	// GetNodesOfNetwork returns all nodes of network
 	GetNodesOfNetwork() ([]Node, error)
 
-	/*
-		Get all groups of network
-	*/
+	// GetGroupsOfNetwork returns all groups of network
 	GetGroupsOfNetwork() ([]Group, error)
 
-	/*
-		Get all nodes of group
-	*/
+	// GetNodesOfGroup returns all nodes of group
 	GetNodesOfGroup(groupName string) ([]Node, error)
 
-	/*
-		Get all nodes of the parent.
-	*/
+	// GetNodesOfParent returns all nodes of the parent
 	GetNodesOfParent(parentNodeId string) ([]Node, error)
 
-	/*
-		Get node by id
-	*/
+	// GetNodeById returns node by id
 	GetNodeById(id string) (Node, error)
 
-	/*
-		Get group by group name
-	*/
+	// GetGroupByName returns group by group name
 	GetGroupByName(groupName string) (Group, error)
 
-	/*
-		Send START cmd to the service node with the specific service name
-		The config is a pre-defined struct. Both of service.controller and service.sn has the same struct,
-		so they can easily use xxx.Marshall() and xxx.Unmarshall() to convert the struct between []byte and the struct
-	*/
+	// StartService sends START cmd to the service node.
+	// The config is a pre-defined struct. Both service.controller and service.sn has the same struct,
+	// so they can easily use xxx.Marshall() and xxx.Unmarshall() to convert the struct between []byte and the struct.
 	StartService(serviceNodeId string, config []byte) error
 
-	/*
-		Send STOP cmd to the service node with the specific service name
-	*/
+	// StopService sends STOP cmd to the service node.
 	StopService(serviceNodeId string) error
 
-	/*
-		Send RESET cmd to the service node with the specific service name
-	*/
+	// ResetService sends RESET cmd to the service node.
 	ResetService(serviceNodeId string) error
 
-	/*
-		Send CONFIG cmd to the service node with the specific service name, the configCmd is a pre-defined struct.
-		Both of service.controller and service.sn has the same struct,
-		so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct
-	*/
+	// SendServiceOps sends CONFIG cmd to the service node.
+	// The configCmd is a pre-defined struct. Both service.controller and service.sn has the same struct,
+	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
 	SendServiceOps(serviceNodeId, serviceOpCmd, serviceOpParams string) (serviceResponse chan *commonapi.Response, frameworkErr error)
 
-	/*
-		Set the service setting by network id and service name,
-		the Conf []byte is Marshalled
-		Write the service setting to a specific service node by ASN controller
-	*/
+	// SaveDefaultClusterConfig saves the default cluster setting.
 	SaveDefaultClusterConfig(config []byte) error
+
+	// SaveClusterConfigOfGroup saves the cluster setting for a group.
 	SaveClusterConfigOfGroup(groupName string, config []byte) error
+
+	// SaveClusterConfigOfServiceNode saves the cluster setting for a service node.
 	SaveClusterConfigOfServiceNode(serviceNodeId string, config []byte) error
+
+	// SaveInstanceConfigOfServiceNode saves the instance setting for a service node.
 	SaveInstanceConfigOfServiceNode(serviceNodeId string, config []byte) error
 
-	/*
-		Write the log to your service path. This is based on am.module logs
-	*/
+	// GetLogger returns the logger for a service.
 	GetLogger() (*log.Logger, error)
+
+	// GetIAM returns the IAM instance for a service.
 	GetIAM() (IAM, error)
+
+	// GetDBConfig returns the DB config for a service.
 	GetDBConfig(dbType string) (*DBConf, error)
+
+	// GetLock returns the locker for a service.
 	GetLock() (Lock, error)
 }
