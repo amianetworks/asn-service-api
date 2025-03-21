@@ -24,7 +24,7 @@ type ServiceStatus struct {
 type ASNService interface {
 	// Init initializes the Service.
 	// Before being initialized, Service should have only provided its CLI.
-	Init(asnController ASNController)
+	Init(asnController ASNController) error
 
 	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.
 	// This could be implemented by simply ignoring the message.
