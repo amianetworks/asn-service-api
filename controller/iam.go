@@ -36,7 +36,7 @@ type IAM interface {
 	AuthenticatorUnbind(username string) (err error)                                                                                                                 // AuthenticatorUnbind allows the user to unbind when Authenticator isn't needed or rebind.
 	Logout(username, deviceID string) (err error)                                                                                                                    // Logout allows the user logout and redirect to login page.
 
-	TokenRefresh(userClaims, refreshToken, accessToken string) (newAccessToken string, err error)                                            // TokenRefresh allows the user system to refresh access token.
+	TokenRefresh(userClaims, refreshToken, accessToken string, expireTime time.Duration) (newAccessToken string, err error)                  // TokenRefresh allows the user system to refresh access token.
 	TokenVerify(accessToken string) (username, deviceID, userClaims string, err error)                                                       // TokenVerify allows the user system to verify valid of access token.
 	TokenRevoke(accessToken string) (err error)                                                                                              // TokenRefresh allows the user system to revoke access token.
 	RoleAdd(roleName, remark string) (err error)                                                                                             // RoleAdd allows the user system to add a new role.
