@@ -2,6 +2,12 @@
 
 package commonapi
 
+const (
+	CLIOpScopeNetwork = 1 + iota
+	CLIOpScopeGroup
+	CLIOpScopeServiceNode
+)
+
 type Response struct {
 	Response string
 	Error    error
