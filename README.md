@@ -15,7 +15,7 @@ The latest version is v25.1.5
 1，Implement all functions in controller.ASNService in [YOUR SERVICE] controller module. This is API provided by [YOUR SERVICE] and called by ASN controller.\
 2，Provide the init controller function
 ```
-    func NewASNService(asnController ASNController) controller.ASNService
+    func NewASNService() controller.ASNService
 ```
 in [YOUR SERVICE] controller module. The function name, parameter and return type should be EXACTLY THE SAME with the function above. This is used for ASN controller to recognize [YOUR SERVICE] controller.
 ASNController and ASNService are both the interface defined in `./controller/controller.go`\
