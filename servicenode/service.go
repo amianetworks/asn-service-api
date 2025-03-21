@@ -28,7 +28,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (20s) to process the initialization,
 	//   		if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	Start(config []byte) (globalErrChan chan error, err error)
+	Start(config []byte) (errChan chan error, err error)
 
 	// ApplyServiceOps applies the service operations to the service.
 	// Service operations will not change the service status (enabled/disabled),
@@ -40,7 +40,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (20s) to process the initialization,
 	// 		 	if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	ApplyServiceOps(opCmd, opParams string, serviceResponse chan *commonapi.Response)
+	ApplyServiceOps(opCmd, opParams string, response chan *commonapi.Response)
 
 	// Stop the service with the configuration.
 	//

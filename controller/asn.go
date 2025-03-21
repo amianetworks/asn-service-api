@@ -63,7 +63,7 @@ type ASNController interface {
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn has the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
-	SendServiceOps(serviceNodeId, serviceOpCmd, serviceOpParams string) (serviceResponse chan *commonapi.Response, frameworkErr error)
+	SendServiceOps(serviceNodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
 
 	// SaveDefaultClusterConfig saves the default cluster setting.
 	SaveDefaultClusterConfig(config []byte) error
