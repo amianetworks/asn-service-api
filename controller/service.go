@@ -19,16 +19,16 @@ type ServiceStatus struct {
 	Extra   []byte
 }
 
-// ASNService interface is implemented  provides the service's API for the ASN Controller usage,
+// ASNServiceController interface is implemented  provides the service's API for the ASN Controller usage,
 // will be implemented by service and used by ASN controller.
-type ASNService interface {
+type ASNServiceController interface {
 	// Init initializes the Service.
 	// Before being initialized, Service should have only provided its CLI.
 	Init(asnController ASNController) error
 
 	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.
 	// This could be implemented by simply ignoring the message.
-	HandleMessageFromServiceNode(serviceNodeId string, message []byte) error
+	HandleMessageFromServiceNode(serviceNodeId, message string) error
 
 	// GetCLICommands returns the Service's CLI commands to integrate them in ASN CLI.
 	// This function should be ready BEFORE Init().
