@@ -14,7 +14,7 @@ type ASNServiceNode interface {
 	GetServiceNodeNetif() (Netif, error)
 
 	// SendMessageToController sends the message to the controller.
-	SendMessageToController(message []byte) error
+	SendMessageToController(message string) error
 
 	// GetLogger returns the logger for this service.
 	GetLogger() (*log.Logger, error)
