@@ -52,7 +52,7 @@ type ASNController interface {
 	// StartService sends START cmd to the service node.
 	// The config is a pre-defined struct. Both service.controller and service.sn has the same struct,
 	// so they can easily use xxx.Marshall() and xxx.Unmarshall() to convert the struct between []byte and the struct.
-	StartService(serviceNodeId string, config []byte) error
+	StartService(serviceNodeId string, clusterConfig, instanceConfig []byte) error
 
 	// StopService sends STOP cmd to the service node.
 	StopService(serviceNodeId string) error
