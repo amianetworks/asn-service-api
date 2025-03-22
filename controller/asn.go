@@ -37,8 +37,8 @@ type Group struct {
 type ASNController interface {
 
 	/*
-	 * Initialization
-	 */
+		Initialization
+	*/
 
 	// InitLogger returns the logger for a service.
 	// ASN Framework manages loggers for all services, and the default log files are <servicename>-*.log
@@ -49,19 +49,17 @@ type ASNController interface {
 	// The DB is connected and ready for use through the DBHandler upon return.
 	//
 	// A Service may call InitDB() multiple time forDBs for different uses.
-	InitDB(dbType string) (DBHandler, error)
+	InitDB(dbType string) (commonapi.DBHandler, error)
 
 	// InitLocker returns the locker for a service.
 	InitLocker() (Lock, error)
 
-	// GetIAM is different from DB or logger. TODO~
-	//
-	// FIXME: GetIAM returns the IAM instance for a service.
+	// GetIAM is different from DB or logger.
 	GetIAM() (IAM, error)
 
 	/*
-	 * Service Management
-	 */
+		Service Management
+	*/
 
 	// StartServiceOnNode starts service on specified Service Node.
 	StartServiceOnNode(serviceScope string, serviceNodeId string, config []byte) error
@@ -78,8 +76,8 @@ type ASNController interface {
 	SendServiceOps(serviceNodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
 
 	/*
-	 * Service Configuration Management
-	 */
+		Service Configuration Management
+	*/
 
 	// SaveDefaultClusterConfig saves the default cluster setting.
 	SaveDefaultClusterConfig(config []byte) error
@@ -94,8 +92,8 @@ type ASNController interface {
 	SaveInstanceConfigOfServiceNode(serviceNodeId string, config []byte) error
 
 	/*
-	 * Network, Nodes, and Groups (config)
-	 */
+		Network, Nodes, and Groups (config)
+	*/
 
 	// GetNodesOfNetwork returns all nodes of network
 	GetNodesOfNetwork() ([]Node, error)
