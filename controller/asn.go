@@ -30,41 +30,57 @@ type Group struct {
 }
 
 // ASNController contains the APIs provided by ASN controller.
+//
+// 1. Initialization and resource allocation.
+// 2. Service
+// 3. Service Configuration Management
+// 4. Network and Network Nodes
+//
 type ASNController interface {
-	// GetNodesOfNetwork returns all nodes of network
-	GetNodesOfNetwork() ([]Node, error)
+	//
+	// Initialization
+	// 
+	// GetLogger returns the logger for a service.
+	// ASN Framework manages loggers for all services, and the default log files are <servicename>-*.log
+	// Only one logger is allocated if called multiple times.
+	InitLogger() (*log.Logger, error)
 
-	// GetGroupsOfNetwork returns all groups of network
-	GetGroupsOfNetwork() ([]Group, error)
+	// ASN Controller will return a DB handle of the specified DBtype.
+	// The DB is connected and ready for use through the DBhandle upon return.
+	//
+	// A Service may call InitDB() multiple time forDBs for differnt uses.
+	InitDB(dbType string) (dbh DBhandle, error)
 
-	// GetNodesOfGroup returns all nodes of group
-	GetNodesOfGroup(groupName string) ([]Node, error)
+	// GetLock returns the locker for a service.
+	InitLocker() (Lock, error)
 
-	// GetNodesOfParent returns all nodes of the parent
-	GetNodesOfParent(parentNodeId string) ([]Node, error)
+	// IAM is different from DB or logger. TODO~
+	//
+	// FIXME: GetIAM returns the IAM instance for a service.
+	GetIAM() (IAM, error)
 
-	// GetNodeById returns node by id
-	GetNodeById(id string) (Node, error)
+	//GetLock() (Lock, error)
 
-	// GetGroupByName returns group by group name
-	GetGroupByName(groupName string) (Group, error)
 
-	// StartService sends START cmd to the service node.
-	// The config is a pre-defined struct. Both service.controller and service.sn has the same struct,
-	// so they can easily use xxx.Marshall() and xxx.Unmarshall() to convert the struct between []byte and the struct.
-	StartService(serviceNodeId string, config []byte) error
+	//
+	// Service Management
+	//
+	// 
 
-	// StopService sends STOP cmd to the service node.
-	StopService(serviceNodeId string) error
-
-	// ResetService sends RESET cmd to the service node.
-	ResetService(serviceNodeId string) error
+	// StartService starts service on specified Service Node.
+	StartServiceonNode(serviceScope string, serviceNodeId string, config []byte) error
+	StopServiceonNode(serviceGroupId string) error
+	ResetServiceonNode(serviceNodeId string) error
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn has the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
 	SendServiceOps(serviceNodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
 
+	//
+	// Service Configuration Management
+	//
+	
 	// SaveDefaultClusterConfig saves the default cluster setting.
 	SaveDefaultClusterConfig(config []byte) error
 
@@ -77,15 +93,48 @@ type ASNController interface {
 	// SaveInstanceConfigOfServiceNode saves the instance setting for a service node.
 	SaveInstanceConfigOfServiceNode(serviceNodeId string, config []byte) error
 
-	// GetLogger returns the logger for a service.
-	GetLogger() (*log.Logger, error)
+	//
+	// Network, Nodes, and Groups(config)
+	//
+	//
+	// GetNodesOfNetwork returns all nodes of network
+	GetNodesOfNetwork() ([]Node, error)
 
-	// GetIAM returns the IAM instance for a service.
-	GetIAM() (IAM, error)
+	// GetGroupsOfNetwork returns all groups in the network
+	GetGroupsOfNetwork() ([]Group, error)
 
-	// GetDBConfig returns the DB config for a service.
-	GetDBConfig(dbType string) (*DBConf, error)
+	// GetGroupByName returns group by group name
+	GetGroupByName(groupName string) (Group, error)
 
-	// GetLock returns the locker for a service.
-	GetLock() (Lock, error)
+	// GetNodesOfGroup returns all nodes of group
+	GetNodesOfGroup(groupName string) ([]Node, error)
+
+	// GetNodesOfParent returns all nodes of the parent
+	GetNodesOfParent(parentNodeId string) ([]Node, error)
+
+	// GetNodeById returns node by id
+	GetNodeById(id string) (Node, error)
+
+
+}
+
+// Exported by AM.Modules/DB
+// 
+type ShadowDatabase struct {
+	Name     string // name of the database file
+	Colls	 []string
+	provider dbProvider
+}
+
+type ASNDBHandle interface {
+	Init(asnService ASNService, dbType string, []byte) error
+	Fini() ([]byte, error)
+}
+
+// ASN Controlelr Implementation
+func Init(dbType string) error {
+}
+
+// ASN Service call to init a DB.
+func InitDB(asndb ASNDBHandle, dbType string) error {
 }
