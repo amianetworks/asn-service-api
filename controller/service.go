@@ -9,7 +9,11 @@ import (
 
 // ASN Service Controller API
 //
+<<<<<<< HEAD
 // ASN is an distributed framework for clustered services.
+=======
+// ASN is n distributed framework for clustered services.
+>>>>>>> a9f05bc5129a22d0b8d88eadad560778398d6cca
 // An ASN Controller is the centralized control plane, which manages ASN Service Node(s).
 //
 // An distributed ASN Service is managed by ASN framework and controlled by A Service Controller.
@@ -20,11 +24,19 @@ import (
 // For example, SWAN Manager is indeed implemented as a Server Controller for the Service "SWAN".
 
 // ASNServiceController interface is implemented by a Service Controller.
+<<<<<<< HEAD
 // ASN Framework will call these functions to manage the liftime of the service.
 type ASNServiceController interface {
 	// Init initializes the Service.
 	// Before being initialized, Service should have only provided its CLI commands, which
 	// don't need to be runnable unitl Init() is called.
+=======
+// ASN Framework will call these functions to manage the lifetime of the service.
+type ASNServiceController interface {
+	// Init initializes the Service.
+	// Before being initialized, Service should have only provided its CLI commands, which
+	// don't need to be runnable until Init() is called.
+>>>>>>> a9f05bc5129a22d0b8d88eadad560778398d6cca
 	Init(asnc ASNController) error
 
 	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.

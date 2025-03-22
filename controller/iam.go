@@ -3,6 +3,9 @@
 package capi
 
 type IAM interface {
+	/*
+	 * ?
+	 */
 	// AccountCreate allows the user system to create a new account.
 	AccountCreate(username string, password []byte, info map[string]string) (err error)
 	// AccountRemove allows the user system to remove an existed account by username.

@@ -13,8 +13,8 @@ type ASNServiceNode interface {
 	// GetServiceNodeNetif returns ASN managed netifs from Service node.
 	GetServiceNodeNetif() (Netif, error)
 
-	// SendMetadataToController sends the metadata to the controller.
-	SendMetadataToController(metadata []byte) error
+	// SendMessageToController sends the message to the controller.
+	SendMessageToController(message string) error
 
 	// GetLogger returns the logger for this service.
 	GetLogger() (*log.Logger, error)

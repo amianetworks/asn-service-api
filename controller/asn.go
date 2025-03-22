@@ -3,9 +3,8 @@
 package capi
 
 import (
-	"github.com/amianetworks/asn-service-api/v25/log"
-
 	commonapi "github.com/amianetworks/asn-service-api/v25/common"
+	"github.com/amianetworks/asn-service-api/v25/log"
 )
 
 // Structs used between asn.controller and service.controller.
@@ -29,58 +28,59 @@ type Group struct {
 	Nodes  []string
 }
 
-// ASNController contains the APIs provided by ASN controller.
+// ASNController
 //
 // 1. Initialization and resource allocation.
 // 2. Service
 // 3. Service Configuration Management
 // 4. Network and Network Nodes
-//
 type ASNController interface {
-	//
-	// Initialization
-	// 
-	// GetLogger returns the logger for a service.
+
+	/*
+	 * Initialization
+	 */
+
+	// InitLogger returns the logger for a service.
 	// ASN Framework manages loggers for all services, and the default log files are <servicename>-*.log
 	// Only one logger is allocated if called multiple times.
 	InitLogger() (*log.Logger, error)
 
-	// ASN Controller will return a DB handle of the specified DBtype.
-	// The DB is connected and ready for use through the DBhandle upon return.
+	// InitDB ASN Controller will return a DB handle of the specified dbType.
+	// The DB is connected and ready for use through the DBHandler upon return.
 	//
-	// A Service may call InitDB() multiple time forDBs for differnt uses.
-	InitDB(dbType string) (dbh DBhandle, error)
+	// A Service may call InitDB() multiple time forDBs for different uses.
+	InitDB(dbType string) (DBHandler, error)
 
-	// GetLock returns the locker for a service.
+	// InitLocker returns the locker for a service.
 	InitLocker() (Lock, error)
 
-	// IAM is different from DB or logger. TODO~
+	// GetIAM is different from DB or logger. TODO~
 	//
 	// FIXME: GetIAM returns the IAM instance for a service.
 	GetIAM() (IAM, error)
 
-	//GetLock() (Lock, error)
+	/*
+	 * Service Management
+	 */
 
+	// StartServiceOnNode starts service on specified Service Node.
+	StartServiceOnNode(serviceScope string, serviceNodeId string, config []byte) error
 
-	//
-	// Service Management
-	//
-	// 
+	// StopServiceOnNode stops service on specified Service Node.
+	StopServiceOnNode(serviceGroupId string) error
 
-	// StartService starts service on specified Service Node.
-	StartServiceonNode(serviceScope string, serviceNodeId string, config []byte) error
-	StopServiceonNode(serviceGroupId string) error
-	ResetServiceonNode(serviceNodeId string) error
+	// ResetServiceOnNode resets service on specified Service Node.
+	ResetServiceOnNode(serviceNodeId string) error
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn has the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
 	SendServiceOps(serviceNodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
 
-	//
-	// Service Configuration Management
-	//
-	
+	/*
+	 * Service Configuration Management
+	 */
+
 	// SaveDefaultClusterConfig saves the default cluster setting.
 	SaveDefaultClusterConfig(config []byte) error
 
@@ -93,10 +93,10 @@ type ASNController interface {
 	// SaveInstanceConfigOfServiceNode saves the instance setting for a service node.
 	SaveInstanceConfigOfServiceNode(serviceNodeId string, config []byte) error
 
-	//
-	// Network, Nodes, and Groups(config)
-	//
-	//
+	/*
+	 * Network, Nodes, and Groups (config)
+	 */
+
 	// GetNodesOfNetwork returns all nodes of network
 	GetNodesOfNetwork() ([]Node, error)
 
@@ -114,27 +114,4 @@ type ASNController interface {
 
 	// GetNodeById returns node by id
 	GetNodeById(id string) (Node, error)
-
-
-}
-
-// Exported by AM.Modules/DB
-// 
-type ShadowDatabase struct {
-	Name     string // name of the database file
-	Colls	 []string
-	provider dbProvider
-}
-
-type ASNDBHandle interface {
-	Init(asnService ASNService, dbType string, []byte) error
-	Fini() ([]byte, error)
-}
-
-// ASN Controlelr Implementation
-func Init(dbType string) error {
-}
-
-// ASN Service call to init a DB.
-func InitDB(asndb ASNDBHandle, dbType string) error {
 }

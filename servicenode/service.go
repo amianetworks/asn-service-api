@@ -7,11 +7,6 @@ import commonapi "github.com/amianetworks/asn-service-api/v25/common"
 // ASNService interface provides the service's API for the ASN Service Node usage,
 // will be implemented by service and used by ASN service node.
 type ASNService interface {
-	// GetVersion returns the version of the service,
-	// share.Version provide the initializer (version parser) and a toString convert,
-	// for details, please refer to share/version.go
-	GetVersion() commonapi.Version
-
 	// Init initializes the service
 	Init()
 
