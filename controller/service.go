@@ -7,31 +7,33 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Service Controller API
-// Service Controllers need to implement interfaces below to be loaded and started.
-// Please ready
+// ASN Service Controller API
+//
+// ASN is n distributed framework for clustered services.
+// An ASN Controller is the centralized control plane, which manages ASN Service Node(s).
+//
+// An distributed ASN Service is managed by ASN framework and controlled by A Service Controller.
+// A Service Controller needs to implement the following interfaces to be loaded and started.
+//
+// Service Controller is used by ASN framework as a general purpose term.
+// A service may use "manager", "master", or "controller" based on its implemented role.
+// For example, SWAN Manager is indeed implemented as a Server Controller for the Service "SWAN".
 
-// ServiceStatus Service status struct, this is a MUST-have!
-// ServiceStatus.Enabled indicates the service state from the asn.controller's view
-// ServiceStatus.Extra is an option for the service providing extra status
-type ServiceStatus struct {
-	Enabled bool
-	Extra   []byte
-}
-
-// ASNServiceController interface is implemented  provides the service's API for the ASN Controller usage,
-// will be implemented by service and used by ASN controller.
+// ASNServiceController interface is implemented by a Service Controller.
+// ASN Framework will call these functions to manage the lifetime of the service.
 type ASNServiceController interface {
 	// Init initializes the Service.
-	// Before being initialized, Service should have only provided its CLI.
-	Init(asnController ASNController) error
+	// Before being initialized, Service should have only provided its CLI commands, which
+	// don't need to be runnable until Init() is called.
+	Init(asnc ASNController) error
 
 	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.
-	// This could be implemented by simply ignoring the message.
-	HandleMessageFromServiceNode(serviceNodeId, message string) error
+	// If this functionality is not needed, a service's implementation may simply
+	// ignore the message and return an error.
+	HandleMessageFromServiceNode(serviceNodeId string, message []byte) error
 
 	// GetCLICommands returns the Service's CLI commands to integrate them in ASN CLI.
-	// This function should be ready BEFORE Init().
+	// This function must be callable BEFORE Init().
 	GetCLICommands(applyCLIOps func(opScope int, opScopeList []string, opCmd, opParams string) error) []*cobra.Command
 
 	// GetWebHandler returns a function to mount the web handler got this service controller.
