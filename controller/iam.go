@@ -84,6 +84,11 @@ type IAM interface {
 	VerifyToken(accessToken string) (username, deviceID, userClaims string, err error)
 	// RevokeToken allows the user system to revoke access token.
 	RevokeToken(accessToken string) (err error)
+
+	/*
+		Role
+	*/
+
 	// AddRole allows the user system to add a new role.
 	AddRole(roleName, remark string) (err error)
 	// DeleteRole allows the user system to delete a role.
@@ -100,6 +105,11 @@ type IAM interface {
 	UnbindRoleFromUserGroup(userGroupName, roleName string) (err error)
 	// ListRoleUsers allows the user system to query the bound users and user groups of the role.
 	ListRoleUsers(roleName string) (userList, userGroupList []string, err error)
+
+	/*
+		Access Control
+	*/
+
 	// AddAccessControlPolicy allows the user system to add a new access control policy.
 	AddAccessControlPolicy(name, scope, operation, time string) (err error)
 	// UpdateAccessControlPolicy allows the user system to update access control policy.
