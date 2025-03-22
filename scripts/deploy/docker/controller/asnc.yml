@@ -14,6 +14,7 @@ services:
       - "27017:27017"  # port forwarding (localPort:containerPort)
     volumes:
       - mongodb_data:/data/db  # data volumes, (localDirectory:containerDirectory)
+      - /etc/localtime:/etc/localtime
     command: --bind_ip_all --auth
   asn-idb:
     image: influxdb:1.11.8
@@ -22,6 +23,7 @@ services:
       - "8086:8086"
     volumes:
       - influxdb_data:/var/lib/influxdb
+      - /etc/localtime:/etc/localtime
     environment:
       INFLUXDB_DB: asn
       INFLUXDB_ADMIN_USER: amia
@@ -40,9 +42,10 @@ services:
       - ldap_slap:/etc/ldap/slapd.d/
       - ldap_data:/var/lib/ldap/
       - ./config/:/usr/local/sapphire/
+      - /etc/localtime:/etc/localtime
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.0.28
+    image: registry.amiasys.com/asnc:v25.0.29
     network_mode: host
     depends_on:
       - "asn-mdb"
@@ -54,6 +57,7 @@ services:
       - ./log/:/var/log/asnc/
       - ./service:/etc/asnc/service/
       - ./web:/var/www/asnc/
+      - /etc/localtime:/etc/localtime
 
 volumes:
   mongodb_data:
