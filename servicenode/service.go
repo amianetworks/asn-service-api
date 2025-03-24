@@ -23,7 +23,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (20s) to process the initialization,
 	//   		if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	Start(config []byte) (errChan chan error, err error)
+	Start(clusterConfig, instanceConfig []byte) (errChan chan error, err error)
 
 	// ApplyServiceOps applies the service operations to the service.
 	// Service operations will not change the service status (enabled/disabled),
