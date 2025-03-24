@@ -177,7 +177,7 @@ type TSQueryResult struct {
 type TSCollection interface {
 	NewPoint() TSPoint
 	NewQuery() TSQuery
-	
+
 	// AddDataPoint adds one data point to collection c.
 	AddDataPoint(pt TSPoint) error
 
@@ -197,22 +197,22 @@ type TSCollection interface {
 
 	// FindDataPointsWithRegex finds data points in collection c.
 	// This function do not care how many data points matched in the process, maybe 0, 1, or more.
-	FindDataPointsWithRegex(query *TSQuery) (TSQueryResult, error)
+	FindDataPointsWithRegex(query TSQuery) (TSQueryResult, error)
 
 	FindDataPointsWithRegexFromJson(queryJson []byte) (TSQueryResult, error)
 
 	// FindPivotDataPoints Pivot the query result to row table with the same tags value and time stamps, as query operation in traditional db
-	FindPivotDataPoints(query *TSQuery) (TSPivotQueryResult, error)
+	FindPivotDataPoints(query TSQuery) (TSPivotQueryResult, error)
 
 	FindPivotDataPointsFromJson(queryJson []byte) (TSPivotQueryResult, error)
 
-	FindPivotDataPointsWithRegex(query *TSQuery) (TSPivotQueryResult, error)
+	FindPivotDataPointsWithRegex(query TSQuery) (TSPivotQueryResult, error)
 
 	FindPivotDataPointsWithRegexFromJson(queryJson []byte) (TSPivotQueryResult, error)
 
 	// CountDataPoints return count of data points according to the condition in collection c.
 	// The input argument is the same usage as in function FindDataPoints
-	CountDataPoints(query *TSQuery) (uint64, error)
+	CountDataPoints(query TSQuery) (uint64, error)
 
 	CountDataPointsFromJson(queryJson []byte) (uint64, error)
 }
