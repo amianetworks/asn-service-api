@@ -30,7 +30,7 @@ type ASNServiceController interface {
 	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.
 	// If this functionality is not needed, a service's implementation may simply
 	// ignore the message and return an error.
-	HandleMessageFromServiceNode(serviceNodeId string, message []byte) error
+	HandleMessageFromServiceNode(serviceNodeId, message string) error
 
 	// GetCLICommands returns the Service's CLI commands to integrate them in ASN CLI.
 	// This function must be callable BEFORE Init().

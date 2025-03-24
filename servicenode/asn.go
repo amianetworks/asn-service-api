@@ -37,5 +37,5 @@ type ASNServiceNode interface {
 	// SendMessageToController
 	// Service Node may send a formated message to its controller, which must have implemented
 	// HandleMessageFromServiceNode() to handle the received message.
-	SendMessageToController(msg []byte) error
+	SendMessageToController(message string) error
 }
