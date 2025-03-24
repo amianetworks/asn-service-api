@@ -45,11 +45,17 @@ type ASNController interface {
 	// Only one logger is allocated if called multiple times.
 	InitLogger() (*log.Logger, error)
 
-	// InitDB ASN Controller will return a DB handle of the specified dbType.
-	// The DB is connected and ready for use through the DBHandler upon return.
+	// InitDocDB ASN Controller will return a doc DB handle.
+	// The DB is connected and ready for use through the DocDBHandler upon return.
 	//
-	// A Service may call InitDB() multiple time forDBs for different uses.
-	InitDB(dbType string) (commonapi.DBHandler, error)
+	// A Service may call InitDocDB() multiple time forDBs for different uses.
+	InitDocDB() (commonapi.DocDBHandler, error)
+
+	// InitTSDB ASN Controller will return a doc DB handle.
+	// The DB is connected and ready for use through the TSDBHandler upon return.
+	//
+	// A Service may call InitTSDB() multiple time forDBs for different uses.
+	InitTSDB() (commonapi.TSDBHandler, error)
 
 	// InitLocker returns the locker for a service.
 	InitLocker() (Lock, error)

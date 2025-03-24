@@ -23,9 +23,17 @@ type ASNServiceNode interface {
 	// ASN Framework manages logging for all services, and the default log files are <servicename>-*.log
 	InitLogger() (*log.Logger, error)
 
-	// InitDB may be called to initialize multiple DBs with specified dbName and dbType.
-	// The required DB is connected and ready for use through the dnHandler.
-	InitDB(dbType string, dbName string) (commonapi.DBHandler, error)
+	// InitDocDB ASN Controller will return a doc DB handle.
+	// The DB is connected and ready for use through the DocDBHandler upon return.
+	//
+	// A Service may call InitDocDB() multiple time forDBs for different uses.
+	InitDocDB() (commonapi.DocDBHandler, error)
+
+	// InitTSDB ASN Controller will return a doc DB handle.
+	// The DB is connected and ready for use through the TSDBHandler upon return.
+	//
+	// A Service may call InitTSDB() multiple time forDBs for different uses.
+	InitTSDB() (commonapi.TSDBHandler, error)
 
 	// Placeholder for Locker, in case it's needed.
 	// Placeholder for IAM, in case it's needed.

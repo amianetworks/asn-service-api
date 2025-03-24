@@ -2,32 +2,18 @@
 
 package commonapi
 
-const (
-	DBTypeDoc = "docdb"
-	DBTypeTS  = "tsdb"
-)
-
-const (
-	DBProviderInfluxDBV1 string = "influxdbv1"
-	DBProviderInfluxDBV2 string = "influxdbv2"
-	DBProviderMongoDB    string = "mongodb"
-	DBProviderFileDB     string = "filedb"
-	DBProviderPrometheus string = "prometheus"
-	DBProviderTSFilDB    string = "tsfiledb"
-)
-
-type CollOptions struct {
+type DocCollOptions struct {
 	// Optional when creating mongoDB collection, otherwise ignored.
-	Indexes      map[string]IndexOptions // key = "column1;column2;..."
-	UseRawFormat bool                    // if true, it will use raw format for performance optimization (mongoDB: BSON, fileDB: JSON); otherwise it will use JSON format for better compatibility
+	Indexes      map[string]DocIndexOptions // key = "column1;column2;..."
+	UseRawFormat bool                       // if true, it will use raw format for performance optimization (mongoDB: BSON, fileDB: JSON); otherwise it will use JSON format for better compatibility
 }
 
-type IndexOptions struct {
+type DocIndexOptions struct {
 	Sparse bool
 	Unique bool
 }
 
-type DBHandler interface {
+type DocDBHandler interface {
 	// FindOrCreateCollection creates or find(if already exist) collection
 	// name: name of collection
 	// options:
@@ -36,7 +22,7 @@ type DBHandler interface {
 	//	for filedb, options is nil
 	//
 	// returns the collection handle corresponding to the collection name
-	FindOrCreateCollection(name string, options *CollOptions) (Collection, error)
+	FindOrCreateCollection(name string, options *DocCollOptions) (DocCollection, error)
 
 	// DeleteCollection deletes the collection / measurement
 	// name: name of collection / measurement
@@ -52,7 +38,7 @@ type DBHandler interface {
 	FindFiles(queryString string) ([]string, [][]byte, error)
 }
 
-type Collection interface {
+type DocCollection interface {
 	// AddRecord adds one record to collection c.
 	// record: json format data, including key-value pairs.
 	AddRecord(record map[string]interface{}) error
