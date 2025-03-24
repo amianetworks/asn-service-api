@@ -68,13 +68,13 @@ type ASNController interface {
 	*/
 
 	// StartServiceOnNode starts service on specified Service Node.
-	StartServiceOnNode(serviceScope string, serviceNodeId string, config []byte) error
+	StartServiceOnNode(serviceScope string, serviceScopeList []string, clusterConfig, instanceConfig []byte) error
 
 	// StopServiceOnNode stops service on specified Service Node.
-	StopServiceOnNode(serviceGroupId string) error
+	StopServiceOnNode(serviceScope string, serviceScopeList []string) error
 
 	// ResetServiceOnNode resets service on specified Service Node.
-	ResetServiceOnNode(serviceNodeId string) error
+	ResetServiceOnNode(serviceScope string, serviceScopeList []string) error
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn has the same struct,
