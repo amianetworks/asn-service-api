@@ -175,6 +175,9 @@ type TSQueryResult struct {
 }
 
 type TSCollection interface {
+	NewPoint() TSPoint
+	NewQuery() TSQuery
+	
 	// AddDataPoint adds one data point to collection c.
 	AddDataPoint(pt TSPoint) error
 
