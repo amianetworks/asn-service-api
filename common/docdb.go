@@ -50,7 +50,7 @@ type DocCollection interface {
 	// DeleteRecord deletes one record in collection c.
 	// queryJson: condition of key-value pairs in json format, determine which record to be deleted.
 	// If condition match no record or more than one record, will get an error
-	DeleteRecord(queryJson string) error
+	DeleteRecord(queryJson string) (bool, error)
 
 	// DeleteRecords deletes records in collection c.
 	// queryJson: condition of key-value pairs in json format, determine matched records to be deleted.
@@ -60,7 +60,7 @@ type DocCollection interface {
 	// FindRecord finds record in collection c.
 	// queryJson: condition of key-value pairs in json format, determine to match one record.
 	// If condition match no record or more than one record, will get an error.
-	FindRecord(queryJson string, fieldFilter map[string]bool) (map[string]interface{}, error)
+	FindRecord(queryJson string, fieldFilter map[string]bool) (map[string]interface{}, bool, error)
 
 	// FindRecords finds records in collection c, records may be processed by sorting and pagination.
 	// This function do not care how many records matched in the process, maybe 0, 1, or more.
@@ -78,7 +78,7 @@ type DocCollection interface {
 	// FindRecordWithRegex finds record in collection c.
 	// queryJson: condition of key-value pairs in json format with regular expression style, determine to match one record.
 	// If condition match no record or more than one record, will get an error.
-	FindRecordWithRegex(queryJson string, fieldFilter map[string]bool) (map[string]interface{}, error)
+	FindRecordWithRegex(queryJson string, fieldFilter map[string]bool) (map[string]interface{}, bool, error)
 
 	// FindRecordsWithRegex finds records in collection c, records may be processed by sorting and pagination.
 	// This function do not care how many records matched in the process, maybe 0, 1, or more.
@@ -93,17 +93,17 @@ type DocCollection interface {
 	// If soring is empty string, do not sort.
 	FindRecordsWithRegex(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]interface{}, error)
 
-	// UpdatedRecord updates one record in collection c.
+	// UpdateRecord updates one record in collection c.
 	// queryJson: condition of key-value pairs in json format, determine to match one record to do data update.
 	// newRecord: json format data, including key-value pairs, replaces the old pairs in the matched record.
 	// If condition match no record or more than one record, will get an error.
-	UpdatedRecord(queryJson string, newRecord string) error
+	UpdateRecord(queryJson string, newRecord string) (bool, error)
 
-	// UpdatedRecords updates records in collection c.
+	// UpdateRecords updates records in collection c.
 	// queryJson: condition of key-value pairs in json format, determine to match the records to do data update.
 	// newRecord: json format data, including key-value pairs, replaces the old pairs in all the matched record.
 	// This function do not care how many records matched in the process, maybe 0, 1, or more.
-	UpdatedRecords(queryJson string, newRecord string) error
+	UpdateRecords(queryJson string, newRecord string) error
 
 	// ArrayAppend appends elements in a field whose value type is array.
 	// If the field type is not array, will get an error.
