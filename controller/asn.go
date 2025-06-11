@@ -3,8 +3,8 @@
 package capi
 
 import (
-	commonapi "github.com/amianetworks/asn-service-api/v25/common"
-	"github.com/amianetworks/asn-service-api/v25/log"
+	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+	"asn.amiasys.com/asn-service-api/v25/log"
 )
 
 // Structs used between asn.controller and service.controller.

@@ -202,7 +202,15 @@ func main() {
 
 	// generate controller file
 	err = os.MkdirAll("controller", 0755)
+	if err != nil {
+		panic(err)
+	}
+
 	err = os.MkdirAll("controller/config", 0755)
+	if err != nil {
+		panic(err)
+	}
+
 	err = os.MkdirAll("controller/log", 0755)
 	if err != nil {
 		panic(err)
@@ -441,7 +449,15 @@ func main() {
 	for i := 1; i <= n; i++ {
 		fileName = fmt.Sprintf("sn%d", i)
 		err = os.MkdirAll("servicenode/"+fileName, 0755)
+		if err != nil {
+			panic(err)
+		}
+
 		err = os.MkdirAll(fmt.Sprintf("servicenode/%s/config", fileName), 0755)
+		if err != nil {
+			panic(err)
+		}
+
 		err = os.MkdirAll(fmt.Sprintf("servicenode/%s/log", fileName), 0755)
 		if err != nil {
 			panic(err)

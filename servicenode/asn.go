@@ -3,8 +3,8 @@
 package snapi
 
 import (
-	commonapi "github.com/amianetworks/asn-service-api/v25/common"
-	"github.com/amianetworks/asn-service-api/v25/log"
+	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+	"asn.amiasys.com/asn-service-api/v25/log"
 )
 
 // ASNServiceNode contains the APIs provided by ASN Service Node.
