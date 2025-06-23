@@ -4,6 +4,7 @@ package capi
 
 import (
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+	"asn.amiasys.com/asn-service-api/v25/iam"
 	"asn.amiasys.com/asn-service-api/v25/log"
 )
 
@@ -61,7 +62,7 @@ type ASNController interface {
 	InitLocker() (Lock, error)
 
 	// GetIAM is different from DB or logger.
-	GetIAM() (IAM, error)
+	GetIAM() (iam.Instance, error)
 
 	/*
 		Service Management
