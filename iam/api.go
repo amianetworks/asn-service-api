@@ -43,6 +43,8 @@ type Instance interface {
 	AccessUpdate(name string, scope, operation int64, time *TimeControl) error
 	AccessDelete(name string) error
 	AccessList() ([]*Access, error)
+	AccessGrantToGroup(groupName string, accesses []string) error
+	AccessRevokeFromGroup(groupName string, accesses []string) error
 	AccountAccessList(username string) ([]*Access, error)
 	GroupAccessList(groupName string) ([]*Access, error)
 }
