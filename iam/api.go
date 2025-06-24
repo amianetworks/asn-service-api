@@ -7,6 +7,7 @@ import "time"
 type Instance interface {
 	AccountCreate(username, password, email string, phone *Phone) error
 	AccountDelete(username string) error
+	AccountGet(username string) (*Account, error)
 	AccountList() ([]*Account, error)
 	AccountInfoUpdate(username, email string, phone *Phone) error
 	AccountMetadataUpdate(username, metadata string) error
@@ -19,6 +20,7 @@ type Instance interface {
 	GroupDelete(groupName string) error
 	GroupRename(oldName, newName string) error
 	GroupMetadataUpdate(groupName, metadata string) error
+	GroupGet(groupName string) (*Group, error)
 	GroupList() ([]*Group, error)
 	GroupMemberList(groupName string) ([]*Account, error)
 	AccountJoinGroup(groupName string, usernames []string) error

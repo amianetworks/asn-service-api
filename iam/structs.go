@@ -23,6 +23,8 @@ type Account struct {
 	Email      string
 	Phone      Phone
 	MfaEnabled bool
+
+	Metadata map[string]string
 }
 
 type Phone struct {
@@ -34,6 +36,8 @@ type Group struct {
 	TimeInfo     TimeInfo
 	GroupName    string
 	GroupMembers int
+
+	Metadata string
 }
 
 type TokenSet struct {
