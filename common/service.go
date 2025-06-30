@@ -4,8 +4,7 @@ package commonapi
 
 const (
 	CLIOpScopeNetwork = 1 + iota
-	CLIOpScopeGroup
-	CLIOpScopeServiceNode
+	CLIOpScopeNode
 )
 
 type Response struct {
