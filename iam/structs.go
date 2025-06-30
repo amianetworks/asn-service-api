@@ -17,13 +17,6 @@ type Access struct {
 	Time       *TimeControl
 }
 
-type AccountType int
-
-const (
-	AccountTypeNormal AccountType = iota
-	AccountTypeMaintainer
-)
-
 type Account struct {
 	TimeInfo   TimeInfo
 	Username   string

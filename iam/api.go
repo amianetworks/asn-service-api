@@ -7,8 +7,7 @@ import "time"
 type Instance interface {
 	JWKSGet() (string, error)
 
-	AccountCreateNormal(username, password, email string, phone *Phone) error
-	AccountCreateSpecial(username, password, email string, phone *Phone, accountType AccountType, specialKey string) error
+	AccountCreate(username, password, email string, phone *Phone) error
 	AccountDelete(username string) error
 	AccountExists(username string) (bool, error)
 	AccountGet(username string) (*Account, error)
