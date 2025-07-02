@@ -10,23 +10,31 @@ import (
 
 // Structs used between asn.controller and service.controller.
 
-// Node is the structure for a network node.
-type Node struct {
-	Id               string
-	Type             string
-	ServiceNodeState int
-	ServiceState     int
-	ParentId         string
-	Group            string
-	ExternalLinked   []string
-	InternalLinked   []string
+// Network is the structure for a network.
+type Network struct {
+	Id       string
+	ParentID string
+	ChildIDs []string // subnetworks
+
+	Name string
+
+	// TODO
 }
 
-// Group is the structure for a configuration group.
-type Group struct {
-	Name   string
-	Remark string
-	Nodes  []string
+// Node is the structure for a node.
+type Node struct {
+	Id       string
+	ParentId string
+
+	Type string
+	Name string
+
+	ServiceNodeState int
+	ServiceState     int
+
+	LinkIDs []string
+
+	// TODO
 }
 
 // ASNController
@@ -68,19 +76,19 @@ type ASNController interface {
 		Service Management
 	*/
 
-	// StartServiceOnNode starts service on specified Service Node.
-	StartServiceOnNode(serviceScope int, serviceScopeList []string, clusterConfig, instanceConfig []byte) error
+	// StartService starts service on specified Service Nodes.
+	StartService(serviceScope int, serviceScopeList []string, clusterConfig, instanceConfig []byte) error
 
-	// StopServiceOnNode stops service on specified Service Node.
-	StopServiceOnNode(serviceScope int, serviceScopeList []string) error
+	// StopService stops service on specified Service Nodes.
+	StopService(serviceScope int, serviceScopeList []string) error
 
-	// ResetServiceOnNode resets service on specified Service Node.
-	ResetServiceOnNode(serviceScope int, serviceScopeList []string) error
+	// ResetService resets service on specified Service Nodes.
+	ResetService(serviceScope int, serviceScopeList []string) error
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn has the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
-	SendServiceOps(serviceNodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
+	SendServiceOps(nodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
 
 	/*
 		Service Configuration Management
@@ -89,33 +97,24 @@ type ASNController interface {
 	// SaveDefaultClusterConfig saves the default cluster setting.
 	SaveDefaultClusterConfig(config []byte) error
 
-	// SaveClusterConfigOfGroup saves the cluster setting for a group.
-	SaveClusterConfigOfGroup(groupName string, config []byte) error
+	// SaveClusterConfigOfNetwork saves the cluster setting for a network.
+	SaveClusterConfigOfNetwork(networkID string, config []byte) error
 
-	// SaveClusterConfigOfServiceNode saves the cluster setting for a service node.
-	SaveClusterConfigOfServiceNode(serviceNodeId string, config []byte) error
+	// SaveClusterConfigOfNode saves the cluster setting for a node.
+	SaveClusterConfigOfNode(nodeId string, config []byte) error
 
-	// SaveInstanceConfigOfServiceNode saves the instance setting for a service node.
-	SaveInstanceConfigOfServiceNode(serviceNodeId string, config []byte) error
+	// SaveInstanceConfigOfNode saves the instance setting for a node.
+	SaveInstanceConfigOfNode(nodeId string, config []byte) error
 
 	/*
 		Network, Nodes, and Groups (config)
 	*/
 
-	// GetNodesOfNetwork returns all nodes of network
-	GetNodesOfNetwork() ([]Node, error)
+	// GetSubnetworksOfNetwork returns all subnetworks of a network
+	GetSubnetworksOfNetwork(networkID string) ([]Network, error)
 
-	// GetGroupsOfNetwork returns all groups in the network
-	GetGroupsOfNetwork() ([]Group, error)
-
-	// GetGroupByName returns group by group name
-	GetGroupByName(groupName string) (Group, error)
-
-	// GetNodesOfGroup returns all nodes of group
-	GetNodesOfGroup(groupName string) ([]Node, error)
-
-	// GetNodesOfParent returns all nodes of the parent
-	GetNodesOfParent(parentNodeId string) ([]Node, error)
+	// GetNodesOfNetwork returns all nodes of a network
+	GetNodesOfNetwork(networkID string) ([]Node, error)
 
 	// GetNodeById returns node by id
 	GetNodeById(id string) (Node, error)

@@ -12,8 +12,8 @@ type TimeInfo struct {
 type Access struct {
 	TimeInfo   TimeInfo
 	AccessName string
-	Scope      int64
-	Operation  int64
+	Scope      string
+	Operation  string
 	Time       *TimeControl
 }
 
