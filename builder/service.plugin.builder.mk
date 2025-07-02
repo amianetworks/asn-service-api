@@ -38,6 +38,11 @@ prepare-service-builder-base:
 	@echo " - Run \`make build-docker\` to build standalone docker images, for non-plugin setup."
 	@echo ""
 
+# Check Prepare for base docker image to build ASN Service Plugins.
+check-service-builder-base:
+	@docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^$(BUILD_ENV_BASE_IMAGE)(:|$$)' || echo "No Builder Base Image Found."
+
+
 # Rebuild everything from scratch.
 service-build-from-scratch:
 	@echo "Current working directory: ${PWD}"

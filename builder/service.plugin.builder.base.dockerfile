@@ -23,9 +23,9 @@ RUN wget -q https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
     rm -f go1.23.4.linux-amd64.tar.gz
 ENV PATH="${PATH}:/etc/go/bin"
 ENV GOPROXY="https://goproxy.io,direct"
-ENV GOPATH=/go
-ENV GOCACHE=/go/go.cache
-ENV GOMODCACHE=/go.mod
+#ENV GOPATH=/go
+#ENV GOCACHE=${GOPATH}/.cache
+#ENV GOMODCACHE=${GOPATH}/pkg/mod
 
 # Configure SSH for private GitHub repositories
 RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/" && \

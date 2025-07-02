@@ -15,9 +15,9 @@ WORKDIR /asn-service
 # Only set the ENV for the new build.
 ENV PATH="${PATH}:/etc/go/bin"
 ENV GOPROXY="https://goproxy.io,direct"
-ENV GOPATH=/go
-ENV GOCACHE=/go/go.cache
-ENV GOMODCACHE=/go.mod
+#ENV GOPATH=/go
+#ENV GOCACHE=${GOPATH}/.cache
+#ENV GOMODCACHE=${GOPATH}/pkg/mod
 
 # Clean up the $WORKDIR
 RUN rm -rf /asn-service/*
