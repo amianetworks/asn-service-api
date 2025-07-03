@@ -3,6 +3,8 @@
 package capi
 
 import (
+	"crypto/tls"
+
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
 	"asn.amiasys.com/asn-service-api/v25/iam"
 	"asn.amiasys.com/asn-service-api/v25/log"
@@ -21,11 +23,8 @@ type NetworkBasicInfo struct {
 // Network is the structure for a network.
 type Network struct {
 	NetworkBasicInfo
-
 	Location *Location
-
 	Networks []*Network
-	Nodes    []*Node
 }
 
 type Location struct {
@@ -41,12 +40,25 @@ type Coordinates struct {
 	Altitude  float32
 }
 
+type NodeType string
+
+const (
+	NodeTypeRouter      NodeType = "router"
+	NodeTypeSwitch      NodeType = "switch"
+	NodeTypeAppliance   NodeType = "appliance"
+	NodeTypeFirewall    NodeType = "firewall"
+	NodeTypeLoadBalance NodeType = "lb"
+	NodeTypeAccessPoint NodeType = "ap"
+	NodeTypeEndPoint    NodeType = "ep"
+	NodeTypeServer      NodeType = "server"
+)
+
 // Node is the structure for a node.
 type Node struct {
-	ID          string // Node ID
-	Name        string // Device display name
-	Type        string // Node Type
-	NetworkID   string // Network ID
+	ID          string   // Node ID
+	Name        string   // Device display name
+	Type        NodeType // Node Type
+	NetworkID   string   // Network ID
 	Managed     bool
 	Description string
 
@@ -114,6 +126,14 @@ type NodeLinkNode struct {
 	Interface string
 }
 
+type NodeGroup struct {
+	ID            string
+	Name          string
+	Description   string
+	Nodes         []*Node
+	ClusterConfig []byte
+}
+
 // ASNController
 //
 // 1. Initialization and resource allocation.
@@ -153,8 +173,16 @@ type ASNController interface {
 		Service Management
 	*/
 
+	// AddServiceToNode adds a .so file to an existing node, and inits this service on that node.
+	// NOTE: CURRENTLY UNSUPPORTED!!!
+	AddServiceToNode(nodeID string) error
+
+	// DeleteServiceFromNode removes this service from an existing node.
+	// NOTE: CURRENTLY UNSUPPORTED!!!
+	DeleteServiceFromNode(nodeID string) error
+
 	// StartService starts service on specified Service Nodes.
-	StartService(serviceScope int, serviceScopeList []string, clusterConfig, instanceConfig []byte) error
+	StartService(serviceScope int, serviceScopeList []string, instanceConfig []byte) error
 
 	// StopService stops service on specified Service Nodes.
 	StopService(serviceScope int, serviceScopeList []string) error
@@ -177,11 +205,11 @@ type ASNController interface {
 	// SaveClusterConfigOfNetwork saves the cluster setting for a network.
 	SaveClusterConfigOfNetwork(networkID string, config []byte) error
 
+	// SaveClusterConfigOfNodeGroup saves the cluster setting for a node group.
+	SaveClusterConfigOfNodeGroup(nodeGroupID string, config []byte) error
+
 	// SaveClusterConfigOfNode saves the cluster setting for a node.
 	SaveClusterConfigOfNode(nodeId string, config []byte) error
-
-	// SaveInstanceConfigOfNode saves the instance setting for a node.
-	SaveInstanceConfigOfNode(nodeId string, config []byte) error
 
 	/*
 		Networks, Nodes and Links
@@ -201,4 +229,28 @@ type ASNController interface {
 	// - External links connect nodes in this network with nodes outside of this network.
 	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
 	GetNodesOfNetwork(networkID string) ([]*Node, []*NodeInternalLink, []*NodeExternalLink, error)
+
+	// CreateNode creates a node under a given network.
+	// Note that this is only supported when ASN does not strictly verify the network topology.
+	// For now, a certificate is returned for the node to register to ASN Controller.
+	CreateNode(networkID, nodeName string, nodeType NodeType) (*tls.Certificate, error)
+
+	/*
+		Node Group
+	*/
+
+	// CreateNodeGroup creates a node group for this service.
+	CreateNodeGroup(name, description string) error
+
+	// ListNodeGroups returns all node groups under this service.
+	ListNodeGroups() ([]*NodeGroup, error)
+
+	// DeleteNodeGroup removes a node group under this service.
+	DeleteNodeGroup(id string) error
+
+	// AddNodesToNodeGroup adds the specified nodes to the provided node group identified by its ID.
+	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error
+
+	// RemoveNodeFromNodeGroup removes the specified nodes from the provided node group identified by its ID.
+	RemoveNodeFromNodeGroup(nodeGroupID string, nodeIDs []string) error
 }
