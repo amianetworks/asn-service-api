@@ -19,7 +19,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace asn.amiasys.com/asn-service-api/v25 => github.com/amianetworks/asn-service-api/v25 v25.6.0
+replace asn.amiasys.com/asn-service-api/v25 => github.com/amianetworks/asn-service-api/v25 v25.6.2
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
