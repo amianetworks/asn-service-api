@@ -3,7 +3,7 @@ module asn.amiasys.com
 go 1.24
 
 require (
-	asn.amiasys.com/asn-service-api/v25 v25.6.1
+	asn.amiasys.com/asn-service-api/v25 v25.6.2
 	github.com/amianetworks/am.modules/v25 v25.6.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gin-gonic/gin v1.10.1

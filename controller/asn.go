@@ -191,7 +191,9 @@ type ASNController interface {
 	GetRootNetworks() ([]*NetworkBasicInfo, error)
 
 	// GetNetworkByID returns a network and all its subnetworks and links.
-	GetNetworkByID(networkID string) (*Network, []*NetworkLink, error)
+	// - locationTiers filter the networks with the given location tiers.
+	// - networkTiers filter the networks with the given network tiers.
+	GetNetworkByID(networkID string, locationTiers, networkTiers []string) (*Network, []*NetworkLink, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
 	// - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
