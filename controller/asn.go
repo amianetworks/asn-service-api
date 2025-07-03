@@ -10,31 +10,108 @@ import (
 
 // Structs used between asn.controller and service.controller.
 
+type NetworkBasicInfo struct {
+	ID          string
+	Name        string
+	ParentID    string
+	Description string
+	Tiers       []string
+}
+
 // Network is the structure for a network.
 type Network struct {
-	Id       string
-	ParentID string
-	ChildIDs []string // subnetworks
+	NetworkBasicInfo
 
-	Name string
+	Location *Location
 
-	// TODO
+	Networks []*Network
+	Nodes    []*Node
+}
+
+type Location struct {
+	Description string
+	Tier        string
+	Address     string
+	Coordinates *Coordinates
+}
+
+type Coordinates struct {
+	Latitude  float32
+	Longitude float32
+	Altitude  float32
 }
 
 // Node is the structure for a node.
 type Node struct {
-	Id       string
-	ParentId string
+	ID          string // Node ID
+	Name        string // Device display name
+	Type        string // Node Type
+	NetworkID   string // Network ID
+	Managed     bool
+	Description string
 
-	Type string
-	Name string
+	Location   *Location // Node physical location
+	Ipmi       *Ipmi
+	Management *Management
+	Info       *Info
+	Interfaces map[string]*Interface
+}
 
-	ServiceNodeState int
-	ServiceState     int
+type Ipmi struct {
+	Ip       string
+	Username string
+	Key      string
+}
 
-	LinkIDs []string
+type Management struct {
+	Hostname string
+	Ip       string
+}
 
-	// TODO
+type Info struct {
+	Vendor       string
+	Model        string
+	SerialNumber string
+}
+
+type Interface struct {
+	Ip   string
+	Tags []string
+}
+
+type NetworkLink struct {
+	ID          string // uuid
+	Description string // the name of the link, can be empty
+	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
+
+	From, To *NetworkLinkNode
+}
+
+type NetworkLinkNode struct {
+	NetworkID string
+	Interface string
+}
+
+type NodeInternalLink struct {
+	ID          string // uuid
+	Description string // the name of the link, can be empty
+	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
+
+	From, To *NodeLinkNode
+}
+
+type NodeExternalLink struct {
+	ID          string // uuid
+	Description string // the name of the link, can be empty
+	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
+
+	From *NodeLinkNode
+	To   *Node
+}
+
+type NodeLinkNode struct {
+	NodeID    string
+	Interface string
 }
 
 // ASNController
@@ -107,15 +184,19 @@ type ASNController interface {
 	SaveInstanceConfigOfNode(nodeId string, config []byte) error
 
 	/*
-		Network, Nodes, and Groups (config)
+		Networks, Nodes and Links
 	*/
 
-	// GetSubnetworksOfNetwork returns all subnetworks of a network
-	GetSubnetworksOfNetwork(networkID string) ([]Network, error)
+	// GetRootNetworks returns all the root networks
+	GetRootNetworks() ([]*NetworkBasicInfo, error)
 
-	// GetNodesOfNetwork returns all nodes of a network
-	GetNodesOfNetwork(networkID string) ([]Node, error)
+	// GetNetworkByID returns a network and all its subnetworks and links.
+	GetNetworkByID(networkID string) (*Network, []*NetworkLink, error)
 
-	// GetNodeById returns node by id
-	GetNodeById(id string) (Node, error)
+	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
+	// - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
+	//   So, only IDs are returned in this case.
+	// - External links connect nodes in this network with nodes outside of this network.
+	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
+	GetNodesOfNetwork(networkID string) ([]*Node, []*NodeInternalLink, []*NodeExternalLink, error)
 }
