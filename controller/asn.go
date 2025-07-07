@@ -25,6 +25,18 @@ type Network struct {
 	NetworkBasicInfo
 	Location *Location
 	Networks []*Network
+
+	Stats *NetworkStats
+}
+
+type NetworkStats struct {
+	ReceivedBits    uint64
+	SentBits        uint64
+	AsnReceivedBits uint64
+	AsnBlockedBits  uint64
+	AsnReceivedPkts uint64
+	AsnBlockedPkts  uint64
+	Timestamp       string
 }
 
 type Location struct {
@@ -67,6 +79,8 @@ type Node struct {
 	Management *Management
 	Info       *Info
 	Interfaces map[string]*Interface
+
+	Stats *NodeStats
 }
 
 type Ipmi struct {
@@ -89,6 +103,16 @@ type Info struct {
 type Interface struct {
 	Ip   string
 	Tags []string
+}
+
+type NodeStats struct {
+	Rx                 uint64
+	Tx                 uint64
+	AsnReceivedPackets uint64
+	AsnBlockedPackets  uint64
+	AsnReceivedBits    uint64
+	AsnBlockedBits     uint64
+	CpuUsage           float32
 }
 
 type NetworkLink struct {
@@ -221,14 +245,18 @@ type ASNController interface {
 	// GetNetworkByID returns a network and all its subnetworks and links.
 	// - locationTiers filter the networks with the given location tiers.
 	// - networkTiers filter the networks with the given network tiers.
-	GetNetworkByID(networkID string, locationTiers, networkTiers []string) (*Network, []*NetworkLink, error)
+	GetNetworkByID(
+		networkID string,
+		locationTiers, networkTiers []string,
+		includeStats bool,
+	) (*Network, []*NetworkLink, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
 	// - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
 	//   So, only IDs are returned in this case.
 	// - External links connect nodes in this network with nodes outside of this network.
 	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
-	GetNodesOfNetwork(networkID string) ([]*Node, []*NodeInternalLink, []*NodeExternalLink, error)
+	GetNodesOfNetwork(networkID string, includeStats bool) ([]*Node, []*NodeInternalLink, []*NodeExternalLink, error)
 
 	// CreateNode creates a node under a given network.
 	// Note that this is only supported when ASN does not strictly verify the network topology.

@@ -4,6 +4,7 @@ package commonapi
 
 const (
 	CLIOpScopeNetwork = 1 + iota
+	CLIOpScopeGroup
 	CLIOpScopeNode
 )
 
