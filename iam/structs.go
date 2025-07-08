@@ -44,28 +44,3 @@ type TokenSet struct {
 	AccessToken  string
 	RefreshToken string
 }
-
-type TimeControl struct {
-	TimeRanges []TimeRange
-
-	RepeatFrequency RepeatFrequency
-	RepeatEndTime   time.Time
-	RepeatInterval  int
-	RepeatIndexes   []int
-
-	IgnoreLoc bool
-}
-
-type TimeRange struct {
-	Start time.Time
-	End   time.Time
-}
-
-type RepeatFrequency int
-
-const (
-	RepeatFrequencyOnlyOnce RepeatFrequency = 0 + iota
-	RepeatFrequencyDaily
-	RepeatFrequencyWeekly
-	RepeatFrequencyMonthly
-)
