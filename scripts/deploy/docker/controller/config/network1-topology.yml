@@ -1,0 +1,38 @@
+networks:
+  - name: network1
+    desc: "My Test Network"
+    networks:
+      - name: subnetwork1
+        location:
+          address: "xxx street"
+          coordinates: { latitude: 40.2539 , longitude: 116.4551 }
+        nodes:
+          - s1-switch1
+          - s1-server1
+      - name: subnetwork2
+        location:
+          address: "yyy street"
+          coordinates: { latitude: 32.084999, longitude: 118.800887 }
+        nodes:
+          - s2-switch1
+
+nodes:
+  s1-switch1:
+    type: switch
+    managed: true
+  s1-server1:
+    type: server
+    managed: true
+  s2-switch1:
+    type: switch
+    managed: true
+
+links:
+  - from: { node: s1-switch1 }
+    to: { node: s1-server1 }
+    bandwidth: 100000
+    desc: "subnetwork1 server1 to switch1"
+  - from: { node: s1-switch1 }
+    to: { node: s2-switch1 }
+    bandwidth: 100000
+    desc: "subnetwork1 switch1 to subnetwork2 switch1"

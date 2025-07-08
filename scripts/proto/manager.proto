@@ -26,7 +26,7 @@ service Manager {
   rpc DeleteUser    (Username)          returns (Empty);
 
   // User Group API
-  rpc ListUserGroups          (Empty)             returns (UserGroups);
+  rpc ListUserGroups          (GroupName)         returns (UserGroups);
   rpc GetUserGroup            (GroupName)         returns (UserGroup);
   rpc CreateUserGroup         (UserGroupRequest)  returns (Empty);
   rpc UpdateUserGroup         (UserGroupRequest)  returns (Empty);
@@ -48,11 +48,11 @@ service Manager {
   rpc DeleteNode        (Id)          returns (Empty);
 
   // Node Group API
-  rpc ListNodeGroups           (Empty)             returns (NodeGroups);
-  rpc GetNodeGroup             (GroupName)         returns (NodeGroup);
+  rpc ListNodeGroups           (PageRequest)       returns (NodeGroups);
+  rpc GetNodeGroup             (Id)         returns (NodeGroup);
   rpc CreateNodeGroup          (NodeGroupRequest)  returns (Empty);
   rpc UpdateNodeGroup          (NodeGroupRequest)  returns (Empty);
-  rpc DeleteNodeGroup          (GroupName)         returns (Empty);
+  rpc DeleteNodeGroup          (Id)         returns (Empty);
   rpc AddNodesToGroup          (GroupNodesRequest) returns (Empty);
   rpc RemoveNodesFromGroup     (GroupNodesRequest) returns (Empty);
 
@@ -554,8 +554,8 @@ message NodeGroupRequest {
 }
 
 message GroupNodesRequest {
-  string group_name = 2;
-  repeated string nodes = 3;
+  string id = 1;
+  repeated string nodes = 2;
 }
 
 message LinkStats {

@@ -127,6 +127,9 @@ deb-%:
 	@if [ ! -f $(SERVICE_CONFIG) ]; then \
 		echo "Missing config: $(SERVICE_CONFIG)"; exit 1; \
 	fi
+	@if [ ! -f $(SERVICE_CONTROL) ]; then \
+		echo "Missing control: $(SERVICE_CONTROL)"; exit 1; \
+	fi
 	$(eval include $(SERVICE_CONFIG))
 	$(eval DEB_SVC_DIR := $(DEBIAN_PATH)/$(SERVICE_NAME))
 
