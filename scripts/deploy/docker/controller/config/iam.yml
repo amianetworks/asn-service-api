@@ -3,7 +3,7 @@
 ## Log Configurations
 #log:
 #  level: "info" # Supported log level: panic | fatal | error | warning | info | debug | trace. Default: info
-#  file: "/var/log/iam/iam.log" # Default: "/var/log/iam/iam.log"
+#  file: "/var/log/sapphire/iam.log" # Default: "/var/log/sapphire/iam.log"
 
 ## Database Configurations
 #db:
@@ -50,9 +50,9 @@
 #  grpc:
 #    port: 17930 # gRPC API port. Default:17930
 #    tls:
-#      root_ca: "/usr/local/sapphire/conf/ca.crt" # Default: "/usr/local/sapphire/conf/ca.crt"
-#      pem_file: "/usr/local/sapphire/conf/server.pem" # Default: "/usr/local/sapphire/conf/server.pem"
-#      key_file: "/usr/local/sapphire/conf/server.key" # Default: "/usr/local/sapphire/conf/server.key"
+#      root_ca: "/etc/sapphire/cert/ca.crt" # Default: "/etc/sapphire/cert/ca.crt"
+#      pem_file: "/etc/sapphire/cert/server.pem" # Default: "/etc/sapphire/cert/server.pem"
+#      key_file: "/etc/sapphire/cert/server.key" # Default: "/etc/sapphire/cert/server.key"
 
 # Lock
 #
@@ -112,7 +112,7 @@
 ## Authentication Configurations
 #authentication:
 #  service:
-#    client_ca: "/usr/local/sapphire/conf/ca.crt"
+#    client_ca: "/etc/sapphire/cert/ca.crt"
 #    name: "^[0-9a-zA-Z_-]{2,36}$"
 #
 #  # Attempt frequency can limit the frequency of user attempts to log in.

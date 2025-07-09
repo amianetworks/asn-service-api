@@ -29,17 +29,19 @@ services:
       INFLUXDB_USER: amia
       INFLUXDB_USER_PASSWORD: 2022
   sapphire-iam:
-    image: registry.amiasys.com/sapphire.iam:v25.6.0
+    image: registry.amiasys.com/sapphire.iam:25.6.1
     container_name: sapphire-iam
     privileged: true
     restart: always
+    depends_on:
+      - "asn-mdb"
     ports:
       - "17930:17930"
       - "17931:17931"
     volumes:
-      - ldap_slap:/etc/ldap/slapd.d/
-      - ldap_data:/var/lib/ldap/
+      - ./cert/:/usr/local/sapphire/conf/
       - ./config/:/usr/local/sapphire/
+      - ./log/iam/:/var/log/iam/
   asnc:
     restart: always
     image: registry.amiasys.com/asnc:v25.1.1
@@ -50,7 +52,7 @@ services:
       - "sapphire-iam"
     volumes:
       - ./config/:/etc/asn/controller/config
-      - ./log/:/var/log/asn/controller
+      - ./log/asn/:/var/log/asn/controller
       - ./services:/usr/local/asn/controller/services
       - ./web:/var/www/asnc/
 
@@ -58,8 +60,4 @@ volumes:
   mongodb_data:
     driver: local
   influxdb_data:
-    driver: local
-  ldap_slap:
-    driver: local
-  ldap_data:
     driver: local

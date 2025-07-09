@@ -402,26 +402,26 @@ func main() {
 	}
 	asncD.Services["sapphire-iam"] = DockerService{
 		ContainerName: "sapphire-iam",
-		Image:         "registry.amiasys.com/sapphire.iam:v25.6.0",
+		Image:         "registry.amiasys.com/sapphire.iam:v25.6.1",
 		Restart:       "always",
 		Privileged:    true,
+		DependsOn:     []string{"asn-mdb"},
 		Ports:         []string{"17930:17930", "17931:17931"},
 		Volumes: []string{
-			"ldap_slap:/etc/ldap/slapd.d/",
-			"ldap_data:/var/lib/ldap/",
+			"./cert/:/usr/local/sapphire/conf/",
 			"./config/:/usr/local/sapphire/",
+			"./log/iam/:/var/log/iam/",
 		},
 	}
 	asncD.Services["asnc"] = DockerService{
-		Image:       "registry.amiasys.com/asnc:v25.1.0",
+		Image:       "registry.amiasys.com/asnc:v25.1.1",
 		Restart:     "always",
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
 		Volumes: []string{
-			"./cert/:/etc/asnc/cert/",
-			"./config/:/etc/asnc/config/",
-			"./log/:/var/log/asnc/",
-			"./service:/etc/asnc/service/",
+			"./config/:/etc/asn/controller/config",
+			"./log/asn/:/var/log/asn/controller",
+			"./services:/usr/local/asn/controller/services",
 			"./web:/var/www/asnc/",
 		},
 	}
@@ -598,69 +598,96 @@ echo "All tasks completed."`
 		panic(err)
 	}
 
-	ymlIam := `###################### IAM Configurations #####################
-## This file contains the following parts：
-## Part1: General Configurations
-##   This part contains basic configuration information: log level and log file
-## Part2: API Configurations
-##   This part mainly configures the ldap service provided to the outside world,
-##   including configurations such as port, encryption, and synchronization.
-## Part3: Account Configurations
-##   This part mainly configures account information.
-## Part4: Authentication Configurations
-##   This part is mainly used for account authentication and other information, such as limiting login frequency, device binding, and mfa, etc.
-## Part5: Authorization Configurations
-##   This part of the configuration mainly manages user authentication related configurations, such as token, role, etc.
-#
-## General Configurations
-## Supported log level: panic | fatal | error | warning | info | debug | trace. Default: info
-## If the log level is not configured or is configured to an undefined value, the default info level is used.
-## The default log file is "/var/log/iam/iam.log". If not configured, the default path will be used.
-#general:
-#  loglevel: "info"
-#  logfile: "/var/log/iam/iam.log"
-#
+	ymlIam := `# Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+
+## Log Configurations
+#log:
+#  level: "info" # Supported log level: panic | fatal | error | warning | info | debug | trace. Default: info
+#  file: "/var/log/sapphire/iam.log" # Default: "/var/log/sapphire/iam.log"
+
+## Database Configurations
+#db:
+#  provider: "mongodb" # Supported: "mongodb" | "filedb". Default: "mongodb"
+#  url: "localhost:27017" # Default: "localhost:27017"
+#  username: "amia" # Default: "amia"
+#  password: "2022" # Default: "2022"
+
+## LDAP Configurations
+#ldap:
+#  enabled: false # Default: false
+#  interval: 15 # Sync interval in minutes, Default: 15
+#  url: "ldap://localhost:389" # Default: "ldap://localhost:389"
+#  base_dn: "dc=amianetworks,dc=com" # Default: "dc=amianetworks,dc=com"
+#  password_cn: "cn=admin" # Default: "cn=admin"
+#  password: "2022" # Default: "2022"
+#  mapping:
+#    account: # other fields will be added to descriptions, name will be filled to cn and sn by default
+#      ou: "account" # Default: "account"
+#      name: "uid" # Default: "uid"
+#      password: "userPassword" # Default: "userPassword"
+#      email: "mail" # Default: "mail"
+#      phone: "telephoneNumber" # Default: "telephoneNumber"
+#      description:
+#        id: "id" # Default: "id"
+#        created_at: "createdAt" # Default: "createdAt"
+#        updated_at: "updatedAt" # Default: "updatedAt"
+#        type: "type" # Default: "type"
+#        totp: "totp" # Default: "totp"
+#        mfa_config: "mfaConfig" # Default: "mfaConfig"
+#        metadata: "metadata" # Default: "metadata"
+#    group: # other fields will be added to descriptions
+#      ou: "group" # Default: "group"
+#      name: "cn" # Default: "cn"
+#      accounts: "member" # Default: "member"
+#      description:
+#        id: "id" # Default: "id"
+#        created_at: "createdAt" # Default: "createdAt"
+#        updated_at: "updatedAt" # Default: "updatedAt"
+#        metadata: "metadata" # Default: "metadata"
+
 ## API Configurations
-# api:
-  #  grpc:
-  #    port: 17930 # gRPC API port. Default:17930
-  #    tls: true
-  # ldap: # LDAP Service
-    #    # The API Service enable to provide LDAP Server as an exposed service. Default: false
-    #    # If set to false, the LDAP service will not be exposed externally.
-    #    # If set to true, the LDAP service will be exposed externally by port 18389.
-    #    api_service: false
-    #    tls: true
-    #    # The bind dn is used for binding (signing on) to the LDAP server.
-    #    bind_dn: "cn=admin,dc=asn,dc=vpn,dc=com"
-    #    credentials: "@ASN2021!" # Password of the bind dn.
-    # host: 172.17.0.1
-    # port: 18389
+#api:
+#  grpc:
+#    port: 17930 # gRPC API port. Default:17930
+#    tls:
+#      root_ca: "/etc/sapphire/cert/ca.crt" # Default: "/etc/sapphire/cert/ca.crt"
+#      pem_file: "/etc/sapphire/cert/server.pem" # Default: "/etc/sapphire/cert/server.pem"
+#      key_file: "/etc/sapphire/cert/server.key" # Default: "/etc/sapphire/cert/server.key"
+
+# Lock
 #
-#    # LDAP Server to sync up with.
-#    external_ldap:
-#      # LDAP URL is a string that can be used to encapsulate the address and port of a directory serve.
-#      # Example: ldap://example.ldap.com. If url is not configured, ldap synchronization will not be performed.
-#      url: ""
-#      bind_dn: "cn=example,dc=com"
-#      credentials: "password"
-#      # Supported sync mode: inbound|outbound|bidirectional. Default: inbound
-#      # If sync mode is not configured, the default inbound mode will be used.
-#      # In the inbound synchronization mode, data is synchronized into the IAM LDAP server from the external LDAP server.
-#      # In the outbound synchronization mode, data is synchronized from the IAM LDAP server to the external LDAP server.
-#      # In the bidirectional synchronization mode, a two-way data synchronization will be performed the IAM LDAP server and the external LDAP server.
-#      # In the update synchronization mode, data will be updated synchronously into the IAM LDAP server from the external LDAP server.
-#      sync_mode: "inbound"
-#      # Synchronization will be performed according to the mapping relationship specified by the file.
-#      # Example: /user/local/ldap_mapping_template.yml. If format file is not configured or not available, ldap synchronization will not be performed.
-#      format_file: "/user/local/ldap_mapping_template.yml"
-#      # Sync interval in minutes，if you want to sync only once, set it less than or equal to 0. Default: 15 minutes
-#      sync_interval: 15
-#
-#
-#
+# Default mode is standalone.
+# To config "distributed" mode, uncomment "redis" config section.
+#   - Redis "standard" is a single-instance locker
+#   - Redis "redlock" is used to implement distributed locks with multiple Redis instance.
+#lock:
+#  mode: "standalone" # (standalone | distributed) Default: "standalone"
+#  waiting_limit: 10 # Default: 10 (Seconds)
+#  holding_limit: 5 # Default: 5 (Seconds)
+#  redis: # used only in distributed mode
+#    mode: "standard" # (standard | redlock) Default: "standard"
+#    nodes: # list of redis nodes. Only the first one is used in standard mode
+#      urls:
+#        - "localhost:6379" # Default: "localhost:6379"
+#      passwords:
+#        - "2023"
+#      dbs:
+#        - 0 # index: 0 ~ 15 (Default: 0)
+
+## Email Service
+#smtp: # SMTP email server config
+#  enabled: false # Default: false
+#  tls: true
+#  host: "smtp.office365.com"
+#  email: "email@amiasys.com"
+#  username: "email@amiasys.com"
+#  password: ""
+#  port: 587
+
 ## Account Configurations
 #account:
+#  special_key: "SpecialAccount@AmiaNetworks2025"
+#
 #  # Regular expressions are used here to specify the format of username, password, and user group.
 #  # ^, $: start-of-line and end-of-line respectively.
 #  # [...]: Accept ANY ONE of the character within the square bracket, e.g., [aeiou] matches "a", "e", "i", "o" or "u".
@@ -670,24 +697,24 @@ echo "All tasks completed."`
 #  format:
 #    name: "^[0-9a-zA-Z\u4e00-\u9fa5!@$._-]{2,36}$"
 #    password: "^[0-9a-zA-Z!@$._-]{6,128}$"
-#
-#  smtp: # SMTP email server config
-#    host: "smtp.aliyun.com"
-#    username: ""
-#    password: ""
-#    send_with_tls: false
+#    email: "^(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})?$"
+#    country_code: "^(?:\\d{1,3})?$"
+#    phone: "^(?:$|[\\d\\s\\-\\(\\)\\.]{6,15})$"
 #
 #  # You can recover the account through email or SMS(TBD).
 #  # If none of the above methods are available, the admin can reset the account through the cli command line.
 #  # TBD: recover account by SMS
-#  recover:
+#  recovery:
 #    email: # Sending a code to your recovery email # Code format:  "^[0-9a-zA-Z-:.]{6,128}$"
 #      expire: 5 # Expiration time in minutes. Default 5 minutes.
 #      resend_interval: 1 # Resending interval in minutes. Default 1 minute
-#
-#
+
 ## Authentication Configurations
 #authentication:
+#  service:
+#    client_ca: "/etc/sapphire/cert/ca.crt"
+#    name: "^[0-9a-zA-Z_-]{2,36}$"
+#
 #  # Attempt frequency can limit the frequency of user attempts to log in.
 #  attempt_frequency:
 #    wait_min: 1 # Minimum wait time after an attempt in second. Default: 1 Seconds
@@ -709,32 +736,22 @@ echo "All tasks completed."`
 #    totp:
 #      # The issuer indicates the provider or service this account is associated with, URL-encoded according to RFC 3986.
 #      issuer: "Amianetworks"
-#
-#
+
 ## Authorization Configurations
 #authorization:
 #  # JWT（JSON Web Token）is an open source standard (RFC 7519) that defines the format for how communicating parties can exchange information securely.
 #  # TBD: JWT provides different token strategies for different entity types
 #  jwt:
+#    issuer: "amianetworks.com"
+#    # RS256 Key Set for JWT signature.
+#    # [NOT RECOMMENDED!!!] If either is set to empty, a random set will be used.
+#    public_key_file: ""
+#    private_key_file: ""
 #    access_token:
 #      expire: 60   # Access token expiration time in minutes. Default: 60 minutes.
 #    refresh_token:
-#      enable: true # Support automatically obtaining access token through refresh token. Default: true
+#      enabled: true # Support automatically obtaining access token through refresh token. Default: true
 #      expire: 600  # Refresh token expiration time in minutes. Default: 600 minutes.
-#
-#  oauth2:
-#    enable: false
-#    port: 17931
-#    jwt_signed_key: "g6ckR89RRIolp0i"
-#    session:
-#      id: "iam_session_id"
-#      secret: "j6oftR8TTYolp0i"
-#      expire: 1200
-#    client:
-#      - id: "SWAN"
-#        secret: "f@4vfgR8RRIolp0i"
-#        name: "SWAN"   # display name of target client
-#        domain: "localhost:17926"
 #
 #  access_control:
 #    format:
@@ -745,39 +762,20 @@ echo "All tasks completed."`
 #        scope: "^[0-9a-zA-Z!@$._-/*?%&]{6,128}$"
 #        operation: "^[0-9a-zA-Z!@$._-]{6,128}$"
 #        time: "^[0-9a-zA-Z-:.]{6,128}$"
-#
-#
-#
-#
-#
-#
-#`
-	if err := os.WriteFile("controller/config/iam.yml", []byte(ymlIam), 0644); err != nil {
-		panic(err)
-	}
 
-	ymlLdap := `#This is an example file of the LDAP synchronization format.
-#You can refer to this file to fill in the format mapping of the external LDAP.
-ldap_mapping:
-  base_dc: "dc=example,dc=com" # Base search node of LDAP
-  entry:
-  - ou: "ou=user" # OU information of target LDAP user
-    filter: "(title=example)" # Filter of external LDAP. Example: (&(objectClass=organizationalPerson)(title=example)). Default: ""
-    external_rdn: "cn"
-    external_obj:
-      - "inetOrgPerson"
-    attributes:
-      - external: "cn"  # Attribute name of external LDAP Server
-        local: "cn" # Attribute name of local LDAP Server
-      - external: "mobile"  
-        local: "mobile"
-      - external: "email" 
-        local: "email" 
-    fixed: #Fields that need to be written by default
-      - attribute: "title"
-        value: "example"
+## Group Configurations
+#group:
+#  name: "^[0-9a-zA-Z\u4e00-\u9fa5!@$._-]{2,36}$"
+
+## Role Configurations
+#role:
+#  name: "^[0-9a-zA-Z\u4e00-\u9fa5!@$._-]{2,36}$"
+
+## Policy Configurations
+#policy:
+#  name: "^[0-9a-zA-Z\u4e00-\u9fa5!@$._-]{2,36}$"
 `
-	if err := os.WriteFile("controller/config/ldap_mapping_template.yml", []byte(ymlLdap), 0644); err != nil {
+	if err := os.WriteFile("controller/config/iam.yml", []byte(ymlIam), 0644); err != nil {
 		panic(err)
 	}
 }
