@@ -51,7 +51,7 @@ services:
       - "asn-idb"
       - "sapphire-iam"
     volumes:
-      - ./config/:/etc/asn/controller/config
+      - ./config/:/asn/config
       - ./log/asn/:/var/log/asn/controller
       - ./services:/usr/local/asn/controller/services
       - ./web:/var/www/asnc/

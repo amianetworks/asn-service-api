@@ -7,6 +7,6 @@ services:
     ports:
       - "50052:50052"
     volumes:
-      - ./config/:/etc/asn/servicenode/config
+      - ./config/:/asn/config
       - ./log/:/var/log/asn/servicenode
       - ./services:/usr/local/asn/servicenode/services

@@ -419,7 +419,7 @@ func main() {
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
 		Volumes: []string{
-			"./config/:/etc/asn/controller/config",
+			"./config/:/asn/config",
 			"./log/asn/:/var/log/asn/controller",
 			"./services:/usr/local/asn/controller/services",
 			"./web:/var/www/asnc/",
@@ -527,13 +527,13 @@ func main() {
 		asnD := asncDocker{
 			Services: map[string]DockerService{
 				"asnsn": {
-					Image:         "registry.amiasys.com/asnsn:v25.1.0",
+					Image:         "registry.amiasys.com/asnsn:v25.1.1",
 					ContainerName: fmt.Sprintf("network-node%d-switch%d", i, i),
 					Restart:       "always",
 					Volumes: []string{
-						"./config/:/etc/asnsn/config/",
+						"./config/:/asn/config",
 						"./log/:/var/log/asnsn/",
-						"../service:/etc/asnsn/service/",
+						"../service:/etc/asnsn/services/",
 					},
 				}},
 		}
