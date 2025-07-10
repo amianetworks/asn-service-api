@@ -28,10 +28,10 @@ prepare-service-builder-base:
 	-docker rmi $(BUILD_ENV_BASE_IMAGE):latest
 
 	 # Build the base image and run 'build' once to get all go packages.
-	@docker buildx build \
+	@DOCKER_BUILDKIT=1 docker buildx build \
 		--platform linux/amd64 \
 		-f $(BUILD_ENV_BASE_DOCKERFILE) \
-		--build-arg SSH_PRIVATE_KEY=$(SSH_PRIVATE_KEY) \
+		--secret id=sshkey,src=$(SSH_PRIVATE_KEY) \
 		-t $(BUILD_ENV_BASE_IMAGE):latest .
 	@echo ""
 	@echo "Successfully built $(BUILD_ENV_BASE_IMAGE):latest as the base image."
@@ -59,10 +59,10 @@ service-build-from-scratch:
 	-docker rmi $(BUILD_ENV_BASE_IMAGE):latest
 
 	 # Build the base image and run 'build' once.
-	@docker buildx build \
+	@DOCKER_BUILDKIT=1 docker buildx build \
 		--platform linux/amd64 \
 		-f $(BUILD_ENV_BASE_DOCKERFILE) \
-		--build-arg SSH_PRIVATE_KEY=$(SSH_PRIVATE_KEY) \
+		--secret id=sshkey,src=$(SSH_PRIVATE_KEY) \
 		-t $(BUILD_ENV_BASE_IMAGE):latest .
 	@echo "Successfully built $(BUILD_ENV_BASE_IMAGE):latest."
 

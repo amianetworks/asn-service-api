@@ -34,9 +34,9 @@ RUN git config --global --add url."git@github.com:".insteadOf "https://github.co
     chmod 700 /root/.ssh && \
     echo "Host *\n    StrictHostKeyChecking no" > /root/.ssh/config && \
     chmod 600 /root/.ssh/config
-ARG SSH_PRIVATE_KEY
-COPY ${SSH_PRIVATE_KEY} /root/.ssh/id_rsa
-RUN chmod 400 /root/.ssh/id_rsa
+RUN --mount=type=secret,id=sshkey \
+         cat /run/secrets/sshkey > /root/.ssh/id_rsa && \
+         chmod 400 /root/.ssh/id_rsa
 
 # Copy project files
 COPY . .
