@@ -28,12 +28,13 @@ ENV GOPROXY="https://goproxy.io,direct"
 #ENV GOMODCACHE=${GOPATH}/pkg/mod
 
 # Configure SSH for private GitHub repositories
-#RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/" && \
-#    mkdir -p /root/.ssh && \
-#    chmod 700 /root/.ssh
-#COPY ./ssh /root/.ssh
-#RUN chmod 400 /root/.ssh/id_rsa
-#ENV GOPRIVATE="github.com/amianetworks/*"
+ENV GOPRIVATE="github.com/amianetworks/*"
+RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/" && \
+    mkdir -p /root/.ssh && \
+    chmod 700 /root/.ssh
+ARG SSH_PRIVATE_KEY
+COPY ${SSH_PRIVATE_KEY} /root/.ssh/id_rsa
+RUN chmod 400 /root/.ssh/id_rsa
 
 # Copy project files
 COPY . .
