@@ -31,7 +31,9 @@ ENV GOPROXY="https://goproxy.io,direct"
 ENV GOPRIVATE="github.com/amianetworks/*"
 RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/" && \
     mkdir -p /root/.ssh && \
-    chmod 700 /root/.ssh
+    chmod 700 /root/.ssh && \
+    echo "Host *\n    StrictHostKeyChecking no" > /root/.ssh/config && \
+    chmod 600 /root/.ssh/config
 ARG SSH_PRIVATE_KEY
 COPY ${SSH_PRIVATE_KEY} /root/.ssh/id_rsa
 RUN chmod 400 /root/.ssh/id_rsa
