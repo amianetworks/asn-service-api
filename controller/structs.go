@@ -74,7 +74,8 @@ type Node struct {
 	Info       *Info
 	Interfaces map[string]*Interface
 
-	Stats *NodeStats
+	ServiceNode *ServiceNode
+	Stats       *NodeStats
 }
 
 type Ipmi struct {
