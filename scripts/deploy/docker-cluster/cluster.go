@@ -390,7 +390,7 @@ func main() {
 	}
 	asncD.Services["asn-idb"] = DockerService{
 		ContainerName: "asn-idb",
-		Image:         "influxdb:1.11.8",
+		Image:         "influxdb:2.7",
 		Ports:         []string{"8086:8086"},
 		Environment: map[string]string{
 			"INFLUXDB_DB":             "asn",

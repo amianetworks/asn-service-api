@@ -16,7 +16,7 @@ services:
       - mongodb_data:/data/db  # data volumes, (localDirectory:containerDirectory)
     command: --bind_ip_all --auth
   asn-idb:
-    image: influxdb:1.11.8
+    image: influxdb:2.7
     container_name: asn-idb
     ports:
       - "8086:8086"
