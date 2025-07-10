@@ -32,17 +32,14 @@ ENV GOPRIVATE="github.com/amianetworks/*"
 RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/" && \
     mkdir -p /root/.ssh && \
     chmod 700 /root/.ssh && \
-    echo "Host *\n    StrictHostKeyChecking no" > /root/.ssh/config && \
+    echo "Host *\n  IdentityFile /run/secrets/sshkey\n  StrictHostKeyChecking no" > /root/.ssh/config && \
     chmod 600 /root/.ssh/config
-RUN --mount=type=secret,id=sshkey \
-         cat /run/secrets/sshkey > /root/.ssh/id_rsa && \
-         chmod 400 /root/.ssh/id_rsa
 
 # Copy project files
 COPY . .
 
 # Run build.so once to get all Go packages downloaded.
-RUN make -f make/internal.mk build.so
+RUN --mount=type=secret,id=sshkey make -f make/internal.mk build.so
 
 # Clean up the workdir for later builds.
 WORKDIR /
