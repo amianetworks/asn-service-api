@@ -9,9 +9,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt -y update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential wget git; \
     DEBIAN_FRONTEND=noninteractive apt clean
 
-RUN wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
-    tar -C /etc -xzf go1.24.0.linux-amd64.tar.gz && \
-    rm -f go1.24.0.linux-amd64.tar.gz
+RUN wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz && \
+    tar -C /etc -xzf go1.24.4.linux-amd64.tar.gz && \
+    rm -f go1.24.4.linux-amd64.tar.gz
 ENV PATH="${PATH}:/etc/go/bin"
 ENV GOPROXY="https://goproxy.io,direct"
 

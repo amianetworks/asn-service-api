@@ -18,9 +18,9 @@ RUN apt install -y dpkg-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Go
-RUN wget -q https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
-    tar -C /etc -xzf go1.24.0.linux-amd64.tar.gz && \
-    rm -f go1.24.0.linux-amd64.tar.gz
+RUN wget -q https://go.dev/dl/go1.24.4.linux-amd64.tar.gz && \
+    tar -C /etc -xzf go1.24.4.linux-amd64.tar.gz && \
+    rm -f go1.24.4.linux-amd64.tar.gz
 ENV PATH="${PATH}:/etc/go/bin"
 ENV GOPROXY="https://goproxy.io,direct"
 #ENV GOPATH=/go
