@@ -35,7 +35,7 @@
 #
 # nodes:
 #   <node-name>:
-#     type: router | switch | appliance | firewall | lb | ap | server | endpoint
+#     type: router | switch | appliance | firewall | lb | ap | server | device
 #     desc: <text>                          # Optional
 #     location:                             # Optional
 #       desc: <text>                        # Optional
@@ -188,10 +188,10 @@ nodes:
     type: switch
     managed: true
   dc-l1:
-    type: endpoint
+    type: device
     managed: true
   dc-l2:
-    type: endpoint
+    type: device
     managed: true
   ucla-r1:
     type: router
@@ -200,14 +200,14 @@ nodes:
     type: switch
     managed: true
   ucla-ep1:
-    type: endpoint
+    type: device
     managed: true
   usc-r1:
     type: router
   usc-s1:
     type: switch
   usc-ep1:
-    type: endpoint
+    type: device
 
 ## Link Info
 # All links are bidirectional and unique.
