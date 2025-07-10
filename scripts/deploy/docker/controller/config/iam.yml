@@ -50,9 +50,10 @@
 #  grpc:
 #    port: 17930 # gRPC API port. Default:17930
 #    tls:
-#      root_ca: "/etc/sapphire/cert/ca.crt" # Default: "/etc/sapphire/cert/ca.crt"
-#      pem_file: "/etc/sapphire/cert/server.pem" # Default: "/etc/sapphire/cert/server.pem"
-#      key_file: "/etc/sapphire/cert/server.key" # Default: "/etc/sapphire/cert/server.key"
+#      enabled: false # Default: false
+#      root_ca: "/etc/sapphire/cert/ca.crt"
+#      pem_file: "/etc/sapphire/cert/server.pem"
+#      key_file: "/etc/sapphire/cert/server.key"
 
 # Lock
 #
@@ -112,6 +113,7 @@
 ## Authentication Configurations
 #authentication:
 #  service:
+#    mtls: false # Default: false
 #    client_ca: "/etc/sapphire/cert/ca.crt"
 #    name: "^[0-9a-zA-Z_-]{2,36}$"
 #
