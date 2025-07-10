@@ -419,6 +419,7 @@ func main() {
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
 		Volumes: []string{
+			"./cert/:/asn/cert",
 			"./config/:/asn/config",
 			"./log/asn/:/var/log/asn/controller",
 			"./services:/usr/local/asn/controller/services",
