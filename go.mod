@@ -1,9 +1,9 @@
 module asn.amiasys.com
 
-go 1.24
+go 1.24.0
 
 require (
-	asn.amiasys.com/asn-service-api/v25 v25.6.14
+	asn.amiasys.com/asn-service-api/v25 v25.6.15
 	github.com/amianetworks/am.modules/v25 v25.6.3
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gin-gonic/gin v1.10.1
@@ -17,7 +17,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace asn.amiasys.com/asn-service-api/v25 => github.com/amianetworks/asn-service-api/v25 v25.6.14
+replace asn.amiasys.com/asn-service-api/v25 => github.com/amianetworks/asn-service-api/v25 v25.6.15
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
