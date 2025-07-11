@@ -212,7 +212,7 @@ nodes:
 ## Link Info
 # All links are bidirectional and unique.
 links:
-  - from: { node: dc-r1, interface: eth0 }
+  - from: { node: dc-r1 }
     to: { node: dc-s1 }
     bandwidth: 10000
     desc: "SF datacenter main router to switch 1"
