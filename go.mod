@@ -1,9 +1,8 @@
-module asn.amiasys.com
+module asn.amiasys.com/asn-service-api/v25
 
-go 1.24
+go 1.24.0
 
 require (
-	asn.amiasys.com/asn-service-api/v25 v25.6.13
 	github.com/amianetworks/am.modules/v25 v25.6.3
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gin-gonic/gin v1.10.1
