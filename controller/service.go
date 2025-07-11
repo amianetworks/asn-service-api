@@ -5,6 +5,8 @@ package capi
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+
+	commonapi "asn.amiasys.com/asn-service-api/v25/common"
 )
 
 // ASN Service Controller API
@@ -23,7 +25,7 @@ import (
 // ASN Framework will call these functions to manage the lifetime of the service.
 type ASNServiceController interface {
 	// GetVersion returns the service controller's version.
-	GetVersion() string
+	GetVersion() commonapi.Version
 
 	// Init initializes the Service.
 	// Before being initialized, Service should have only provided its CLI commands, which
