@@ -408,9 +408,9 @@ func main() {
 		DependsOn:     []string{"asn-mdb"},
 		Ports:         []string{"17930:17930", "17931:17931"},
 		Volumes: []string{
-			"./cert/:/usr/local/sapphire/conf/",
-			"./config/:/usr/local/sapphire/",
-			"./log/iam/:/var/log/iam/",
+			"./iam-cert/:/usr/local/sapphire/conf/",
+			"./iam-config/:/usr/local/sapphire/",
+			"./iam-log/iam/:/var/log/iam/",
 		},
 	}
 	asncD.Services["asnc"] = DockerService{
@@ -419,11 +419,11 @@ func main() {
 		DependsOn:   []string{"asn-mdb", "asn-idb", "sapphire-iam"},
 		NetworkMode: "host",
 		Volumes: []string{
-			"./cert/:/asn/cert",
-			"./config/:/asn/config",
-			"./log/asn/:/var/log/asn/controller",
-			"./services:/usr/local/asn/controller/services",
-			"./web:/var/www/asnc/",
+			"./asn-cert/:/asn/cert",
+			"./asn-config/:/asn/config",
+			"./asn-log/asn/:/var/log/asn/controller",
+			"./asn-services:/usr/local/asn/controller/services",
+			"./asn-web:/var/www/asnc/",
 		},
 	}
 

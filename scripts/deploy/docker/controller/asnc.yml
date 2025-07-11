@@ -39,9 +39,9 @@ services:
       - "17930:17930"
       - "17931:17931"
     volumes:
-      - ./cert/:/usr/local/sapphire/conf/
-      - ./config/:/usr/local/sapphire/
-      - ./log/iam/:/var/log/iam/
+      - ./iam-cert/:/etc/sapphire/cert/
+      - ./iam-config/:/etc/sapphire/config/
+      - ./iam-log/:/var/log/sapphire/
   asnc:
     restart: always
     image: registry.amiasys.com/asnc:v25.1.1
@@ -51,11 +51,10 @@ services:
       - "asn-idb"
       - "sapphire-iam"
     volumes:
-      - ./cert/:/asn/cert
-      - ./config/:/asn/config
-      - ./log/asn/:/var/log/asn/controller
-      - ./services:/usr/local/asn/controller/services
-      - ./web:/var/www/asnc/
+      - ./asn-config/:/asn/config
+      - ./asn-log/:/var/log/asn/controller
+      - ./asn-services:/usr/local/asn/controller/services
+      - ./asn-web:/var/www/asnc/
 
 volumes:
   mongodb_data:
