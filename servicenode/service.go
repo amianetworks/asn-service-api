@@ -2,7 +2,9 @@
 
 package snapi
 
-import commonapi "asn.amiasys.com/asn-service-api/v25/common"
+import (
+	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+)
 
 // ASNService interface provides the service's API for the ASN Service Node usage,
 // will be implemented by service and used by ASN service node.

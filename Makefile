@@ -1,9 +1,9 @@
 # Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 PACKAGE := asn-service-api/v25
-.PHONY: code-inspection
+.PHONY: code-inspect
 
-code-inspection:
+code-inspect:
 	goimports -w -local "$(PACKAGE)" .
 	go fmt ./...
 	errcheck ./...
