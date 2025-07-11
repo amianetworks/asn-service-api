@@ -22,6 +22,9 @@ import (
 // ASNServiceController interface is implemented by a Service Controller.
 // ASN Framework will call these functions to manage the lifetime of the service.
 type ASNServiceController interface {
+	// GetVersion returns the service controller's version.
+	GetVersion() string
+
 	// Init initializes the Service.
 	// Before being initialized, Service should have only provided its CLI commands, which
 	// don't need to be runnable until Init() is called.

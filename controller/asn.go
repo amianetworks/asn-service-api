@@ -43,7 +43,7 @@ type ASNController interface {
 	InitLocker() (Lock, error)
 
 	// GetIAM is different from DB or logger.
-	GetIAM() (iam.Instance, error)
+	GetIAM(forceMfa bool) (iam.Instance, error)
 
 	/*
 		Service Management

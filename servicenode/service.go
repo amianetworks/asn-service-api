@@ -7,6 +7,9 @@ import commonapi "asn.amiasys.com/asn-service-api/v25/common"
 // ASNService interface provides the service's API for the ASN Service Node usage,
 // will be implemented by service and used by ASN service node.
 type ASNService interface {
+	// GetVersion returns the service's version.
+	GetVersion() string
+
 	// Init initializes the service
 	Init()
 
