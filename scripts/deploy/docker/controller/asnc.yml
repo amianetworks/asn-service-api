@@ -44,7 +44,7 @@ services:
       - ./iam-log/:/var/log/sapphire/
   asnc:
     restart: always
-    image: registry.amiasys.com/asnc:v25.1.1
+    image: registry.amiasys.com/asnc:25.1.1
     network_mode: host
     depends_on:
       - "asn-mdb"
