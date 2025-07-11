@@ -1,6 +1,8 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/amianetworks/am.modules/v25 v25.6.3/go.mod h1:4K2g8DzaIJh2IsnMQI/LJ2mxPDAw/F0Kb25LHpHn1QU=
+github.com/amianetworks/asn-service-api/v25 v25.6.13 h1:OIv28XfarFfrBl1RDQlg5u+vVVHPTxczCfUTci47ozo=
+github.com/amianetworks/asn-service-api/v25 v25.6.13/go.mod h1:ymt9YB42FKZHav3G0Cyi/eWzPRGTgrqaY4Ap81zwsCg=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/bytedance/sonic v1.13.3/go.mod h1:o68xyaF9u2gvVBuGHPlUVCy+ZfmNNO5ETf1+KgkJhz4=
