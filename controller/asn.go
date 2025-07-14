@@ -58,7 +58,7 @@ type ASNController interface {
 	DeleteServiceFromNode(nodeID string) error
 
 	// StartService starts service on specified Service Nodes.
-	StartService(serviceScope int, serviceScopeList []string, instanceConfig []byte) error
+	StartService(serviceScope int, serviceScopeList []string, config []byte) error
 
 	// StopService stops service on specified Service Nodes.
 	StopService(serviceScope int, serviceScopeList []string) error
@@ -74,12 +74,6 @@ type ASNController interface {
 	/*
 		Service Configuration Management
 	*/
-
-	// SaveDefaultClusterConfig saves the default cluster setting.
-	SaveDefaultClusterConfig(config []byte) error
-
-	// SaveClusterConfigOfNetwork saves the cluster setting for a network.
-	SaveClusterConfigOfNetwork(networkID string, config []byte) error
 
 	// SaveClusterConfigOfNodeGroup saves the cluster setting for a node group.
 	SaveClusterConfigOfNodeGroup(nodeGroupID string, config []byte) error
