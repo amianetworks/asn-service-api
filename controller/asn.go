@@ -48,15 +48,15 @@ type ASNController interface {
 	*/
 
 	// AddServiceToNode adds a .so file to an existing node, and inits this service on that node.
-	// NOTE: Load service.so for service node
+	// NOTE: Load service.so for a service node
 	AddServiceToNode(nodeID string) error
 
 	// DeleteServiceFromNode removes this service from an existing node.
-	// NOTE: Unload service.so for service node
+	// NOTE: Unload service.so for a service node
 	DeleteServiceFromNode(nodeID string) error
 
 	// StartService starts service on specified Service Nodes.
-	// NOTE: The config will be saved in node for potential auto start next time
+	// NOTE: The config will be saved in the node for potential auto start next time
 	StartService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
 
 	// StopService stops service on specified Service Nodes.
@@ -87,12 +87,13 @@ type ASNController interface {
 	) (*Network, []*NetworkLink, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
-	// - filterUnavailable will just return service node that has the service if ture
+	// - filterUnavailable will just return the service nodes that have the service if ture
 	// - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
 	//   So, only IDs are returned in this case.
 	// - External links connect nodes in this network with nodes outside of this network.
 	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
-	GetNodesOfNetwork(networkID string, filterUnavailable, includeStats bool) ([]*Node, []*NodeLink, []*NodeLink, error)
+	GetNodesOfNetwork(networkID string, filterUnavailable, includeStats bool) (
+		nodes []*Node, internalLinks []*NodeLink, externalLinks []*NodeLink, err error)
 
 	GetNodeByID(nodeID string) (*Node, error)
 
