@@ -3,8 +3,6 @@
 package capi
 
 import (
-	"crypto/tls"
-
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
 	"asn.amiasys.com/asn-service-api/v25/iam"
 	"asn.amiasys.com/asn-service-api/v25/log"
@@ -50,36 +48,27 @@ type ASNController interface {
 	*/
 
 	// AddServiceToNode adds a .so file to an existing node, and inits this service on that node.
-	// NOTE: CURRENTLY UNSUPPORTED!!!
+	// NOTE: Load service.so for service node
 	AddServiceToNode(nodeID string) error
 
 	// DeleteServiceFromNode removes this service from an existing node.
-	// NOTE: CURRENTLY UNSUPPORTED!!!
+	// NOTE: Unload service.so for service node
 	DeleteServiceFromNode(nodeID string) error
 
 	// StartService starts service on specified Service Nodes.
-	StartService(serviceScope int, serviceScopeList []string, config []byte) error
+	// NOTE: The config will be saved in node for potential auto start next time
+	StartService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
 
 	// StopService stops service on specified Service Nodes.
-	StopService(serviceScope int, serviceScopeList []string) error
+	StopService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
 
 	// ResetService resets service on specified Service Nodes.
-	ResetService(serviceScope int, serviceScopeList []string) error
+	ResetService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn have the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
-	SendServiceOps(nodeId, opCmd, opParams string) (response chan *commonapi.Response, frameworkErr error)
-
-	/*
-		Service Configuration Management
-	*/
-
-	// SaveClusterConfigOfNodeGroup saves the cluster setting for a node group.
-	SaveClusterConfigOfNodeGroup(nodeGroupID string, config []byte) error
-
-	// SaveClusterConfigOfNode saves the cluster setting for a node.
-	SaveClusterConfigOfNode(nodeId string, config []byte) error
+	SendServiceOps(serviceScope int, serviceScopeList []string, opCmd, opParams string) (response <-chan *commonapi.Response, frameworkErr error)
 
 	/*
 		Networks, Nodes and Links
@@ -98,29 +87,44 @@ type ASNController interface {
 	) (*Network, []*NetworkLink, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
+	// - filterUnavailable will just return service node that has the service if ture
 	// - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
 	//   So, only IDs are returned in this case.
 	// - External links connect nodes in this network with nodes outside of this network.
 	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
-	GetNodesOfNetwork(networkID string, includeStats bool) ([]*Node, []*NodeInternalLink, []*NodeExternalLink, error)
+	GetNodesOfNetwork(networkID string, filterUnavailable, includeStats bool) ([]*Node, []*NodeLink, []*NodeLink, error)
+
+	GetNodeByID(nodeID string) (*Node, error)
 
 	// CreateNode creates a node under a given network.
 	// Note that this is only supported when ASN does not strictly verify the network topology.
 	// For now, a certificate is returned for the node to register to ASN Controller.
-	CreateNode(networkID, nodeName string, nodeType NodeType) (*tls.Certificate, error)
+	CreateNode(networkID, nodeName string, nodeType NodeType, meta string) (string, error)
+
+	// SetConfigOfNodeGroup saves the cluster setting for a node group.
+	SetConfigOfNodeGroup(nodeGroupID string, config []byte) error
+
+	UpdateNodeMeta(nodeID, meta string) error
 
 	/*
 		Node Group
 	*/
 
 	// CreateNodeGroup creates a node group for this service.
-	CreateNodeGroup(name, description string) error
+	CreateNodeGroup(name, description, meta string) error
 
 	// ListNodeGroups returns all node groups under this service.
 	ListNodeGroups() ([]*NodeGroup, error)
 
+	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
+
 	// DeleteNodeGroup removes a node group under this service.
 	DeleteNodeGroup(id string) error
+
+	// SetConfigOfNode saves the cluster setting for a node.
+	SetConfigOfNode(nodeId string, config []byte) error
+
+	UpdateNodeGroupMeta(id, meta string) error
 
 	// AddNodesToNodeGroup adds the specified nodes to the provided node group identified by its ID.
 	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error

@@ -8,6 +8,11 @@ const (
 	OpScopeNode
 )
 
+const (
+	ServiceConfigSourceNode = 1 + iota
+	ServiceConfigSourceNodeGroup
+)
+
 type Response struct {
 	Response string
 	Error    error

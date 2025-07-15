@@ -2,8 +2,6 @@
 
 package capi
 
-import "time"
-
 // Structs used between asn.controller and service.controller.
 
 type NetworkBasicInfo struct {
@@ -64,17 +62,20 @@ type Node struct {
 	ID          string   // Node ID
 	Name        string   // Device display name
 	Type        NodeType // Node Type
+	State       int      // Node state, refer Service Node State enum
 	NetworkID   string   // Network ID
-	Managed     bool
+	NodeGroupID string   // Node Group ID, if in node group
 	Description string
+	Meta        string // meta data used by service
 
 	Location   *Location // Node physical location
 	Ipmi       *Ipmi
 	Management *Management
 	Info       *Info
+	SystemInfo *SystemInfo
 	Interfaces map[string]*Interface
 
-	ServiceNode *ServiceNode
+	ServiceInfo *ServiceInfo
 	Stats       *NodeStats
 }
 
@@ -95,9 +96,22 @@ type Info struct {
 	SerialNumber string
 }
 
+type SystemInfo struct {
+	MachineID string
+	CpuCore   int64
+	Memory    int64
+	Disk      int64
+}
+
 type Interface struct {
 	Ip   string
 	Tags []string
+}
+
+type ServiceInfo struct {
+	State        int
+	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config in node group
+	ConfigSource int
 }
 
 type NodeStats struct {
@@ -110,23 +124,9 @@ type NodeStats struct {
 	CpuUsage           float32
 }
 
-type ServiceNode struct {
-	State      int
-	LastBeat   time.Time
-	SystemInfo *SystemInfo
-	Interface  map[string]*Interface
-}
-
-type SystemInfo struct {
-	CpuCore         int64
-	Memory          int64
-	Disk            int64
-	NetworkCapacity int64
-}
-
 type NetworkLink struct {
 	ID          string // uuid
-	Description string // the name of the link can be empty
+	Description string // the name of the link, can be empty
 	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
 
 	From, To *NetworkLinkNode
@@ -137,21 +137,12 @@ type NetworkLinkNode struct {
 	Interface string
 }
 
-type NodeInternalLink struct {
+type NodeLink struct {
 	ID          string // uuid
-	Description string // the name of the link can be empty
+	Description string // the name of the link, can be empty
 	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
 
 	From, To *NodeLinkNode
-}
-
-type NodeExternalLink struct {
-	ID          string // uuid
-	Description string // the name of the link can be empty
-	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
-
-	From *NodeLinkNode
-	To   *Node
 }
 
 type NodeLinkNode struct {
@@ -160,9 +151,10 @@ type NodeLinkNode struct {
 }
 
 type NodeGroup struct {
-	ID            string
-	Name          string
-	Description   string
-	Nodes         []*Node
-	ClusterConfig []byte
+	ID          string
+	Name        string
+	Description string
+	Meta        string //meta data used by service
+	Nodes       []string
+	Config      []byte
 }
