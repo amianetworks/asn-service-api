@@ -13,7 +13,7 @@ type ASNService interface {
 	GetVersion() commonapi.Version
 
 	// Init initializes the service
-	Init()
+	Init() error
 
 	// Start the service with the configuration.
 	//
