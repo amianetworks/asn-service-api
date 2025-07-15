@@ -141,7 +141,7 @@ type TSQuery interface {
 	SetDesc()
 
 	// SetLimit sets the number of data outputs.
-	SetLimit(n uint64, outFormat uint8)
+	SetLimit(n uint64)
 
 	// SetPage determines whether the data do pagination.
 	// This option must specify a limit value, which represents the amount of data per page.
