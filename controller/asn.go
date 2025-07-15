@@ -102,8 +102,8 @@ type ASNController interface {
 	// For now, a certificate is returned for the node to register to ASN Controller.
 	CreateNode(networkID, nodeName string, nodeType NodeType, meta string) (string, error)
 
-	// SetConfigOfNodeGroup saves the cluster setting for a node group.
-	SetConfigOfNodeGroup(nodeGroupID string, config []byte) error
+	// SetConfigOfNode saves the cluster setting for a node.
+	SetConfigOfNode(nodeId string, config []byte) error
 
 	UpdateNodeMeta(nodeID, meta string) error
 
@@ -122,8 +122,8 @@ type ASNController interface {
 	// DeleteNodeGroup removes a node group under this service.
 	DeleteNodeGroup(id string) error
 
-	// SetConfigOfNode saves the cluster setting for a node.
-	SetConfigOfNode(nodeId string, config []byte) error
+	// SetConfigOfNodeGroup saves the cluster setting for a node group.
+	SetConfigOfNodeGroup(nodeGroupID string, config []byte) error
 
 	UpdateNodeGroupMeta(id, meta string) error
 

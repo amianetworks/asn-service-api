@@ -4,6 +4,7 @@ package commonapi
 
 const (
 	OpScopeNetwork = 1 + iota
+	OpScopeNetworkWithSubnetworks
 	OpScopeGroup
 	OpScopeNode
 )
