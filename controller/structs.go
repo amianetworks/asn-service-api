@@ -2,6 +2,8 @@
 
 package capi
 
+import "time"
+
 // Structs used between asn.controller and service.controller.
 
 type NetworkBasicInfo struct {
@@ -42,6 +44,13 @@ type Coordinates struct {
 	Latitude  float32
 	Longitude float32
 	Altitude  float32
+}
+
+type NodeStateChange struct {
+	Timestamp    time.Time
+	NodeID       string
+	NodeState    int
+	ServiceState int
 }
 
 type NodeType string
@@ -154,7 +163,7 @@ type NodeGroup struct {
 	ID          string
 	Name        string
 	Description string
-	Meta        string //meta data used by service
+	Meta        string // meta data used by service
 	Nodes       []string
 	Config      []byte
 }

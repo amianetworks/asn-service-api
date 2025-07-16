@@ -68,7 +68,8 @@ type ASNController interface {
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn have the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
-	SendServiceOps(serviceScope int, serviceScopeList []string, opCmd, opParams string) (response <-chan *commonapi.Response, frameworkErr error)
+	SendServiceOps(serviceScope int, serviceScopeList []string, opCmd, opParams string) (
+		response <-chan *commonapi.Response, frameworkErr error)
 
 	/*
 		Networks, Nodes and Links
@@ -85,6 +86,13 @@ type ASNController interface {
 		locationTiers, networkTiers []string,
 		includeStats bool,
 	) (*Network, []*NetworkLink, error)
+
+	// SubscribeNodeStateChanges returns a channel for a service to subscribe to all nodes' state changes.
+	// By listening to this channel, the service will first receive all init states of the nodes,
+	// then start to receive messages when the state of a node changes.
+	//
+	// CAUTION: This function should only be called once. Multiple calling towards this function will return an error.
+	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
 	// - filterUnavailable will just return the service nodes that have the service if ture
