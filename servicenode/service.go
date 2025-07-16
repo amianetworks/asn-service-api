@@ -52,7 +52,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (20s) to process the initialization,
 	// 		 	if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	ApplyServiceOps(opCmd, opParams string, response chan<- *commonapi.Response)
+	ApplyServiceOps(opCmd, opParams string) (response <-chan *commonapi.Response)
 
 	// Stop the service with the configuration.
 	//

@@ -15,6 +15,7 @@ const (
 )
 
 type Response struct {
+	NodeID   string
 	Response string
 	Error    error
 }
