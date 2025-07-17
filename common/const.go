@@ -25,14 +25,14 @@ const (
 type NodeType string
 
 const (
-	NodeTypeRouter      NodeType = "router"
-	NodeTypeSwitch      NodeType = "switch"
-	NodeTypeAppliance   NodeType = "appliance"
-	NodeTypeFirewall    NodeType = "firewall"
-	NodeTypeLoadBalance NodeType = "lb"
-	NodeTypeAccessPoint NodeType = "ap"
-	NodeTypeDevice      NodeType = "device"
-	NodeTypeServer      NodeType = "server"
+	NodeTypeRouter       NodeType = "router"
+	NodeTypeSwitch       NodeType = "switch"
+	NodeTypeAppliance    NodeType = "appliance"
+	NodeTypeFirewall     NodeType = "firewall"
+	NodeTypeLoadBalancer NodeType = "lb"
+	NodeTypeAccessPoint  NodeType = "ap"
+	NodeTypeDevice       NodeType = "device"
+	NodeTypeServer       NodeType = "server"
 )
 
 type ServiceScope int
