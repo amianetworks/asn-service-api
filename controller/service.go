@@ -14,14 +14,14 @@ import (
 // ASN is a distributed framework for clustered services.
 // An ASN Controller is the centralized control plane, which manages ASN Service Node(s).
 //
-// An distributed ASN Service is managed by ASN framework and controlled by A Service Controller.
+// An distributed ASN Service is managed by the ASN framework and controlled by A Service Controller.
 // A Service Controller needs to implement the following interfaces to be loaded and started.
 //
-// Service Controller is used by ASN framework as a general purpose term.
+// The ASN framework uses Service Controller as a general purpose term.
 // A service may use "manager", "master", or "controller" based on its implemented role.
 // For example, SWAN Manager is indeed implemented as a Server Controller for the Service "SWAN".
 
-// ASNServiceController interface is implemented by a Service Controller.
+// ASNServiceController is the interface to be implemented by a Service Controller.
 // ASN Framework will call these functions to manage the lifetime of the service.
 type ASNServiceController interface {
 	// GetVersion returns the service controller's version.
@@ -37,13 +37,20 @@ type ASNServiceController interface {
 	// ignore the message and return an error.
 	HandleMessageFromServiceNode(serviceNodeId, message string) error
 
+	// GetMetrics provides a way for the service to return a set of metrics to the ASN controller.
+	// The service can determine these metrics itself. Keys and values are not limited.
+	// The ASN controller does not parse the metrics. It returns the metrics directly to the front-end.
+	GetMetrics() (map[string]string, error)
+
 	// GetCLICommands returns the Service's CLI commands to integrate them in ASN CLI.
 	// This function must be callable BEFORE Init().
-	GetCLICommands(applyCLIOps func(opScope int, opScopeList []string, opCmd, opParams string) error) []*cobra.Command
+	GetCLICommands(
+		applyCLIOps func(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error,
+	) []*cobra.Command
 
 	// GetWebHandler returns a function to mount the web handler got this service controller.
 	GetWebHandler(staticPath string) func(group *gin.RouterGroup) error
 
-	// Finish the service then it could be unloaded.
+	// Finish the service, then it could be unloaded.
 	Finish()
 }

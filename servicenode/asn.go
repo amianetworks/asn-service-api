@@ -35,8 +35,8 @@ type ASNServiceNode interface {
 	// A Service may call InitTSDB() multiple time forDBs for different uses.
 	InitTSDB() (commonapi.TSDBHandler, error)
 
-	// Placeholder for Locker, in case it's needed.
-	// Placeholder for IAM, in case it's needed.
+	// Placeholder for Locker, in case it's necessary.
+	// Placeholder for IAM, in case it's necessary.
 
 	/*
 		SendMessageToController

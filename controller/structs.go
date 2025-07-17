@@ -2,7 +2,11 @@
 
 package capi
 
-import "time"
+import (
+	"time"
+
+	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+)
 
 // Structs used between asn.controller and service.controller.
 
@@ -19,18 +23,6 @@ type Network struct {
 	NetworkBasicInfo
 	Location *Location
 	Networks []*Network
-
-	Stats *NetworkStats
-}
-
-type NetworkStats struct {
-	ReceivedBits    uint64
-	SentBits        uint64
-	AsnReceivedBits uint64
-	AsnBlockedBits  uint64
-	AsnReceivedPkts uint64
-	AsnBlockedPkts  uint64
-	Timestamp       string
 }
 
 type Location struct {
@@ -49,33 +41,20 @@ type Coordinates struct {
 type NodeStateChange struct {
 	Timestamp    time.Time
 	NodeID       string
-	NodeState    int
-	ServiceState int
+	NodeState    commonapi.ServiceNodeState
+	ServiceState commonapi.ServiceState
 }
-
-type NodeType string
-
-const (
-	NodeTypeRouter      NodeType = "router"
-	NodeTypeSwitch      NodeType = "switch"
-	NodeTypeAppliance   NodeType = "appliance"
-	NodeTypeFirewall    NodeType = "firewall"
-	NodeTypeLoadBalance NodeType = "lb"
-	NodeTypeAccessPoint NodeType = "ap"
-	NodeTypeEndPoint    NodeType = "ep"
-	NodeTypeServer      NodeType = "server"
-)
 
 // Node is the structure for a node.
 type Node struct {
-	ID          string   // Node ID
-	Name        string   // Device display name
-	Type        NodeType // Node Type
-	State       int      // Node state, refer Service Node State enum
-	NetworkID   string   // Network ID
-	NodeGroupID string   // Node Group ID, if in node group
+	ID          string                     // Node ID
+	Name        string                     // Device display name
+	Type        commonapi.NodeType         // Node Type
+	State       commonapi.ServiceNodeState // Node state, refer Service Node State enum
+	NetworkID   string                     // Network ID
+	NodeGroupID string                     // Node Group ID, if in a node group
 	Description string
-	Meta        string // meta data used by service
+	Meta        string // metadata used by the service
 
 	Location   *Location // Node physical location
 	Ipmi       *Ipmi
@@ -85,7 +64,6 @@ type Node struct {
 	Interfaces map[string]*Interface
 
 	ServiceInfo *ServiceInfo
-	Stats       *NodeStats
 }
 
 type Ipmi struct {
@@ -118,24 +96,14 @@ type Interface struct {
 }
 
 type ServiceInfo struct {
-	State        int
-	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config in node group
-	ConfigSource int
-}
-
-type NodeStats struct {
-	Rx                 uint64
-	Tx                 uint64
-	AsnReceivedPackets uint64
-	AsnBlockedPackets  uint64
-	AsnReceivedBits    uint64
-	AsnBlockedBits     uint64
-	CpuUsage           float32
+	State        commonapi.ServiceState
+	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config from a node group
+	ConfigSource commonapi.ServiceConfigSource
 }
 
 type NetworkLink struct {
 	ID          string // uuid
-	Description string // the name of the link, can be empty
+	Description string // the name of the link can be empty
 	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
 
 	From, To *NetworkLinkNode
@@ -148,7 +116,7 @@ type NetworkLinkNode struct {
 
 type NodeLink struct {
 	ID          string // uuid
-	Description string // the name of the link, can be empty
+	Description string // the name of the link can be empty
 	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
 
 	From, To *NodeLinkNode
@@ -163,7 +131,7 @@ type NodeGroup struct {
 	ID          string
 	Name        string
 	Description string
-	Meta        string // meta data used by service
+	Meta        string // metadata used by the service
 	Nodes       []string
 	Config      []byte
 }

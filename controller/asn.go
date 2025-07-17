@@ -57,18 +57,21 @@ type ASNController interface {
 
 	// StartService starts service on specified Service Nodes.
 	// NOTE: The config will be saved in the node for potential auto start next time
-	StartService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
+	StartService(serviceScope commonapi.ServiceScope, serviceScopeList []string) (
+		response <-chan *commonapi.Response, frameworkErr error)
 
 	// StopService stops service on specified Service Nodes.
-	StopService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
+	StopService(serviceScope commonapi.ServiceScope, serviceScopeList []string) (
+		response <-chan *commonapi.Response, frameworkErr error)
 
 	// ResetService resets service on specified Service Nodes.
-	ResetService(serviceScope int, serviceScopeList []string) (response <-chan *commonapi.Response, frameworkErr error)
+	ResetService(serviceScope commonapi.ServiceScope, serviceScopeList []string) (
+		response <-chan *commonapi.Response, frameworkErr error)
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn have the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
-	SendServiceOps(serviceScope int, serviceScopeList []string, opCmd, opParams string) (
+	SendServiceOps(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) (
 		response <-chan *commonapi.Response, frameworkErr error)
 
 	/*
@@ -108,7 +111,7 @@ type ASNController interface {
 	// CreateNode creates a node under a given network.
 	// Note that this is only supported when ASN does not strictly verify the network topology.
 	// For now, a certificate is returned for the node to register to ASN Controller.
-	CreateNode(networkID, nodeName string, nodeType NodeType, meta string) (string, error)
+	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, meta string) (string, error)
 
 	// SetConfigOfNode saves the cluster setting for a node.
 	SetConfigOfNode(nodeId string, config []byte) error

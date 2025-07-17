@@ -2,18 +2,6 @@
 
 package commonapi
 
-const (
-	OpScopeNetwork = 1 + iota
-	OpScopeNetworkWithSubnetworks
-	OpScopeGroup
-	OpScopeNode
-)
-
-const (
-	ServiceConfigSourceNode = 1 + iota
-	ServiceConfigSourceNodeGroup
-)
-
 type Response struct {
 	NodeID   string
 	Response string
