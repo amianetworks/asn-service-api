@@ -39,6 +39,7 @@ type ASNServiceController interface {
 
 	// GetMetrics provides a way for the service to return a set of metrics to the ASN controller.
 	// The service can determine these metrics itself. Keys and values are not limited.
+	// However, keep in mind that these metrics are for stat display purposes, so please design accordingly.
 	// The ASN controller does not parse the metrics. It returns the metrics directly to the front-end.
 	GetMetrics() (map[string]string, error)
 
