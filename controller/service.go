@@ -37,11 +37,11 @@ type ASNServiceController interface {
 	// ignore the message and return an error.
 	HandleMessageFromServiceNode(serviceNodeId, message string) error
 
-	// GetMetrics provides a way for the service to return a set of metrics to the ASN controller.
+	// GetMetrics provides a way for the service to return a set of metrics under a network to the ASN controller.
 	// The service can determine these metrics itself. Keys and values are not limited.
 	// However, keep in mind that these metrics are for stat display purposes, so please design accordingly.
 	// The ASN controller does not parse the metrics. It returns the metrics directly to the front-end.
-	GetMetrics() (map[string]string, error)
+	GetMetrics(networkID string) (map[string]string, error)
 
 	// GetCLICommands returns the Service's CLI commands to integrate them in ASN CLI.
 	// This function must be callable BEFORE Init().
