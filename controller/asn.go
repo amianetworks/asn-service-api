@@ -84,11 +84,7 @@ type ASNController interface {
 	// GetNetworkByID returns a network and all its subnetworks and links.
 	// - locationTiers filter the networks with the given location tiers.
 	// - networkTiers filter the networks with the given network tiers.
-	GetNetworkByID(
-		networkID string,
-		locationTiers, networkTiers []string,
-		includeStats bool,
-	) (*Network, []*NetworkLink, error)
+	GetNetworkByID(networkID string, locationTiers, networkTiers []string) (*Network, []*NetworkLink, error)
 
 	// SubscribeNodeStateChanges returns a channel for a service to subscribe to all nodes' state changes.
 	// By listening to this channel, the service will first receive all init states of the nodes,
@@ -103,7 +99,7 @@ type ASNController interface {
 	//   So, only IDs are returned in this case.
 	// - External links connect nodes in this network with nodes outside of this network.
 	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
-	GetNodesOfNetwork(networkID string, filterUnavailable, includeStats bool) (
+	GetNodesOfNetwork(networkID string, filterUnavailable bool) (
 		nodes []*Node, internalLinks []*NodeLink, externalLinks []*NodeLink, err error)
 
 	GetNodeByID(nodeID string) (*Node, error)
