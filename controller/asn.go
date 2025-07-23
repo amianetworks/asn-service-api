@@ -107,22 +107,22 @@ type ASNController interface {
 	// CreateNode creates a node under a given network.
 	// Note that this is only supported when ASN does not strictly verify the network topology.
 	// For now, a certificate is returned for the node to register to ASN Controller.
-	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, meta string) (string, error)
+	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, metadata string) (string, error)
 
 	// SetConfigOfNode saves the cluster setting for a node.
 	SetConfigOfNode(nodeId string, config []byte) error
 
-	UpdateNodeMeta(nodeID, meta string) error
+	UpdateNodeMetadata(nodeID, meta string) error
 
 	/*
 		Node Group
 	*/
 
 	// CreateNodeGroup creates a node group for this service.
-	CreateNodeGroup(name, description, meta string) error
+	CreateNodeGroup(rootID, name, description, metadata string) error
 
 	// ListNodeGroups returns all node groups under this service.
-	ListNodeGroups() ([]*NodeGroup, error)
+	ListNodeGroups(rootID string) ([]*NodeGroup, error)
 
 	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
 
@@ -132,7 +132,7 @@ type ASNController interface {
 	// SetConfigOfNodeGroup saves the cluster setting for a node group.
 	SetConfigOfNodeGroup(nodeGroupID string, config []byte) error
 
-	UpdateNodeGroupMeta(id, meta string) error
+	UpdateNodeGroupMetadata(nodeGroupID, meta string) error
 
 	// AddNodesToNodeGroup adds the specified nodes to the provided node group identified by its ID.
 	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error

@@ -54,7 +54,7 @@ type Node struct {
 	NetworkID   string                     // Network ID
 	NodeGroupID string                     // Node Group ID, if in a node group
 	Description string
-	Meta        string // metadata used by the service
+	Metadata    string // metadata used by the service
 
 	Location   *Location // Node physical location
 	Ipmi       *Ipmi
@@ -129,9 +129,10 @@ type NodeLinkNode struct {
 
 type NodeGroup struct {
 	ID          string
+	RootID      string
 	Name        string
 	Description string
-	Meta        string // metadata used by the service
+	Metadata    string // metadata used by the service
 	Nodes       []string
 	Config      []byte
 }
