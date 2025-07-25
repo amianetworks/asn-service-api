@@ -42,7 +42,7 @@ type Instance interface {
 	MFAVerify(username string, code int32) error
 	MFALoginVerify(accessToken string, code int32) (*TokenSet, error)
 	AuthenticatorBindConfirm(username string, code int32) error
-	AuthenticatorBind(username string) (string, error)
+	AuthenticatorBind(username string) (img, authLink string, err error)
 	AuthenticatorUnbind(username string) error
 
 	AccessCreate(name, scope, operation string, time *TimeControl) error
