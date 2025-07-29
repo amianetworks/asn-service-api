@@ -21,28 +21,8 @@ type NetworkBasicInfo struct {
 // Network is the structure for a network.
 type Network struct {
 	NetworkBasicInfo
-	Location *Location
+	Location *commonapi.Location
 	Networks []*Network
-}
-
-type Location struct {
-	Description string
-	Tier        string
-	Address     string
-	Coordinates *Coordinates
-}
-
-type Coordinates struct {
-	Latitude  float32
-	Longitude float32
-	Altitude  float32
-}
-
-type NodeStateChange struct {
-	Timestamp    time.Time
-	NodeID       string
-	NodeState    commonapi.ServiceNodeState
-	ServiceState commonapi.ServiceState
 }
 
 // Node is the structure for a node.
@@ -55,50 +35,25 @@ type Node struct {
 	NodeGroupID string                     // Node Group ID, if in a node group
 	Description string
 	Metadata    string // metadata used by the service
+	Managed     bool
+	Location    *commonapi.Location // Node physical location
 
-	Location   *Location // Node physical location
-	Ipmi       *Ipmi
-	Management *Management
-	Info       *Info
-	SystemInfo *SystemInfo
-	Interfaces map[string]*Interface
+	TopoInfo *commonapi.Info
 
 	ServiceInfo *ServiceInfo
-}
-
-type Ipmi struct {
-	Ip       string
-	Username string
-	Key      string
-}
-
-type Management struct {
-	Hostname string
-	Ip       string
-}
-
-type Info struct {
-	Vendor       string
-	Model        string
-	SerialNumber string
-}
-
-type SystemInfo struct {
-	MachineID string
-	CpuCore   int64
-	Memory    int64
-	Disk      int64
-}
-
-type Interface struct {
-	Ip   string
-	Tags []string
 }
 
 type ServiceInfo struct {
 	State        commonapi.ServiceState
 	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config from a node group
 	ConfigSource commonapi.ServiceConfigSource
+}
+
+type NodeStateChange struct {
+	Timestamp    time.Time
+	NodeID       string
+	NodeState    commonapi.ServiceNodeState
+	ServiceState commonapi.ServiceState
 }
 
 type NetworkLink struct {

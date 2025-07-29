@@ -39,6 +39,11 @@ type ASNServiceNode interface {
 	// Placeholder for IAM, in case it's necessary.
 
 	/*
+		Node Info
+	*/
+	GetNodeInfo() *Node
+
+	/*
 		SendMessageToController
 	*/
 
