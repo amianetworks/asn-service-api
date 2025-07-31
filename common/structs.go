@@ -51,5 +51,5 @@ type DeviceParam struct {
 
 type Interface struct {
 	Ip   string
-	Tags []string
+	Tags []NetIfType
 }
