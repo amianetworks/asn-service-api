@@ -10,19 +10,15 @@ import (
 
 // Structs used between asn.controller and service.controller.
 
-type NetworkBasicInfo struct {
+// Network is the structure for a network.
+type Network struct {
 	ID          string
 	Name        string
 	ParentID    string
 	Description string
 	Tiers       []string
-}
-
-// Network is the structure for a network.
-type Network struct {
-	NetworkBasicInfo
-	Location *commonapi.Location
-	Networks []*Network
+	Location    *commonapi.Location
+	Networks    []*Network
 }
 
 // Node is the structure for a node.
@@ -57,28 +53,15 @@ type NodeStateChange struct {
 	ServiceState commonapi.ServiceState
 }
 
-type NetworkLink struct {
+type Link struct {
 	ID          string // uuid
 	Description string // the name of the link can be empty
 	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
 
-	From, To *NetworkLinkNode
+	From, To *LinkNode
 }
 
-type NetworkLinkNode struct {
-	NetworkID string
-	Interface string
-}
-
-type NodeLink struct {
-	ID          string // uuid
-	Description string // the name of the link can be empty
-	Bandwidth   int64  // the bandwidth between two nodes, the up speed equals to the down speed
-
-	From, To *NodeLinkNode
-}
-
-type NodeLinkNode struct {
+type LinkNode struct {
 	NodeID    string
 	Interface string
 }

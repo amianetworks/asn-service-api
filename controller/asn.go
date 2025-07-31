@@ -78,13 +78,8 @@ type ASNController interface {
 		Networks
 	*/
 
-	// GetRootNetworks returns all the root networks
-	GetRootNetworks() ([]*NetworkBasicInfo, error) // TODO this can still be valid, or change to return the full network topo
-
-	// GetNetworkByID returns a network and all its subnetworks and links.
-	// - locationTiers filter the networks with the given location tiers.
-	// - networkTiers filter the networks with the given network tiers.
-	GetNetworkByID(networkID string, locationTiers, networkTiers []string) (*Network, []*NetworkLink, error) // TODO remove filters, also this might not be necessary as they can be merge to "GetNetworks()"
+	// GetNetworks returns all networks, their info and subnetworks in the topo.
+	GetNetworks() ([]*Network, error)
 
 	/*
 		Nodes
@@ -103,13 +98,13 @@ type ASNController interface {
 	GetNodeByID(nodeID string) (*Node, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
-	// - filterUnavailable will just return the service nodes that have the service if ture
-	// - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
-	//   So, only IDs are returned in this case.
-	// - External links connect nodes in this network with nodes outside of this network.
-	//   So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
-	GetNodesOfNetwork(networkID string, filterUnavailable bool) (
-		nodes []*Node, internalLinks []*NodeLink, externalLinks []*NodeLink, err error)
+	// - filterUnavailable will just return the service nodes that have the service if true
+	// - Links may contain two different types:
+	//   - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
+	//     So, only IDs are returned in this case.
+	//   - External links connect nodes in this network with nodes outside of this network.
+	//     So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
+	GetNodesOfNetwork(networkID string, filterUnavailable bool) (nodes []*Node, links []*Link, err error)
 
 	// SubscribeNodeStateChanges returns a channel for a service to subscribe to all nodes' state changes.
 	// By listening to this channel, the service will first receive all init states of the nodes,
