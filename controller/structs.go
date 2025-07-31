@@ -27,17 +27,18 @@ type Network struct {
 
 // Node is the structure for a node.
 type Node struct {
-	ID          string                     // Node ID
-	Name        string                     // Device display name
-	Type        commonapi.NodeType         // Node Type
-	State       commonapi.ServiceNodeState // Node state, refer Service Node State enum
-	NetworkID   string                     // Network ID
-	NodeGroupID string                     // Node Group ID, if in a node group
-	Description string
-	Metadata    string // metadata used by the service
-	Managed     bool
-	Location    *commonapi.Location // Node physical location
+	ID           string             // Node ID
+	Name         string             // Device display name
+	Type         commonapi.NodeType // Node Type
+	RegisteredAt time.Time
+	State        commonapi.ServiceNodeState // Node state, refer Service Node State enum
+	NetworkID    string                     // Network ID
+	NodeGroupID  string                     // Node Group ID, if in a node group
+	Description  string
+	Metadata     string              // metadata used by the service
+	Location     *commonapi.Location // Node physical location
 
+	Managed  bool
 	TopoInfo *commonapi.Info
 
 	ServiceInfo *ServiceInfo
@@ -45,7 +46,7 @@ type Node struct {
 
 type ServiceInfo struct {
 	State        commonapi.ServiceState
-	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config from a node group
+	UsedConfig   []byte // exists if Config Source is Node, otherwise is empty, can get the config from a node group
 	ConfigSource commonapi.ServiceConfigSource
 }
 
@@ -84,7 +85,7 @@ type NodeLinkNode struct {
 
 type NodeGroup struct {
 	ID          string
-	RootID      string
+	NetworkID   string
 	Name        string
 	Description string
 	Metadata    string // metadata used by the service

@@ -50,3 +50,26 @@ const (
 	ServiceConfigSourceNode ServiceConfigSource = 1 + iota
 	ServiceConfigSourceNodeGroup
 )
+
+type NetIfType string
+
+const (
+	NetIfTypeData       NetIfType = "data"
+	NetIfTypeControl    NetIfType = "control"
+	NetIfTypeManagement NetIfType = "management"
+)
+
+var LocationTiers = []string{
+	"world",
+	"country",
+	"state",
+	"city",
+	"district",
+	"building",
+	"room",
+	"floor",
+	"room",
+	"row",
+	"rack",
+	"unit",
+}

@@ -75,23 +75,32 @@ type ASNController interface {
 		response <-chan *commonapi.Response, frameworkErr error)
 
 	/*
-		Networks, Nodes and Links
+		Networks
 	*/
 
 	// GetRootNetworks returns all the root networks
-	GetRootNetworks() ([]*NetworkBasicInfo, error)
+	GetRootNetworks() ([]*NetworkBasicInfo, error) // TODO this can still be valid, or change to return the full network topo
 
 	// GetNetworkByID returns a network and all its subnetworks and links.
 	// - locationTiers filter the networks with the given location tiers.
 	// - networkTiers filter the networks with the given network tiers.
-	GetNetworkByID(networkID string, locationTiers, networkTiers []string) (*Network, []*NetworkLink, error)
+	GetNetworkByID(networkID string, locationTiers, networkTiers []string) (*Network, []*NetworkLink, error) // TODO remove filters, also this might not be necessary as they can be merge to "GetNetworks()"
 
-	// SubscribeNodeStateChanges returns a channel for a service to subscribe to all nodes' state changes.
-	// By listening to this channel, the service will first receive all init states of the nodes,
-	// then start to receive messages when the state of a node changes.
-	//
-	// CAUTION: This function should only be called once. Multiple calling towards this function will return an error.
-	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
+	/*
+		Nodes
+	*/
+
+	// CreateNode creates a node under a given network.
+	// Note that this is only supported when ASN does not strictly verify the network topology.
+	// For now, a certificate is returned for the node to register to ASN Controller.
+	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, metadata string) (string, error)
+
+	UpdateNodeMetadata(nodeID, meta string) error
+
+	// SetConfigOfNode saves the cluster setting for a node.
+	SetConfigOfNode(nodeId string, config []byte) error
+
+	GetNodeByID(nodeID string) (*Node, error)
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
 	// - filterUnavailable will just return the service nodes that have the service if ture
@@ -102,27 +111,22 @@ type ASNController interface {
 	GetNodesOfNetwork(networkID string, filterUnavailable bool) (
 		nodes []*Node, internalLinks []*NodeLink, externalLinks []*NodeLink, err error)
 
-	GetNodeByID(nodeID string) (*Node, error)
-
-	// CreateNode creates a node under a given network.
-	// Note that this is only supported when ASN does not strictly verify the network topology.
-	// For now, a certificate is returned for the node to register to ASN Controller.
-	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, metadata string) (string, error)
-
-	// SetConfigOfNode saves the cluster setting for a node.
-	SetConfigOfNode(nodeId string, config []byte) error
-
-	UpdateNodeMetadata(nodeID, meta string) error
+	// SubscribeNodeStateChanges returns a channel for a service to subscribe to all nodes' state changes.
+	// By listening to this channel, the service will first receive all init states of the nodes,
+	// then start to receive messages when the state of a node changes.
+	//
+	// CAUTION: This function should only be called once. Multiple calling towards this function will return an error.
+	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	/*
 		Node Group
 	*/
 
 	// CreateNodeGroup creates a node group for this service.
-	CreateNodeGroup(rootID, name, description, metadata string) error
+	CreateNodeGroup(networkID, name, description, metadata string) error
 
 	// ListNodeGroups returns all node groups under this service.
-	ListNodeGroups(rootID string) ([]*NodeGroup, error)
+	ListNodeGroups(networkID string) ([]*NodeGroup, error)
 
 	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
 

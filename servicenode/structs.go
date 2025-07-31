@@ -14,5 +14,5 @@ type Node struct {
 
 	TopoInfo *commonapi.Info
 
-	Config string
+	Config []byte
 }
