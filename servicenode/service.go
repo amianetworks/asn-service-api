@@ -21,14 +21,15 @@ type ASNService interface {
 	// 1. Config:
 	// 	 the configuration of the service. Service MUST update this configuration to the local file.
 	// 	 When DumpConfiguration called, the service needs to return the current configuration to framework
-	// 2. The return value indicate service state:
-	// 	 - if error is nil, the service node will assign the state CONFIGURED to the service
-	// 	 - if error is NOT nil, the service node will try to init the service and reapply the configuration for 3 times,
-	// 	   after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
+	// 2. The return values indicate service state:
+	// 	 - If startErr is nil, the service node will assign the state CONFIGURED to the service,
+	//     send the response to the controller, and keep listening to the runtimeErr channel.
+	// 	 - If startErr is NOT nil, the service node will try to init the service and reapply the config for 3 times.
+	// 	   After all retries if it is still having error, will assign the state MALFUNCTIONAL to the service
 	//
 	// Caution: the service node will have a timeout context (20s) to process the initialization,
-	//   		if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	Start(config []byte) (response string, err error)
+	//   		if it cannot be done within 20 secs, the service node will assign state MALFUNCTIONAL to the service.
+	Start(config []byte) (startResponse string, startErr error, runtimeErr <-chan error)
 
 	// UpdateConfig passes a set of configurations to the service.
 	//
@@ -65,7 +66,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (20s) to process the initialization,
 	// 		 	if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	Stop() error
+	Stop() (response string, err error)
 
 	// Finish is the last call before the service node's termination. Do the necessary clean up here.
 	Finish()
