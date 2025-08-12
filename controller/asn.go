@@ -56,23 +56,18 @@ type ASNController interface {
 	DeleteServiceFromNode(nodeID string) error
 
 	// StartService starts service on specified Service Nodes.
-	// NOTE: The config will be saved in the node for potential auto start next time
-	StartService(serviceScope commonapi.ServiceScope, serviceScopeList []string) (
-		response <-chan *commonapi.Response, frameworkErr error)
+	StartService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
 	// StopService stops service on specified Service Nodes.
-	StopService(serviceScope commonapi.ServiceScope, serviceScopeList []string) (
-		response <-chan *commonapi.Response, frameworkErr error)
+	StopService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
 	// ResetService resets service on specified Service Nodes.
-	ResetService(serviceScope commonapi.ServiceScope, serviceScopeList []string) (
-		response <-chan *commonapi.Response, frameworkErr error)
+	ResetService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
 	// SendServiceOps sends CONFIG cmd to the service node.
 	// The configCmd is a pre-defined struct. Both service.controller and service.sn have the same struct,
 	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
-	SendServiceOps(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) (
-		response <-chan *commonapi.Response, frameworkErr error)
+	SendServiceOps(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error
 
 	/*
 		Networks

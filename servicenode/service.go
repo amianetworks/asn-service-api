@@ -17,6 +17,11 @@ type ASNService interface {
 
 	// Start the service with the configuration.
 	//
+	// IMPORTANT: If this service wishes to be auto-started by ASN,
+	//            DO NOT rely on startResponse to report to the controller, as it will NOT be returned in all cases.
+	//            Instead, use SendMessageToController to communicate with the controller.
+	// However, if auto-start is not needed, then it is safe for startResponse to reach the controller.
+	//
 	// Parameters:
 	// 1. Config:
 	// 	 the configuration of the service. Service MUST update this configuration to the local file.
@@ -27,9 +32,9 @@ type ASNService interface {
 	// 	 - If startErr is NOT nil, the service node will try to init the service and reapply the config for 3 times.
 	// 	   After all retries if it is still having error, will assign the state MALFUNCTIONAL to the service
 	//
-	// Caution: the service node will have a timeout context (20s) to process the initialization,
-	//   		if it cannot be done within 20 secs, the service node will assign state MALFUNCTIONAL to the service.
-	Start(config []byte) (startResponse string, startErr error, runtimeErr <-chan error)
+	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
+	//   		if it cannot be done within 10 secs, the service node will assign state MALFUNCTIONAL to the service.
+	Start(config []byte) (startErr error, runtimeErr <-chan error)
 
 	// UpdateConfig passes a set of configurations to the service.
 	//
@@ -52,9 +57,9 @@ type ASNService interface {
 	// if error is NOT nil, the service node will try to init the service and re-apply the configuration for 3 times,
 	// 	 after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
 	//
-	// Caution: the service node will have a timeout context (20s) to process the initialization,
-	// 		 	if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
-	ApplyServiceOps(opCmd, opParams string) (response string, err error)
+	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
+	// 		 	if it cannot be done within 10 secs, service node will assign the state MALFUNCTIONAL to the service
+	ApplyServiceOps(opCmd, opParams string) error
 
 	// Stop the service with the configuration.
 	//
@@ -64,8 +69,8 @@ type ASNService interface {
 	// 	 - If error is NOT nil, the service node will try to init the service and reapply the configuration for 3 times,
 	// 	   after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
 	//
-	// Caution: the service node will have a timeout context (20s) to process the initialization,
-	// 		 	if it cannot be done within 20s, service node will assign the state MALFUNCTIONAL to the service
+	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
+	// 		 	if it cannot be done within 10 secs, service node will assign the state MALFUNCTIONAL to the service
 	Stop() (response string, err error)
 
 	// Finish is the last call before the service node's termination. Do the necessary clean up here.
