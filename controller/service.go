@@ -32,10 +32,14 @@ type ASNServiceController interface {
 	// don't need to be runnable until Init() is called.
 	Init(asnc ASNController) error
 
+	// Start starts the service controller with the given config.
+	// Before being started, the ASN controller will not call HandleMessageFromServiceNode or GetMetrics.
+	Start(config []byte) error
+
 	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.
 	// If this functionality is not needed, a service's implementation may simply
 	// ignore the message and return an error.
-	HandleMessageFromServiceNode(serviceNodeId, message string) error
+	HandleMessageFromServiceNode(serviceNodeId, messageType, message string) error
 
 	// GetMetrics provides a way for the service to return a set of metrics under a network to the ASN controller.
 	// The service can determine these metrics itself. Keys and values are not limited.
@@ -51,6 +55,9 @@ type ASNServiceController interface {
 
 	// GetWebHandler returns a function to mount the web handler got this service controller.
 	GetWebHandler(staticPath string) func(group *gin.RouterGroup) error
+
+	// Stop stops the service controller.
+	Stop() error
 
 	// Finish the service, then it could be unloaded.
 	Finish()

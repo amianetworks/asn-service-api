@@ -36,18 +36,6 @@ type ASNService interface {
 	//   		if it cannot be done within 10 secs, the service node will assign state MALFUNCTIONAL to the service.
 	Start(config []byte) (startErr error, runtimeErr <-chan error)
 
-	// UpdateConfig passes a set of configurations to the service.
-	//
-	// Service should compare this set of configurations with its current configurations.
-	// If the two sets of configurations are the same, nothing should be done.
-	// If the two sets of configurations are different, the service has two options:
-	// 1. Handle the config internally and return an error if needed by returning false, nil/err.
-	// 2. Request ASN to restart the service with the new config by returning true, nil.
-	//
-	// Caution: if an error is returned, ASN won't try to restart the service whatsoever.
-	//          It will mark the service as malfunctioning and wait for the controller to handle it.
-	UpdateConfig(config []byte) (restartRequired bool, err error)
-
 	// ApplyServiceOps applies the service operations to the service.
 	// Service operations will not change the service status (enabled/disabled),
 	// but will do some runtime operations such as: insert/delete/getXXX/setXXX
@@ -71,7 +59,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
 	// 		 	if it cannot be done within 10 secs, service node will assign the state MALFUNCTIONAL to the service
-	Stop() (response string, err error)
+	Stop() error
 
 	// Finish is the last call before the service node's termination. Do the necessary clean up here.
 	Finish()
