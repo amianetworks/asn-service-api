@@ -88,7 +88,7 @@ type ASNController interface {
 	UpdateNodeMetadata(nodeID, meta string) error
 
 	// SetConfigOfNode saves the cluster setting for a node.
-	SetConfigOfNode(nodeId string, config []byte) error
+	SetConfigOfNode(nodeID string, config []byte) error
 
 	GetNodeByID(nodeID string) (*Node, error)
 

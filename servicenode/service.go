@@ -13,7 +13,7 @@ type ASNService interface {
 	GetVersion() commonapi.Version
 
 	// Init initializes the service
-	Init() error
+	Init(asnServiceNode ASNServiceNode) error
 
 	// Start the service with the configuration.
 	//
@@ -27,14 +27,14 @@ type ASNService interface {
 	// 	 the configuration of the service. Service MUST update this configuration to the local file.
 	// 	 When DumpConfiguration called, the service needs to return the current configuration to framework
 	// 2. The return values indicate service state:
-	// 	 - If startErr is nil, the service node will assign the state CONFIGURED to the service,
-	//     send the response to the controller, and keep listening to the runtimeErr channel.
-	// 	 - If startErr is NOT nil, the service node will try to init the service and reapply the config for 3 times.
+	// 	 - If err is nil, the service node will assign the state CONFIGURED to the service,
+	//     send the response to the controller, and keep listening to the runtimeErrChan channel.
+	// 	 - If err is NOT nil, the service node will try to init the service and reapply the config for 3 times.
 	// 	   After all retries if it is still having error, will assign the state MALFUNCTIONAL to the service
 	//
 	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
 	//   		if it cannot be done within 10 secs, the service node will assign state MALFUNCTIONAL to the service.
-	Start(config []byte) (startErr error, runtimeErr <-chan error)
+	Start(config []byte) (runtimeErrChan <-chan error, err error)
 
 	// ApplyServiceOps applies the service operations to the service.
 	// Service operations will not change the service status (enabled/disabled),

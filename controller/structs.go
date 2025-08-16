@@ -28,9 +28,9 @@ type Node struct {
 	Name         string             // Device display name
 	Type         commonapi.NodeType // Node Type
 	RegisteredAt time.Time
-	State        commonapi.ServiceNodeState // Node state, refer Service Node State enum
-	NetworkID    string                     // Network ID
-	NodeGroupID  string                     // Node Group ID, if in a node group
+	State        commonapi.NodeState // Node state, refer Service Node State enum
+	NetworkID    string              // Network ID
+	NodeGroupID  string              // Node Group ID, if in a node group
 	Description  string
 	Metadata     string              // metadata used by the service
 	Location     *commonapi.Location // Node physical location
@@ -51,7 +51,7 @@ type NodeStateChange struct {
 	Timestamp time.Time
 	NodeID    string
 
-	NodeState      commonapi.ServiceNodeState
+	NodeState      commonapi.NodeState
 	FrameworkError FrameworkErr
 
 	ServiceState commonapi.ServiceState

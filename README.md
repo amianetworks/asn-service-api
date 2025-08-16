@@ -32,7 +32,7 @@ The latest version is `v25.7.1`.
    This is the API provided by `YOUR_SERVICE` and called by ASN service node. 
 4. Provide the init service node function
    ```
-       func NewASNService(asnServiceNode ASNServiceNode) (servicenode.ASNService, error)
+       func NewASNService() servicenode.ASNService
    ```
    in `YOUR_SERVICE`'s service node module.
    The function name, parameter and return type should be EXACTLY THE SAME with the function above.

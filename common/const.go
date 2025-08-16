@@ -2,13 +2,13 @@
 
 package commonapi
 
-type ServiceNodeState int
+type NodeState int
 
 const (
-	ServiceNodeStateUnregistered ServiceNodeState = iota
-	ServiceNodeStateOffline
-	ServiceNodeStateOnline
-	ServiceNodeStateMaintenance
+	NodeStateUnregistered NodeState = iota
+	NodeStateOffline
+	NodeStateOnline
+	NodeStateMaintenance
 )
 
 type ServiceState int

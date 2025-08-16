@@ -33,13 +33,13 @@ type ASNServiceController interface {
 	Init(asnc ASNController) error
 
 	// Start starts the service controller with the given config.
-	// Before being started, the ASN controller will not call HandleMessageFromServiceNode or GetMetrics.
+	// Before being started, the ASN controller will not call HandleMessageFromNode or GetMetrics.
 	Start(config []byte) error
 
-	// HandleMessageFromServiceNode handles up calls from Service Nodes if needed.
+	// HandleMessageFromNode handles up calls from Service Nodes if needed.
 	// If this functionality is not needed, a service's implementation may simply
 	// ignore the message and return an error.
-	HandleMessageFromServiceNode(serviceNodeId, messageType, message string) error
+	HandleMessageFromNode(nodeID, messageType, message string) error
 
 	// GetMetrics provides a way for the service to return a set of metrics under a network to the ASN controller.
 	// The service can determine these metrics itself. Keys and values are not limited.
