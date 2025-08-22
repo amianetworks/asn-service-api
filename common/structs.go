@@ -15,7 +15,7 @@ type Coordinates struct {
 	Altitude  float32
 }
 
-type Info struct {
+type NodeInfo struct {
 	Interfaces  map[string]*Interface
 	Ipmi        *Ipmi
 	Management  *Management

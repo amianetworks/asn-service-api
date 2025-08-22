@@ -35,8 +35,8 @@ type Node struct {
 	Metadata     string              // metadata used by the service
 	Location     *commonapi.Location // Node physical location
 
-	Managed  bool
-	TopoInfo *commonapi.Info
+	Managed bool
+	Info    *commonapi.NodeInfo
 
 	ServiceInfo *ServiceInfo
 }

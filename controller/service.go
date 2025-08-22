@@ -24,41 +24,68 @@ import (
 // ASNServiceController is the interface to be implemented by a Service Controller.
 // ASN Framework will call these functions to manage the lifetime of the service.
 type ASNServiceController interface {
-	// GetVersion returns the service controller's version.
+	// GetVersion
+	//
+	// This function returns the service controller's version.
+	//
+	// IMPORTANT: This function must be callable BEFORE Init().
 	GetVersion() commonapi.Version
 
-	// Init initializes the Service.
+	// GetCLICommands
+	//
+	// This function returns the Service's CLI commands to integrate them in ASN CLI.
+	//
+	// IMPORTANT: This function must be callable BEFORE Init().
+	GetCLICommands(
+		applyCLIOps func(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error,
+	) []*cobra.Command
+
+	// GetWebHandler
+	//
+	// This function returns a function to mount the web handler got this service controller.
+	//
+	// IMPORTANT: This function must be callable BEFORE Init().
+	GetWebHandler(staticPath string) func(group *gin.RouterGroup) error
+
+	// Init
+	//
+	// This function initializes the Service.
+	//
 	// Before being initialized, Service should have only provided its CLI commands, which
 	// don't need to be runnable until Init() is called.
 	Init(asnc ASNController) error
 
-	// Start starts the service controller with the given config.
+	// Start
+	//
+	// This function starts the service controller with the given config.
+	//
 	// Before being started, the ASN controller will not call HandleMessageFromNode or GetMetrics.
 	Start(config []byte) error
 
-	// HandleMessageFromNode handles up calls from Service Nodes if needed.
+	// HandleMessageFromNode
+	//
+	// This function handles up calls from Service Nodes if needed.
+	//
 	// If this functionality is not needed, a service's implementation may simply
 	// ignore the message and return an error.
 	HandleMessageFromNode(nodeID, messageType, message string) error
 
-	// GetMetrics provides a way for the service to return a set of metrics under a network to the ASN controller.
+	// GetMetrics
+	//
+	// This function provides a way for the service to return a set of metrics under a network to the ASN controller.
+	//
 	// The service can determine these metrics itself. Keys and values are not limited.
 	// However, keep in mind that these metrics are for stat display purposes, so please design accordingly.
 	// The ASN controller does not parse the metrics. It returns the metrics directly to the front-end.
 	GetMetrics(networkID string) (map[string]string, error)
 
-	// GetCLICommands returns the Service's CLI commands to integrate them in ASN CLI.
-	// This function must be callable BEFORE Init().
-	GetCLICommands(
-		applyCLIOps func(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error,
-	) []*cobra.Command
-
-	// GetWebHandler returns a function to mount the web handler got this service controller.
-	GetWebHandler(staticPath string) func(group *gin.RouterGroup) error
-
-	// Stop stops the service controller.
+	// Stop
+	//
+	// This function stops the service controller.
 	Stop() error
 
-	// Finish the service, then it could be unloaded.
+	// Finish
+	//
+	// This function finishes the service, then it could be unloaded.
 	Finish()
 }
