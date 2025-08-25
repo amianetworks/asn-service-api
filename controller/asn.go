@@ -10,6 +10,7 @@ import (
 
 // ASNController
 //
+// Provided resource and functions:
 // 1. Initialization and Resource Allocation
 // 2. Service Management
 // 3. Networks
@@ -21,181 +22,134 @@ type ASNController interface {
 		Initialization and Resource Allocation
 	*/
 
-	// InitLogger
+	// InitLogger returns the logger for a service.
 	//
-	// This function returns the logger for a service.
 	// ASN Framework manages loggers for all services, and the default log files are <servicename>-*.log.
-	//
-	// Only one logger is allocated if called multiple times.
+	// SHOULD ONLY call once, subsequent calls will get an error.
 	InitLogger() (*log.Logger, error)
 
-	// InitDocDB
+	// InitDocDB returns a doc DB handle.
 	//
-	// ASN Controller will return a doc DB handle.
 	// The DB is connected and ready for use through the DocDBHandler upon return.
-	//
-	// A Service may call InitDocDB() multiple time forDBs for different uses.
+	// TODO: A service may call InitDocDB() multiple times for different DBs/uses.
 	InitDocDB() (commonapi.DocDBHandler, error)
 
-	// InitTSDB
+	// InitTSDB returns a connected time-series database handle.
 	//
-	// ASN Controller will return a doc DB handle.
-	// The DB is connected and ready for use through the TSDBHandler upon return.
-	//
-	// A Service may call InitTSDB() multiple time forDBs for different uses.
+	// A service may call InitTSDB() multiple times for different DBs/uses.
+	// TODO:
 	InitTSDB() (commonapi.TSDBHandler, error)
 
-	// InitLocker
+	// InitLocker returns a distributed locker for the service.
 	//
-	// This function returns the locker for a service.
+	// TODO: REVIEW AND CONFIRM BEFORE DELELTION.
+	// SHOULD ONLY call once, subsequent calls will get an error.
 	InitLocker() (Lock, error)
 
-	// GetIAM
-	//
-	// This function returns the IAM instance for a service to do user and user group management.
+	// GetIAM returns the IAM instance for user and group management.
 	GetIAM(forceMfa bool) (iam.Instance, error)
+
 
 	/*
 		Service Management
 	*/
 
-	// AddServiceToNode
-	//
-	// This function adds a .so file to an existing node, and inits this service on that node.
-	//
-	// NOTE: Load service.so for a service node
+	// AddServiceToNode loads the service .so into an existing node and initializes it.
+	// TODO: CONFIRM THIS THEN DELETE ME.
 	AddServiceToNode(nodeID string) error
 
-	// DeleteServiceFromNode
-	//
-	// This function removes this service from an existing node.
-	//
-	// NOTE: Unload service.so for a service node
+	// DeleteServiceFromNode unloads the service .so from an existing node.
 	DeleteServiceFromNode(nodeID string) error
 
-	// StartService
-	//
-	// This function starts service on specified Service Nodes.
+	// StartService starts the service on the specified Service Nodes.
 	StartService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
-	// StopService
-	//
-	// This function stops service on specified Service Nodes.
+	// StopService stops the service on the specified Service Nodes.
 	StopService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
-	// ResetService
-	//
-	// This function resets service on specified Service Nodes.
+	// ResetService resets the service on the specified Service Nodes.
 	ResetService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
-	// SendServiceOps
+	// SendServiceOps sends an op command to service nodes.
 	//
-	// This function sends CONFIG cmd to the service node.
-	//
-	// The configCmd is a pre-defined struct. Both service.controller and service.sn have the same struct,
-	// so they can easily use JSON.Marshall() and JSON.Unmarshall() to convert the struct between []byte and the struct.
+	// The op payload is defined by the service. Both service.controller and service.sn
+	// should share the same struct so they can use json.Marshal/json.Unmarshal to convert
+	// between []byte and the struct.
 	SendServiceOps(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error
 
 	/*
 		Networks
 	*/
 
-	// GetNetworks
-	//
-	// This function returns all networks, their info and subnetworks in the topo.
+
+	// GetNetworks returns all networks, their info, and subnetworks in the topology.
 	GetNetworks() ([]*Network, error)
 
 	/*
 		Nodes
 	*/
-
-	// CreateNode
+	// CreateNode creates a node under a given network.
 	//
-	// This function creates a node under a given network.
-	//
-	// Note that this is only supported when ASN does not strictly verify the network topology.
-	// For now, a certificate is returned for the node to register to ASN Controller.
+	// TODO: CONFIRM THE DESIGN.
+	// Note: Supported only when ASN does not strictly verify the network topology.
+	// Returns a certificate string the node can use to register to the ASN Controller.
 	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, metadata string) (string, error)
 
-	// UpdateNodeMetadata
-	//
-	// This function allows for a service to update its node's metadata.
-	UpdateNodeMetadata(nodeID, meta string) error
-
-	// SetConfigOfNode
-	//
-	// This function saves the cluster setting for a node.
-	SetConfigOfNode(nodeID string, config []byte) error
-
-	// GetNodeByID
-	//
-	// This function returns a node's info with the given ID.
+	// GetNodeByID returns a node's info by ID, that includes Metadata set by the service.
 	GetNodeByID(nodeID string) (*Node, error)
 
-	// GetNodesOfNetwork
+	// UpdateNodeMetadata updates a service-specific metadata for the Node.
 	//
-	// This function returns all nodes of a network, and its internal and external links.
-	//
-	// filterUnavailable will just return the service nodes that have the service if true
-	//
-	// Links may contain two different types:
-	//   - Internal links connect the nodes within the same network, and it is included in the returned nodes array.
-	//     So, only IDs are returned in this case.
-	//   - External links connect nodes in this network with nodes outside of this network.
-	//     So, the "To" node is not included in the returned nodes array, but in the "NodeExternalLink" structure.
-	GetNodesOfNetwork(networkID string, filterUnavailable bool) (nodes []*Node, links []*Link, err error)
+	// The framework stores the Metadata for services and can be retrieved by GetNodebyID.
+	UpdateNodeMetadata(nodeID, metadata string) error
 
-	// SubscribeNodeStateChanges
+	// SetConfigOfNode saves the service config for a node.
 	//
-	// This function returns a channel for a service to subscribe to all nodes' state changes.
+	// config is expected to contain YAML (UTF-8).
+	SetConfigOfNode(nodeID string, config []byte) error
+
+	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
 	//
-	// By listening to this channel, the service will first receive all init states of the nodes,
-	// then start to receive messages when the state of a node changes.
+	// If withService is true, only nodes currently with this service are returned.
 	//
-	// CAUTION: This function should only be called once. Multiple calling towards this function will return an error.
+	// Links may contain two types:
+	// - Internal links connect nodes within the same network; referenced nodes are included in the returned nodes slice.
+	// - External links connect in-network nodes to external "To" nodes via NodeExternalLink.
+	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
+
+	// SubscribeNodeStateChanges returns a receive-only channel for node state changes.
+	//
+	// Upon subscription, the channel first yields all initial states, then subsequent state changes.
+	// SHOULD ONLY be called once. Subsequent calls will get an error.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	/*
 		Node Group
 	*/
 
-	// CreateNodeGroup
-	//
-	// This function creates a node group for this service.
+	// CreateNodeGroup creates a node group for *this* service.
 	CreateNodeGroup(networkID, name, description, metadata string) error
 
-	// ListNodeGroups
-	//
-	// This function returns all node groups under this service.
+	// ListNodeGroups returns all node groups for *this* service.
 	ListNodeGroups(networkID string) ([]*NodeGroup, error)
 
-	// GetNodeGroupByID
-	//
-	// This function returns a node group's info with the given ID.
+	// GetNodeGroupByID returns a node group's info by ID, that includes service metadata.
 	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
 
-	// DeleteNodeGroup
-	//
-	// This function removes a node group under this service.
-	DeleteNodeGroup(id string) error
-
-	// SetConfigOfNodeGroup
-	//
-	// This function saves the cluster setting for a node group.
-	SetConfigOfNodeGroup(nodeGroupID string, config []byte) error
-
-	// UpdateNodeGroupMetadata
-	//
-	// This function allows for a service to update its node group's metadata.
+	// UpdateNodeGroupMetadata updates a node group's metadata used by *this* service.
 	UpdateNodeGroupMetadata(nodeGroupID, meta string) error
 
-	// AddNodesToNodeGroup
+	// DeleteNodeGroup removes a node group for *this* service.
+	DeleteNodeGroup(nodeGroupID string) error
+
+	// SetConfigOfNodeGroup saves the service config for a node group.
 	//
-	// This function adds the specified nodes to the provided node group identified by its ID.
+	// config format is private to the service.
+	SetConfigOfNodeGroup(nodeGroupID string, config string) error
+
+	// AddNodesToNodeGroup adds the specified nodes to the node group identified by ID.
 	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error
 
-	// RemoveNodeFromNodeGroup
-	//
-	// This function removes the specified nodes from the provided node group identified by its ID.
+	// RemoveNodeFromNodeGroup removes the specified nodes from the node group identified by ID.
 	RemoveNodeFromNodeGroup(nodeGroupID string, nodeIDs []string) error
-}
+}	

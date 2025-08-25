@@ -3,7 +3,8 @@
 package capi
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
+	"net/http"
 	"github.com/spf13/cobra"
 
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
@@ -12,80 +13,67 @@ import (
 // ASN Service Controller API
 //
 // ASN is a distributed framework for clustered services.
-// An ASN Controller is the centralized control plane, which manages ASN Service Node(s).
+// An ASN Controller is the centralized plane of management and control for ASN Service Node(s).
+// A Service Controller implements the following interfaces to be loaded and started.
 //
-// An distributed ASN Service is managed by the ASN framework and controlled by A Service Controller.
-// A Service Controller needs to implement the following interfaces to be loaded and started.
-//
-// The ASN framework uses Service Controller as a general purpose term.
-// A service may use "manager", "master", or "controller" based on its implemented role.
-// For example, SWAN Manager is indeed implemented as a Server Controller for the Service "SWAN".
+// The ASN framework uses “Service Controller” as a general term.
+// A service may use “manager”, “master”, or “controller” based on its implemented role(s).
 
-// ASNServiceController is the interface to be implemented by a Service Controller.
-// ASN Framework will call these functions to manage the lifetime of the service.
-type ASNServiceController interface {
-	// GetVersion
-	//
-	// This function returns the service controller's version.
-	//
-	// IMPORTANT: This function must be callable BEFORE Init().
-	GetVersion() commonapi.Version
+// StaticResource groups pre-init metadata and hooks that must be available before Init():
+// - Version reporting
+// - CLI command registration
+// - Web handler mounting
+type StaticResource interface {
+	// Version returns the service controller's version.
+	// Safe to call before Init().
+	Version() commonapi.Version
 
-	// GetCLICommands
-	//
-	// This function returns the Service's CLI commands to integrate them in ASN CLI.
-	//
-	// IMPORTANT: This function must be callable BEFORE Init().
-	GetCLICommands(
+	// CLICommands returns the service's cobra commands to integrate into the ASN CLI.
+	// Safe to call before Init().
+	CLICommands(
 		applyCLIOps func(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error,
 	) []*cobra.Command
 
-	// GetWebHandler
-	//
-	// This function returns a function to mount the web handler got this service controller.
-	//
-	// IMPORTANT: This function must be callable BEFORE Init().
-	GetWebHandler(staticPath string) func(group *gin.RouterGroup) error
+	// WebHandler returns an http.Handler for this service controller.
+	// Safe to call before Init().
+	// Framework is responsible for mounting the returned handler under the appropriate route/prefix.
+	// Implementations may internally use Gin/Chi/etc. but must expose a standard http.Handler.
+	WebHandler(staticPath string) (http.Handler, error)
+}
 
-	// Init
+// ASNServiceController is the interface to be implemented by a Service Controller.
+// The ASN framework calls these functions to manage the service's lifetime and behaviors.
+type ASNServiceController interface {
+	// StaticResource returns the pre-init resources (version, CLI, and web).
+	// Must be callable before Init().
+	StaticResource() StaticResource
+
+	// Init initializes the service.
 	//
-	// This function initializes the Service.
-	//
-	// Before being initialized, Service should have only provided its CLI commands, which
-	// don't need to be runnable until Init() is called.
+	// After Init, CLI commands should be runnable.
 	Init(asnc ASNController) error
 
-	// Start
+	// Start starts the service controller with the given configuration.
 	//
-	// This function starts the service controller with the given config.
-	//
-	// Before being started, the ASN controller will not call HandleMessageFromNode or GetMetrics.
-	Start(config []byte) error
+	// cfg format is marshall/unmarshal by the service, so its format doesn't matter.
+	// Must return quickly (non-blocking); long-running work should run in background goroutines.
+	// It may be called multiple times, the configuration from the last call must be effective by the end.
+	Start(cfg string) error
 
-	// HandleMessageFromNode
-	//
-	// This function handles up calls from Service Nodes if needed.
-	//
-	// If this functionality is not needed, a service's implementation may simply
-	// ignore the message and return an error.
-	HandleMessageFromNode(nodeID, messageType, message string) error
+	// HandleMessageFromNode handles up-calls from service nodes if needed.
+	HandleMessageFromNode(nodeID string, messageType string, payload string) error
+	//DELETE ME AFTER DISCUSSION. HandleMessageFromNode(nodeID, messageType, message []byte) error
 
-	// GetMetrics
-	//
-	// This function provides a way for the service to return a set of metrics under a network to the ASN controller.
-	//
-	// The service can determine these metrics itself. Keys and values are not limited.
-	// However, keep in mind that these metrics are for stat display purposes, so please design accordingly.
-	// The ASN controller does not parse the metrics. It returns the metrics directly to the front-end.
+	// GetMetrics returns display-only metrics. Values must be JSON-marshalable.
 	GetMetrics(networkID string) (map[string]string, error)
 
-	// Stop
+	// Stop gracefully stops the service controller.
 	//
-	// This function stops the service controller.
+	// Should be idempotent and return promptly.
 	Stop() error
 
-	// Finish
+	// Finish finalizes the service so it can be unloaded.
 	//
-	// This function finishes the service, then it could be unloaded.
+	// After Finish, the controller should not be reused.
 	Finish()
 }
