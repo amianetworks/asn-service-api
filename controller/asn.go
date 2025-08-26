@@ -31,13 +31,12 @@ type ASNController interface {
 	// InitDocDB returns a doc DB handle.
 	//
 	// The DB is connected and ready for use through the DocDBHandler upon return.
-	// SHOULD ONLY call once. Further calls will get an error.
+	// SHOULD ONLY call once for each name. Further calls will get an error.
 	InitDocDB() (commonapi.DocDBHandler, error)
 
 	// InitTSDB returns a connected time-series database handle.
 	//
-	// A service may call InitTSDB() multiple times for different DBs/uses.
-	// SHOULD ONLY call once. Further calls will get an error.
+	// SHOULD ONLY call once for each name. Further calls will get an error.
 	InitTSDB() (commonapi.TSDBHandler, error)
 
 	// InitLocker returns a distributed locker for the service.

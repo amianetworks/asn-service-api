@@ -30,8 +30,7 @@ type ASNServiceNode interface {
 	// ASN Controller will return a doc DB handle.
 	// The DB is connected and ready for use through the DocDBHandler upon return.
 	//
-	// A Service may call InitDocDB() multiple time forDBs for different uses.
-	// SHOULD ONLY call once. Further calls will get an error.
+	// SHOULD ONLY call once for each name. Further calls will get an error.
 	InitDocDB() (commonapi.DocDBHandler, error)
 
 	// InitTSDB
@@ -39,8 +38,7 @@ type ASNServiceNode interface {
 	// ASN Controller will return a doc DB handle.
 	// The DB is connected and ready for use through the TSDBHandler upon return.
 	//
-	// A Service may call InitTSDB() multiple time forDBs for different uses.
-	// SHOULD ONLY call once. Further calls will get an error.
+	// SHOULD ONLY call once for each name. Further calls will get an error.
 	InitTSDB() (commonapi.TSDBHandler, error)
 
 	// Placeholder for Locker, in case it's necessary.
