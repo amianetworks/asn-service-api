@@ -66,7 +66,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
 	// 		 	if it cannot be done within 10 secs, the service node will assign the state MALFUNCTIONAL to the service
-	ApplyServiceOps(opCmd, opParams string)
+	ApplyServiceOps(opCmd, opParams string) error
 
 	// Stop
 	//
