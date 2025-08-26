@@ -128,7 +128,7 @@ type ASNController interface {
 	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
 
 	// UpdateNodeGroupMetadata updates a node group's metadata used by *this* service.
-	UpdateNodeGroupMetadata(nodeGroupID, meta string) error
+	UpdateNodeGroupMetadata(nodeGroupID, metadata string) error
 
 	// DeleteNodeGroup removes a node group for *this* service.
 	DeleteNodeGroup(nodeGroupID string) error
@@ -141,6 +141,6 @@ type ASNController interface {
 	// AddNodesToNodeGroup adds the specified nodes to the node group identified by ID.
 	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error
 
-	// RemoveNodeFromNodeGroup removes the specified nodes from the node group identified by ID.
-	RemoveNodeFromNodeGroup(nodeGroupID string, nodeIDs []string) error
+	// RemoveNodesFromNodeGroup removes the specified nodes from the node group identified by ID.
+	RemoveNodesFromNodeGroup(nodeGroupID string, nodeIDs []string) error
 }

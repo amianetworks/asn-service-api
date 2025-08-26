@@ -51,14 +51,14 @@ type ASNServiceController interface {
 	// Init initializes the service.
 	//
 	// After Init, CLI commands should be runnable.
-	Init(asnc ASNController) error
+	Init(asnController ASNController) error
 
 	// Start starts the service controller with the given configuration.
 	//
 	// Config format is marshall/unmarshal by the service, so its format doesn't matter.
 	// Must return quickly (non-blocking); long-running work should run in background goroutines.
 	// It may be called multiple times, the configuration from the last call must be effective by the end.
-	Start(cfg string) error
+	Start(config string) error
 
 	// HandleMessageFromNode handles up-calls from service nodes if needed.
 	HandleMessageFromNode(nodeID, messageType, payload string) error
