@@ -39,7 +39,7 @@ type ASNService interface {
 	// Parameters:
 	//
 	// 1. Config: the configuration of the service. Service MUST update this configuration to the local file.
-	// When DumpConfiguration called, the service needs to return the current configuration to framework,
+	// When DumpConfiguration called, the service needs to return the current configuration to the framework,
 	//
 	// 2. The return values indicate service state:
 	// 	 - If err is nil, the service node will assign the state CONFIGURED to the service,
@@ -56,29 +56,29 @@ type ASNService interface {
 	// This function applies the service operations to the service.
 	//
 	// Service operations will not change the service status (enabled/disabled),
-	// but will do some runtime operations such as: insert/delete/getXXX/setXXX
+	// but will do some runtime operations such as insert/delete/getXXX/setXXX
 	//
-	// Apply the configuration to the service, this method will be called under a go routine,
-	// the return value indicate service state:
+	// Apply the configuration to the service, this method will be called under a go routine.
+	// The return value to channel indicates the service's state:
 	//   - if error is nil, the service node will remain the previous state (CONFIGURED/INITIALIZED)
-	//   - if error is NOT nil, the service node will try to init the service and re-apply the configuration for 3 times,
-	//     after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
+	//   - if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
+	//     and send the error to the service controller via state change.
 	//
 	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
-	// 		 	if it cannot be done within 10 secs, service node will assign the state MALFUNCTIONAL to the service
-	ApplyServiceOps(opCmd, opParams string) error
+	// 		 	if it cannot be done within 10 secs, the service node will assign the state MALFUNCTIONAL to the service
+	ApplyServiceOps(opCmd, opParams string)
 
 	// Stop
 	//
 	// This function stops the service with the configuration.
 	//
-	// The return value to channel indicate service state:
+	// The return value to channel indicates the service's state:
 	// 	 - If error is nil, the service node will assign the state INITIALIZED to the service
-	// 	 - If error is NOT nil, the service node will try to init the service and reapply the configuration for 3 times,
-	// 	   after all retry if it is still having error, will assign the state MALFUNCTIONAL to the service
+	//   - if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
+	//     and send the error to the service controller via state change.
 	//
 	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
-	// if it cannot be done within 10 secs, service node will assign the state MALFUNCTIONAL to the service
+	// if it cannot be done within 10 secs, the service node will assign the state MALFUNCTIONAL to the service
 	Stop() error
 
 	// Finish
