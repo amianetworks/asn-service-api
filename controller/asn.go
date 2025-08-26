@@ -25,37 +25,36 @@ type ASNController interface {
 	// InitLogger returns the logger for a service.
 	//
 	// ASN Framework manages loggers for all services, and the default log files are <servicename>-*.log.
-	// SHOULD ONLY call once, subsequent calls will get an error.
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitLogger() (*log.Logger, error)
 
 	// InitDocDB returns a doc DB handle.
 	//
 	// The DB is connected and ready for use through the DocDBHandler upon return.
-	// TODO: A service may call InitDocDB() multiple times for different DBs/uses.
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitDocDB() (commonapi.DocDBHandler, error)
 
 	// InitTSDB returns a connected time-series database handle.
 	//
 	// A service may call InitTSDB() multiple times for different DBs/uses.
-	// TODO:
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitTSDB() (commonapi.TSDBHandler, error)
 
 	// InitLocker returns a distributed locker for the service.
 	//
-	// TODO: REVIEW AND CONFIRM BEFORE DELELTION.
-	// SHOULD ONLY call once, subsequent calls will get an error.
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitLocker() (Lock, error)
 
 	// GetIAM returns the IAM instance for user and group management.
+	//
+	// SHOULD ONLY call once. Further calls will get an error.
 	GetIAM(forceMfa bool) (iam.Instance, error)
-
 
 	/*
 		Service Management
 	*/
 
 	// AddServiceToNode loads the service .so into an existing node and initializes it.
-	// TODO: CONFIRM THIS THEN DELETE ME.
 	AddServiceToNode(nodeID string) error
 
 	// DeleteServiceFromNode unloads the service .so from an existing node.
@@ -72,15 +71,14 @@ type ASNController interface {
 
 	// SendServiceOps sends an op command to service nodes.
 	//
-	// The op payload is defined by the service. Both service.controller and service.sn
-	// should share the same struct so they can use json.Marshal/json.Unmarshal to convert
-	// between []byte and the struct.
+	// The service defines the op payload. Both service.controller and service.sn
+	// should share the same structure, so they can use json.Marshal/json.Unmarshal to convert
+	// between string and the struct.
 	SendServiceOps(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error
 
 	/*
 		Networks
 	*/
-
 
 	// GetNetworks returns all networks, their info, and subnetworks in the topology.
 	GetNetworks() ([]*Network, error)
@@ -88,25 +86,19 @@ type ASNController interface {
 	/*
 		Nodes
 	*/
-	// CreateNode creates a node under a given network.
-	//
-	// TODO: CONFIRM THE DESIGN.
-	// Note: Supported only when ASN does not strictly verify the network topology.
-	// Returns a certificate string the node can use to register to the ASN Controller.
-	CreateNode(networkID, nodeName string, nodeType commonapi.NodeType, metadata string) (string, error)
 
-	// GetNodeByID returns a node's info by ID, that includes Metadata set by the service.
+	// GetNodeByID returns a node's info by ID that includes Metadata set by the service.
 	GetNodeByID(nodeID string) (*Node, error)
 
 	// UpdateNodeMetadata updates a service-specific metadata for the Node.
 	//
-	// The framework stores the Metadata for services and can be retrieved by GetNodebyID.
+	// The framework stores the Metadata for services and can be retrieved by GetNodeByID.
 	UpdateNodeMetadata(nodeID, metadata string) error
 
 	// SetConfigOfNode saves the service config for a node.
 	//
 	// config is expected to contain YAML (UTF-8).
-	SetConfigOfNode(nodeID string, config []byte) error
+	SetConfigOfNode(nodeID, config string) error
 
 	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
 	//
@@ -119,8 +111,8 @@ type ASNController interface {
 
 	// SubscribeNodeStateChanges returns a receive-only channel for node state changes.
 	//
-	// Upon subscription, the channel first yields all initial states, then subsequent state changes.
-	// SHOULD ONLY be called once. Subsequent calls will get an error.
+	// Upon subscription, the channel first yields all initial states, then the following state changes.
+	// SHOULD ONLY be called once. Further calls will get an error.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	/*
@@ -133,7 +125,7 @@ type ASNController interface {
 	// ListNodeGroups returns all node groups for *this* service.
 	ListNodeGroups(networkID string) ([]*NodeGroup, error)
 
-	// GetNodeGroupByID returns a node group's info by ID, that includes service metadata.
+	// GetNodeGroupByID returns a node group's info by ID that includes service metadata.
 	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
 
 	// UpdateNodeGroupMetadata updates a node group's metadata used by *this* service.
@@ -145,11 +137,11 @@ type ASNController interface {
 	// SetConfigOfNodeGroup saves the service config for a node group.
 	//
 	// config format is private to the service.
-	SetConfigOfNodeGroup(nodeGroupID string, config string) error
+	SetConfigOfNodeGroup(nodeGroupID, config string) error
 
 	// AddNodesToNodeGroup adds the specified nodes to the node group identified by ID.
 	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error
 
 	// RemoveNodeFromNodeGroup removes the specified nodes from the node group identified by ID.
 	RemoveNodeFromNodeGroup(nodeGroupID string, nodeIDs []string) error
-}	
+}

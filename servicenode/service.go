@@ -6,15 +6,20 @@ import (
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
 )
 
+// StaticResource groups pre-init metadata and hooks that must be available before Init():
+// - Version reporting
+type StaticResource interface {
+	// Version returns the service's version.
+	// Safe to call before Init().
+	Version() commonapi.Version
+}
+
 // ASNService interface provides the service's API for the ASN Service Node usage,
 // will be implemented by service and used by ASN service node.
 type ASNService interface {
-	// GetVersion
-	//
-	// This function returns the service's version.
-	//
-	// IMPORTANT: This function must be callable BEFORE Init().
-	GetVersion() commonapi.Version
+	// StaticResource returns the pre-init resources (version).
+	// Must be callable before Init().
+	StaticResource() StaticResource
 
 	// Init
 	//
@@ -44,7 +49,7 @@ type ASNService interface {
 	//
 	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
 	// if it cannot be done within 10 secs, the service node will assign state MALFUNCTIONAL to the service.
-	Start(config []byte) (runtimeErrChan <-chan error, err error)
+	Start(config string) (runtimeErrChan <-chan error, err error)
 
 	// ApplyServiceOps
 	//

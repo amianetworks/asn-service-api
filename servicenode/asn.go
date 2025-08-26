@@ -14,7 +14,7 @@ import (
 // 3. SendMessageToController
 type ASNServiceNode interface {
 	/*
-		Initialization
+		Initialization and Resource Allocation
 	*/
 
 	// InitLogger
@@ -22,6 +22,7 @@ type ASNServiceNode interface {
 	// This function returns a logger dedicated to the service.
 	//
 	// ASN Framework manages logging for all services, and the default log files are <servicename>-*.log
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitLogger() (*log.Logger, error)
 
 	// InitDocDB
@@ -30,6 +31,7 @@ type ASNServiceNode interface {
 	// The DB is connected and ready for use through the DocDBHandler upon return.
 	//
 	// A Service may call InitDocDB() multiple time forDBs for different uses.
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitDocDB() (commonapi.DocDBHandler, error)
 
 	// InitTSDB
@@ -38,6 +40,7 @@ type ASNServiceNode interface {
 	// The DB is connected and ready for use through the TSDBHandler upon return.
 	//
 	// A Service may call InitTSDB() multiple time forDBs for different uses.
+	// SHOULD ONLY call once. Further calls will get an error.
 	InitTSDB() (commonapi.TSDBHandler, error)
 
 	// Placeholder for Locker, in case it's necessary.
@@ -65,5 +68,5 @@ type ASNServiceNode interface {
 	//
 	// Service Node may send a formated message to its controller, which must have implemented
 	// HandleMessageFromNode() to handle the received message.
-	SendMessageToController(messageType, message string) error
+	SendMessageToController(messageType, payload string) error
 }

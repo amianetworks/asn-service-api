@@ -43,7 +43,7 @@ type Node struct {
 
 type ServiceInfo struct {
 	State        commonapi.ServiceState
-	UsedConfig   []byte // exists if Config Source is Node, otherwise is empty, can get the config from a node group
+	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config from a node group
 	ConfigSource commonapi.ServiceConfigSource
 }
 
@@ -83,5 +83,5 @@ type NodeGroup struct {
 	Description string
 	Metadata    string // metadata used by the service
 	Nodes       []string
-	Config      []byte
+	Config      string
 }

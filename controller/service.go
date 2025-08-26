@@ -3,8 +3,8 @@
 package capi
 
 import (
-	"context"
 	"net/http"
+
 	"github.com/spf13/cobra"
 
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
@@ -17,7 +17,7 @@ import (
 // A Service Controller implements the following interfaces to be loaded and started.
 //
 // The ASN framework uses “Service Controller” as a general term.
-// A service may use “manager”, “master”, or “controller” based on its implemented role(s).
+// A service may use "manager", "master", or "controller" based on its implemented role(s).
 
 // StaticResource groups pre-init metadata and hooks that must be available before Init():
 // - Version reporting
@@ -55,16 +55,15 @@ type ASNServiceController interface {
 
 	// Start starts the service controller with the given configuration.
 	//
-	// cfg format is marshall/unmarshal by the service, so its format doesn't matter.
+	// Config format is marshall/unmarshal by the service, so its format doesn't matter.
 	// Must return quickly (non-blocking); long-running work should run in background goroutines.
 	// It may be called multiple times, the configuration from the last call must be effective by the end.
 	Start(cfg string) error
 
 	// HandleMessageFromNode handles up-calls from service nodes if needed.
-	HandleMessageFromNode(nodeID string, messageType string, payload string) error
-	//DELETE ME AFTER DISCUSSION. HandleMessageFromNode(nodeID, messageType, message []byte) error
+	HandleMessageFromNode(nodeID, messageType, payload string) error
 
-	// GetMetrics returns display-only metrics. Values must be JSON-marshalable.
+	// GetMetrics returns display-only metrics. Values must be marshal-able as JSON.
 	GetMetrics(networkID string) (map[string]string, error)
 
 	// Stop gracefully stops the service controller.
