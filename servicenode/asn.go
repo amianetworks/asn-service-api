@@ -31,7 +31,7 @@ type ASNServiceNode interface {
 	// The DB is connected and ready for use through the DocDBHandler upon return.
 	//
 	// SHOULD ONLY call once for each name. Further calls will get an error.
-	InitDocDB() (commonapi.DocDBHandler, error)
+	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
 	// InitTSDB
 	//
@@ -39,7 +39,7 @@ type ASNServiceNode interface {
 	// The DB is connected and ready for use through the TSDBHandler upon return.
 	//
 	// SHOULD ONLY call once for each name. Further calls will get an error.
-	InitTSDB() (commonapi.TSDBHandler, error)
+	InitTSDB(name string) (commonapi.TSDBHandler, error)
 
 	// Placeholder for Locker, in case it's necessary.
 	// Placeholder for IAM, in case it's necessary.
