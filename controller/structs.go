@@ -58,6 +58,16 @@ type NodeStateChange struct {
 	ServiceError error
 }
 
+type OpsResponse struct {
+	Timestamp time.Time
+	NodeID    string
+
+	FrameworkError FrameworkErr
+
+	ServiceResponse string
+	ServiceError    error
+}
+
 type FrameworkErr error
 
 var FrameworkErrServiceTimeout FrameworkErr = errors.New("service timed out")

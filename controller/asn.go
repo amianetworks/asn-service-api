@@ -73,7 +73,22 @@ type ASNController interface {
 	// The service defines the op payload. Both service.controller and service.sn
 	// should share the same structure, so they can use json.Marshal/json.Unmarshal to convert
 	// between string and the struct.
-	SendServiceOps(serviceScope commonapi.ServiceScope, serviceScopeList []string, opCmd, opParams string) error
+	//
+	// If an error is returned directly, it indicates that the input serviceScope or serviceScopeList is wrong.
+	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
+	//
+	// The service controller can listen for responses from resChan.
+	// It will return the responses from all the nodes called, followed by a close() call to the channel.
+	// There will be a timeout context, so the service controller will eventually get responses from each node called.
+	//
+	// Example:
+	//   for res := range resChan {
+	//     // do something...
+	//   }
+	SendServiceOps(
+		serviceScope commonapi.ServiceScope, serviceScopeList []string,
+		opCmd, opParams string,
+	) (resChan <-chan *OpsResponse, err error)
 
 	/*
 		Networks

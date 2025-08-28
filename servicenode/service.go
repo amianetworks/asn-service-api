@@ -44,41 +44,46 @@ type ASNService interface {
 	// 2. The return values indicate service state:
 	// 	 - If err is nil, the service node will assign the state CONFIGURED to the service,
 	//     send the response to the controller, and keep listening to the runtimeErrChan channel.
-	// 	 - If err is NOT nil, the service node will try to init the service and reapply the config for 3 times.
-	// 	   After all retries if it is still having error, will assign the state MALFUNCTIONAL to the service
+	// 	 - If err is NOT nil, the service node will assign the state MALFUNCTIONAL to the service.
 	//
-	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
-	// if it cannot be done within 10 secs, the service node will assign state MALFUNCTIONAL to the service.
+	// 3. A runtime error channel should be returned.
+	// All the errors passed by this channel will result in the service to be assigned the state MALFUNCTIONAL.
+	//
+	// Caution: the service node will have a timeout context (10 secs by default) to process the command,
+	// if it cannot be done within the context, the service node will assign state MALFUNCTIONAL to the service.
 	Start(config string) (runtimeErrChan <-chan error, err error)
 
 	// ApplyServiceOps
 	//
+	// IMPORTANT: This function is asynchronous, so multiple operations may be sent to the service simultaneously.
+	//
 	// This function applies the service operations to the service.
 	//
-	// Service operations will not change the service status (enabled/disabled),
-	// but will do some runtime operations such as insert/delete/getXXX/setXXX
+	//
+	// Service operations will not change the service's state,
+	// but will do some runtime operations such as insert/delete/getXXX/setXXX.
 	//
 	// Apply the configuration to the service, this method will be called under a go routine.
-	// The return value to channel indicates the service's state:
-	//   - if error is nil, the service node will remain the previous state (CONFIGURED/INITIALIZED)
-	//   - if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
-	//     and send the error to the service controller via state change.
+	// The return value indicates the service's state:
+	//   - Response and error will be sent to whoever called ApplyServiceOps.
+	//   - The service should self-contain this returned error. It will not trigger state changes.
+	//     For fatal errors that require state changes, return it through runtimeErrChan from Start.
 	//
-	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
-	// 		 	if it cannot be done within 10 secs, the service node will assign the state MALFUNCTIONAL to the service
-	ApplyServiceOps(opCmd, opParams string) error
+	// Caution: the service node will have a timeout context (10 secs by default) to process the command,
+	// if it cannot be done within the context, the service node will assign the state MALFUNCTIONAL to the service
+	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
 
 	// Stop
 	//
 	// This function stops the service with the configuration.
 	//
-	// The return value to channel indicates the service's state:
+	// The return value indicates the service's state:
 	// 	 - If error is nil, the service node will assign the state INITIALIZED to the service
 	//   - if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
 	//     and send the error to the service controller via state change.
 	//
-	// Caution: the service node will have a timeout context (10 secs by default) to process the initialization,
-	// if it cannot be done within 10 secs, the service node will assign the state MALFUNCTIONAL to the service
+	// Caution: the service node will have a timeout context (10 secs by default) to process the command,
+	// if it cannot be done within the context, the service node will assign the state MALFUNCTIONAL to the service
 	Stop() error
 
 	// Finish
