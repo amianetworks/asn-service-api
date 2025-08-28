@@ -40,7 +40,7 @@ type ServiceScope int
 const (
 	ServiceScopeNetwork ServiceScope = 1 + iota
 	ServiceScopeNetworkWithSubnetworks
-	ServiceScopeGroup
+	ServiceScopeNodeGroup
 	ServiceScopeNode
 )
 

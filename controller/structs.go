@@ -3,7 +3,6 @@
 package capi
 
 import (
-	"errors"
 	"time"
 
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
@@ -52,7 +51,7 @@ type NodeStateChange struct {
 	NodeID    string
 
 	NodeState      commonapi.NodeState
-	FrameworkError FrameworkErr
+	FrameworkError commonapi.FrameworkErr
 
 	ServiceState commonapi.ServiceState
 	ServiceError error
@@ -62,16 +61,11 @@ type OpsResponse struct {
 	Timestamp time.Time
 	NodeID    string
 
-	FrameworkError FrameworkErr
+	FrameworkError commonapi.FrameworkErr
 
 	ServiceResponse string
 	ServiceError    error
 }
-
-type FrameworkErr error
-
-var FrameworkErrServiceTimeout FrameworkErr = errors.New("service timed out")
-var FrameworkErrNodeDisconnected FrameworkErr = errors.New("node disconnected")
 
 type Link struct {
 	ID          string // uuid
