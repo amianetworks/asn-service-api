@@ -21,14 +21,10 @@ type ASNService interface {
 	// Must be callable before Init().
 	StaticResource() StaticResource
 
-	// Init
-	//
-	// This function initializes the service
+	// Init initializes the service
 	Init(asnServiceNode ASNServiceNode) error
 
-	// Start
-	//
-	// This function starts the service with the configuration.
+	// Start starts the service with the configuration.
 	//
 	// IMPORTANT: If this service wishes to be auto-started by ASN,
 	// DO NOT rely on startResponse to report to the controller, as it will NOT be returned in all cases.
@@ -37,57 +33,33 @@ type ASNService interface {
 	// However, if auto-start is not needed, then it is safe for startResponse to reach the controller.
 	//
 	// Parameters:
-	//
-	// 1. Config: the configuration of the service. Service MUST update this configuration to the local file.
-	// When DumpConfiguration called, the service needs to return the current configuration to the framework,
-	//
-	// 2. The return values indicate service state:
-	// 	 - If err is nil, the service node will assign the state CONFIGURED to the service,
-	//     send the response to the controller, and keep listening to the runtimeErrChan channel.
-	// 	 - If err is NOT nil, the service node will assign the state MALFUNCTIONAL to the service.
-	//
-	// 3. A runtime error channel should be returned.
-	// All the errors passed by this channel will result in the service to be assigned the state MALFUNCTIONAL.
-	//
-	// Caution: the service node will have a timeout context (10 secs by default) to process the command,
-	// if it cannot be done within the context, the service node will assign state MALFUNCTIONAL to the service.
+	// - Config: Configurations used to start the service.
+	//   The service MUST refresh any stored configurations from last Start().
+	// - runtimeErrChan: The service may report its runtime error anytime so that the framework may handle
+	//   those errors properly. THUS, service must distinguish its service "internal errors" from fatal errors,
+	//   only the latter should be reported to the framework through this channel.
 	Start(config string) (runtimeErrChan <-chan error, err error)
 
-	// ApplyServiceOps
+	// ApplyServiceOps applies the service operations to the service.
 	//
-	// IMPORTANT: This function is asynchronous, so multiple operations may be sent to the service simultaneously.
+	// This function may be simultaneously called for multiple times, so the service MUST protect its internal
+	// resources properly. Service operations will not directly change the service's lifetime state. But running
+	// into a fatal error will eventually lead to a state change.
 	//
-	// This function applies the service operations to the service.
+	// The caller will handle timeout of the call, so the service should return promptly.
 	//
+	// Any returned values will be forwarded to the origibal caller, Service Controller.
+	// Any errors which are not service internally handable should be reported through the runtimeErrChan.
 	//
-	// Service operations will not change the service's state,
-	// but will do some runtime operations such as insert/delete/getXXX/setXXX.
-	//
-	// Apply the configuration to the service, this method will be called under a go routine.
-	// The return value indicates the service's state:
-	//   - Response and error will be sent to whoever called ApplyServiceOps.
-	//   - The service should self-contain this returned error. It will not trigger state changes.
-	//     For fatal errors that require state changes, return it through runtimeErrChan from Start.
-	//
-	// Caution: the service node will have a timeout context (10 secs by default) to process the command,
-	// if it cannot be done within the context, the service node will assign the state MALFUNCTIONAL to the service
+	// PleaseCarefully use the returns to be compitable with the framework design. THANKS!
 	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
 
-	// Stop
+	// Stop stops the service.
 	//
-	// This function stops the service with the configuration.
-	//
-	// The return value indicates the service's state:
-	// 	 - If error is nil, the service node will assign the state INITIALIZED to the service
-	//   - if error is NOT nil, the service node will assign the state MALFUNCTIONAL to the service
-	//     and send the error to the service controller via state change.
-	//
-	// Caution: the service node will have a timeout context (10 secs by default) to process the command,
-	// if it cannot be done within the context, the service node will assign the state MALFUNCTIONAL to the service
+	// Any error returned by Stop() may trigger state change of the service.
+	// Should be idempotent and return promptly.
 	Stop() error
 
-	// Finish
-	//
-	// This function is the last call before the service node's termination. Do the necessary clean up here.
+	// Finish closes the service so it can be unloaded.
 	Finish()
 }

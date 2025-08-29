@@ -17,27 +17,21 @@ type ASNServiceNode interface {
 		Initialization and Resource Allocation
 	*/
 
-	// InitLogger
+	// InitLogger returns a logger dedicated to the service.
 	//
-	// This function returns a logger dedicated to the service.
-	//
-	// ASN Framework manages logging for all services, and the default log files are <servicename>-*.log
+	// ASN Framework manages logging for all services, and the default log files are <servicename>-*.log.
 	// SHOULD ONLY call once. Further calls will get an error.
 	InitLogger() (*log.Logger, error)
 
-	// InitDocDB
+	// InitDocDB returns a doc DB handle.
 	//
-	// ASN Controller will return a doc DB handle.
 	// The DB is connected and ready for use through the DocDBHandler upon return.
-	//
 	// SHOULD ONLY call once for each name. Further calls will get an error.
 	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
-	// InitTSDB
+	// InitTSDB returns a doc DB handle.
 	//
-	// ASN Controller will return a doc DB handle.
 	// The DB is connected and ready for use through the TSDBHandler upon return.
-	//
 	// SHOULD ONLY call once for each name. Further calls will get an error.
 	InitTSDB(name string) (commonapi.TSDBHandler, error)
 
@@ -48,14 +42,10 @@ type ASNServiceNode interface {
 		Node Info
 	*/
 
-	// GetNodeType
-	//
-	// This function returns the service node's type.
+	// GetNodeType returns the service node's type.
 	GetNodeType() commonapi.NodeType
 
-	// GetNodeInfo
-	//
-	// This function returns the service node's info.
+	// GetNodeInfo returns the service node's info.
 	GetNodeInfo() *commonapi.NodeInfo
 
 	/*
@@ -64,7 +54,7 @@ type ASNServiceNode interface {
 
 	// SendMessageToController
 	//
-	// Service Node may send a formated message to its controller, which must have implemented
-	// HandleMessageFromNode() to handle the received message.
+	// Service Node may send a formated message to its controller, which may handle the message by
+	// implementing HandleMessageFromNode(). NO DIRECT RESPONSE to the message should be expected.
 	SendMessageToController(messageType, payload string) error
 }

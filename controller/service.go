@@ -71,8 +71,6 @@ type ASNServiceController interface {
 	// Should be idempotent and return promptly.
 	Stop() error
 
-	// Finish finalizes the service so it can be unloaded.
-	//
-	// After Finish, the controller should not be reused.
+	// Finish closes the service so it can be unloaded.
 	Finish()
 }
