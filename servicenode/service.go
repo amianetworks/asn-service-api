@@ -36,7 +36,7 @@ type ASNService interface {
 	// - Config: Configurations used to start the service.
 	//   The service MUST refresh any stored configurations from last Start().
 	// - runtimeErrChan: The service may report its runtime error anytime so that the framework may handle
-	//   those errors properly. THUS, service must distinguish its service "internal errors" from fatal errors,
+	//   those errors properly. THUS, the service must distinguish its service "internal errors" from fatal errors,
 	//   only the latter should be reported to the framework through this channel.
 	Start(config string) (runtimeErrChan <-chan error, err error)
 
@@ -48,10 +48,10 @@ type ASNService interface {
 	//
 	// The caller will handle timeout of the call, so the service should return promptly.
 	//
-	// Any returned values will be forwarded to the origibal caller, Service Controller.
-	// Any errors which are not service internally handable should be reported through the runtimeErrChan.
+	// Any returned values will be forwarded to the original caller, Service Controller.
+	// Any errors that are not service internally handleable should be reported through the runtimeErrChan.
 	//
-	// PleaseCarefully use the returns to be compitable with the framework design. THANKS!
+	// PleaseCarefully use the returns to be compatible with the framework design. THANKS!
 	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
 
 	// Stop stops the service.
