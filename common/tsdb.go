@@ -52,48 +52,59 @@ type TSDBHandler interface {
 	AddRetentionPolicies(rps []TSRetentionPolicy) error
 
 	DeleteRetentionPolicies(rps []TSRetentionPolicy) error
+
+	AddDataPoint(pt TSPoint, useTimeout bool) error
+
+	AddDataPoints(pt []TSPoint, useTimeout bool) error
 }
 
 type TSPoint interface {
+	// SetMeasurement sets the measurement for the data point.
+	// It is only necessary when doing a concurrent insertion into multiple collections/measurement.
+	SetMeasurement(measurement string)
+
+	// ResetMeasurement resets the data point's measurement.
+	ResetMeasurement()
+
 	// AddTag adds a tag to point, will overwrite the value if set the same key repeatedly.
 	// And now, do not limit the number of Tags
-	AddTag(tagName, tagValue string) error
+	AddTag(tagName, tagValue string)
 
 	// DeleteTag deletes a tag from tags
-	DeleteTag(tagName string) error
+	DeleteTag(tagName string)
 
 	// AddTags adds some tags to a point, will overwrite the value if set the same key repeatedly.
 	// And now, do not limit the number of Tags
-	AddTags(tags map[string]string) error
+	AddTags(tags map[string]string)
 
 	// DeleteTags deletes some tags
-	DeleteTags(tags []string) error
+	DeleteTags(tags []string)
 
 	// AddField adds a field to point, will overwrite the value if set the same key repeatedly.
 	// And now, do not limit the number of Fields
-	AddField(fieldName string, fieldValue interface{}) error
+	AddField(fieldName string, fieldValue interface{})
 
 	// DeleteField deletes a field from fields
-	DeleteField(fieldName string) error
+	DeleteField(fieldName string)
 
 	// AddFields adds a field to point, will overwrite the value if set the same key repeatedly.
 	// And now, do not limit the number of Fields
-	AddFields(fields map[string]interface{}) error
+	AddFields(fields map[string]interface{})
 
 	// DeleteFields deletes some fields
-	DeleteFields(fields []string) error
+	DeleteFields(fields []string)
 
 	// SetTime sets timestamp to point.
-	SetTime(t time.Time) error
+	SetTime(t time.Time)
 
 	// ResetTime resets time to init time
-	ResetTime() error
+	ResetTime()
 
 	// SetRPName sets rp for the point to insert.
-	SetRPName(name string) error
+	SetRPName(name string)
 
 	// ResetRPName resets rp for point
-	ResetRPName() error
+	ResetRPName()
 }
 
 type TSPivotQueryResult []map[string]interface{}
