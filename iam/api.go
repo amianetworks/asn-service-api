@@ -7,18 +7,69 @@ import "time"
 type Instance interface {
 	JWKSGet() (string, error)
 
-	AccountCreate(username, password, email string, phone *Phone, metadata string) error
+	AccountPhoneSend(serviceName, countryCode, number string) (string, error)
+	AccountEmailSend(serviceName, email string) (string, error)
+
+	AccountCreate(
+		username, metadata string,
+		password string,
+		email, emailCode string, skipEmailValidation bool,
+		phone *Phone, phoneCode string, skipPhoneValidation bool,
+		weChatAppID, weChatCode string,
+		appleIDToken string,
+	) (string, error)
 	AccountDelete(username string) error
 	AccountExists(username string) (bool, error)
 	AccountGet(username string) (*Account, error)
 	AccountList() ([]*Account, error)
 	AccountRename(username, newUsername string) error
-	AccountInfoUpdate(username, email string, phone *Phone) error
+	AccountPhoneUpdate(username, phone *Phone, phoneCode string, skipPhoneValidation bool) error
+	AccountEmailUpdate(username, email, emailCode string, skipEmailValidation bool) error
+	AccountWeChatUpdate(username, weChatAppID, weChatCode string) error
+	AccountAppleUpdate(username, appleIDToken string) error
 	AccountMetadataUpdate(username, metadata string) error
 	AccountPasswordUpdate(username, oldPassword, newPassword string) error
 	AccountPasswordReset(username, newPassword string) error
-	AccountRecoveryEmailSend(username string) error
+
+	AccountRecoverByPhone(username, newPassword, code string) error
 	AccountRecoverByEmail(username, newPassword, code string) error
+
+	LoginMethods() (
+		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple bool,
+		err error,
+	)
+	PasswordVerify(username, countryCode, number, email, password string) error
+	LoginWithPassword(
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		username, countryCode, number, email, password string,
+	) (needMfa bool, tokenSet *TokenSet, err error)
+	LoginWithPhone(
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		phone *Phone, code string,
+	) (needMfa bool, tokenSet *TokenSet, err error)
+	LoginWithEmail(
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		email, code string,
+	) (needMfa bool, tokenSet *TokenSet, err error)
+	LoginWithWeChat(
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		appID, code string,
+	) (needMfa bool, tokenSet *TokenSet, err error)
+	LoginWithApple(
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		idToken string,
+	) (needMfa bool, tokenSet *TokenSet, err error)
+	Logout(username, deviceID string) error
+
+	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
+	TokenVerify(accessToken string) (mfaNeeded bool, username, deviceID, userClaims string, err error)
+	TokenRevoke(accessToken string) error
+
+	MFAVerify(username string, code int32) error
+	MFALoginVerify(accessToken string, code int32) (*TokenSet, error)
+	AuthenticatorBindConfirm(username string, code int32) error
+	AuthenticatorBind(username string) (img, issuer, secret string, err error)
+	AuthenticatorUnbind(username string) error
 
 	GroupCreate(groupName, metadata string) error
 	GroupDelete(groupName string) error
@@ -31,19 +82,6 @@ type Instance interface {
 	AccountJoinGroup(groupName string, usernames []string) error
 	AccountLeaveGroup(groupName string, usernames []string) error
 	AccountGroupList(username string) ([]*Group, error)
-
-	Login(username, password, deviceID, userClaims string, durationAccess, durationRefresh time.Duration) (needMfa bool, tokenSet *TokenSet, err error)
-	PasswordVerify(username, password string) error
-	Logout(username, deviceID string) error
-	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
-	TokenVerify(accessToken string) (mfaNeeded bool, username, deviceID, userClaims string, err error)
-	TokenRevoke(accessToken string) error
-
-	MFAVerify(username string, code int32) error
-	MFALoginVerify(accessToken string, code int32) (*TokenSet, error)
-	AuthenticatorBindConfirm(username string, code int32) error
-	AuthenticatorBind(username string) (img, issuer, secret string, err error)
-	AuthenticatorUnbind(username string) error
 
 	AccessCreate(name, scope, operation string, time *TimeControl) error
 	AccessUpdate(name, scope, operation string, time *TimeControl) error
