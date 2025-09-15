@@ -23,7 +23,7 @@ type Instance interface {
 	AccountGet(username string) (*Account, error)
 	AccountList() ([]*Account, error)
 	AccountRename(username, newUsername string) error
-	AccountPhoneUpdate(username, phone *Phone, phoneCode string, skipPhoneValidation bool) error
+	AccountPhoneUpdate(username string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
 	AccountEmailUpdate(username, email, emailCode string, skipEmailValidation bool) error
 	AccountWeChatUpdate(username, weChatAppID, weChatCode string) error
 	AccountAppleUpdate(username, appleIDToken string) error
