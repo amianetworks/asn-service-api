@@ -7,8 +7,8 @@ import "time"
 type Instance interface {
 	JWKSGet() (string, error)
 
-	AccountPhoneSend(serviceName, countryCode, number string) (string, error)
-	AccountEmailSend(serviceName, email string) (string, error)
+	AccountPhoneSend(countryCode, number string) (string, error)
+	AccountEmailSend(email string) (string, error)
 
 	AccountCreate(
 		username, metadata string,

@@ -24,7 +24,7 @@ type Account struct {
 	Phone      Phone
 	MfaEnabled bool
 
-	Metadata map[string]string
+	Metadata string
 }
 
 type Phone struct {
