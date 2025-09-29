@@ -46,7 +46,7 @@ type ASNServiceNode interface {
 	GetNodeType() commonapi.NodeType
 
 	// GetNodeInfo returns the service node's info.
-	GetNodeInfo() *commonapi.NodeInfo
+	GetNodeInfo() *NodeInfo
 
 	/*
 		SendMessageToController

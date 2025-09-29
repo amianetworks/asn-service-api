@@ -4,6 +4,14 @@ package iam
 
 import "time"
 
+type MfaType string
+
+const (
+	MfaTypeTotp  MfaType = "totp"
+	MfaTypeEmail MfaType = "email"
+	MfaTypePhone MfaType = "phone"
+)
+
 type TimeInfo struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -18,13 +26,17 @@ type Access struct {
 }
 
 type Account struct {
-	TimeInfo   TimeInfo
-	Username   string
-	Email      string
-	Phone      Phone
-	MfaEnabled bool
+	TimeInfo TimeInfo
 
+	Username string
 	Metadata string
+
+	Phone      Phone
+	Email      string
+	Totp       bool
+	WeChat     bool
+	Apple      bool
+	MfaEnabled bool
 }
 
 type Phone struct {

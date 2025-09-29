@@ -7,6 +7,8 @@ import "time"
 type Instance interface {
 	JWKSGet() (string, error)
 
+	ServiceMfaSet(mfaRequired bool) error
+
 	AccountPhoneSend(countryCode, number string) (string, error)
 	AccountEmailSend(email string) (string, error)
 
@@ -65,11 +67,12 @@ type Instance interface {
 	TokenVerify(accessToken string) (mfaNeeded bool, username, deviceID, userClaims string, err error)
 	TokenRevoke(accessToken string) error
 
-	MFAVerify(username string, code int32) error
-	MFALoginVerify(accessToken string, code int32) (*TokenSet, error)
-	AuthenticatorBindConfirm(username string, code int32) error
-	AuthenticatorBind(username string) (img, issuer, secret string, err error)
-	AuthenticatorUnbind(username string) error
+	AccountEnableMFA(username string) error
+	AccountDisableMFA(username string) error
+	MFALoginVerify(accessToken string, method MfaType, code string) (*TokenSet, error)
+	TotpBindConfirm(username, code string) error
+	TotpBind(username string) (img, issuer, secret string, err error)
+	TotpUnbind(username string) error
 
 	GroupCreate(groupName, metadata string) error
 	GroupDelete(groupName string) error
