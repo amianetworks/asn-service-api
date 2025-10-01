@@ -51,8 +51,15 @@ type ASNService interface {
 	// Any returned values will be forwarded to the original caller, Service Controller.
 	// Any errors that are not service internally handleable should be reported through the runtimeErrChan.
 	//
-	// PleaseCarefully use the returns to be compatible with the framework design. THANKS!
+	// Please carefully use the returns to be compatible with the framework design. THANKS!
 	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
+
+	// ReceiveMessageFromService is the callback func when another service calls SendMessageToService to this service.
+	//
+	// A set of messageType, payload and error should be pre-negotiated between these two services.
+	// Any returned values will be forwarded to the original caller.
+	ReceiveMessageFromService(serviceName, messageType, payload string) (
+		responseMessageType, responsePayload string, responseErr error)
 
 	// Stop stops the service.
 	//
