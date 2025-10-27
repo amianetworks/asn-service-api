@@ -37,6 +37,8 @@ type Account struct {
 	WeChat     bool
 	Apple      bool
 	MfaEnabled bool
+
+	Groups []string
 }
 
 type Phone struct {

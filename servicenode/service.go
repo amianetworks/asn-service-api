@@ -54,13 +54,6 @@ type ASNService interface {
 	// Please carefully use the returns to be compatible with the framework design. THANKS!
 	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
 
-	// ReceiveMessageFromService is the callback func when another service calls SendMessageToService to this service.
-	//
-	// A set of messageType, payload and error should be pre-negotiated between these two services.
-	// Any returned values will be forwarded to the original caller.
-	ReceiveMessageFromService(serviceName, messageType, payload string) (
-		responseMessageType, responsePayload string, responseErr error)
-
 	// Stop stops the service.
 	//
 	// Any error returned by Stop() may trigger state change of the service.

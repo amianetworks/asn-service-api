@@ -57,14 +57,4 @@ type ASNServiceNode interface {
 	// Service Node may send a formated message to its controller, which may handle the message by
 	// implementing HandleMessageFromNode(). NO DIRECT RESPONSE to the message should be expected.
 	SendMessageToController(messageType, payload string) error
-
-	// SendMessageToService sends messages to another service on this service node.
-	//
-	// If the target service exists on this service node, its ReceiveMessageFromService function will be called.
-	// If the target service does not exist on this service node, serviceExists will be false.
-	//
-	// A set of messageType, payload and error should be pre-negotiated between these two services.
-	// Any returned values will be forwarded back to this function directly.
-	SendMessageToService(serviceName, messageType, payload string) (
-		serviceExists bool, responseMessageType, responsePayload string, responseErr error)
 }
