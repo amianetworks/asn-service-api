@@ -6,6 +6,7 @@ import (
 	commonapi "asn.amiasys.com/asn-service-api/v25/common"
 	"asn.amiasys.com/asn-service-api/v25/iam"
 	"asn.amiasys.com/asn-service-api/v25/log"
+	"asn.amiasys.com/asn-service-api/v25/subscription"
 )
 
 // ASNController
@@ -48,6 +49,11 @@ type ASNController interface {
 	//
 	// SHOULD ONLY call once. Further calls will get an error.
 	GetIAM(forceMfa bool) (iam.Instance, error)
+
+	// GetSubscription returns the In-App Subscription instance.
+	//
+	// SHOULD ONLY call once. Further calls will get an error.
+	GetSubscription() (subscription.Instance, error)
 
 	/*
 		Service Management
