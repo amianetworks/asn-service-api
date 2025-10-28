@@ -22,8 +22,8 @@ type Instance interface {
 	) (string, error)
 	AccountDelete(username string) error
 	AccountExists(username string) (bool, error)
-	AccountGet(username string) (*Account, error)
-	AccountList(usernameFuzzy string) ([]*Account, error)
+	AccountGet(username, countryCode, number, email string) (*Account, error)
+	AccountList(username, countryCode, number, email string) ([]*Account, error)
 	AccountRename(username, newUsername string) error
 	AccountPhoneUpdate(username string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
 	AccountEmailUpdate(username, email, emailCode string, skipEmailValidation bool) error
