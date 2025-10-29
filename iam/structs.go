@@ -28,6 +28,7 @@ type Access struct {
 type Account struct {
 	TimeInfo TimeInfo
 
+	ID       string
 	Username string
 	Metadata string
 

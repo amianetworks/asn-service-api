@@ -43,24 +43,24 @@ type Instance interface {
 	PasswordVerify(username, countryCode, number, email, password string) error
 	LoginWithPassword(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
-		username, countryCode, number, email, password string,
-	) (needMfa bool, tokenSet *TokenSet, err error)
+		inputUsername, countryCode, number, email, password string,
+	) (username string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithPhone(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		phone *Phone, code string,
-	) (needMfa bool, tokenSet *TokenSet, err error)
+	) (username string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithEmail(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		email, code string,
-	) (needMfa bool, tokenSet *TokenSet, err error)
+	) (username string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithWeChat(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		appID, code string,
-	) (needMfa bool, tokenSet *TokenSet, err error)
+	) (username string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithApple(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
-	) (needMfa bool, tokenSet *TokenSet, err error)
+	) (username string, needMfa bool, tokenSet *TokenSet, err error)
 	Logout(username, deviceID string) error
 
 	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
