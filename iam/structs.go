@@ -32,6 +32,7 @@ type Account struct {
 	Username string
 	Metadata string
 
+	Password   bool
 	Phone      Phone
 	Email      string
 	Totp       bool
