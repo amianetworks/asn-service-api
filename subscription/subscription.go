@@ -11,6 +11,8 @@ import (
 )
 
 type Instance interface {
+	GetNotificationChannel() <-chan string
+
 	AddApple(envConfig *apple.EnvConfig, apiConfig *apple.APIConfig) (
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
 	AddGoogle(envConfig *google.EnvConfig, replayConfig *google.ReplayConfig) (
