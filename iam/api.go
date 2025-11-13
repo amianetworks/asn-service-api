@@ -22,7 +22,7 @@ type Instance interface {
 	) (string, error)
 	AccountDelete(username string) error
 	AccountExists(username string) (bool, error)
-	AccountGet(username, countryCode, number, email string) (*Account, error)
+	AccountGet(id, username, countryCode, number, email string) (*Account, error)
 	AccountList(username, countryCode, number, email string) ([]*Account, error)
 	AccountRename(username, newUsername string) error
 	AccountPhoneUpdate(username string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
