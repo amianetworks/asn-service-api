@@ -40,7 +40,8 @@ type Account struct {
 	Apple      bool
 	MfaEnabled bool
 
-	Groups []string
+	ServiceAdmin bool
+	Groups       []string
 }
 
 type Phone struct {
