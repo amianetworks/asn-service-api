@@ -41,6 +41,7 @@ type Node struct {
 }
 
 type ServiceInfo struct {
+	Version      commonapi.Version
 	State        commonapi.ServiceState
 	UsedConfig   string // exists if Config Source is Node, otherwise is empty, can get the config from a node group
 	ConfigSource commonapi.ServiceConfigSource
