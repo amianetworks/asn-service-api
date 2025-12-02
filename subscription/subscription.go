@@ -19,6 +19,7 @@ type Instance interface {
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
 	AddStripe(config *stripe.Config) (
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
+	GetStripeProductInfo(priceID string) (*Product, error)
 	GetStripePaymentLink(accountID, priceID string, quantity uint, redirectUrl string) (string, error)
 	GetStripeBillingPortalUrl(accountID, returnUrl string) (string, error)
 

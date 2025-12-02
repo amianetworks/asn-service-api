@@ -26,3 +26,15 @@ type Subscription struct {
 	StartTime time.Time
 	EndTime   time.Time
 }
+
+type Currency string
+
+type Product struct {
+	Name        string
+	Description string
+
+	DefaultCurrency Currency
+	DefaultPrice    int64
+
+	PriceOptions map[Currency]int64
+}
