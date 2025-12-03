@@ -16,7 +16,7 @@ type Coordinates struct {
 }
 
 type NodeInfo struct {
-	Interfaces  map[string]*Interface
+	Interfaces  *Interfaces
 	Ipmi        *Ipmi
 	Management  *Management
 	DeviceInfo  *DeviceInfo
@@ -47,6 +47,11 @@ type DeviceParam struct {
 	CpuCore int64
 	Memory  int64
 	Disk    int64
+}
+
+type Interfaces struct {
+	Verify     bool
+	Interfaces map[string]*Interface
 }
 
 type Interface struct {

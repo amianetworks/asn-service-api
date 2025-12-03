@@ -57,6 +57,8 @@ const (
 	NetIfTypeData       NetIfType = "data"
 	NetIfTypeControl    NetIfType = "control"
 	NetIfTypeManagement NetIfType = "management"
+	NetIfTypeInbond     NetIfType = "inbond"
+	NetIfTypeOutbond    NetIfType = "outbond"
 )
 
 var LocationTiers = []string{
