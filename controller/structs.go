@@ -1,11 +1,11 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package capi
 
 import (
 	"time"
 
-	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+	commonapi "asn.amiasys.com/asn-service-api/v26/common"
 )
 
 // Structs used between asn.controller and service.controller.

@@ -1,4 +1,4 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package commonapi
 
@@ -16,7 +16,7 @@ type Coordinates struct {
 }
 
 type NodeInfo struct {
-	Interfaces  *Interfaces
+	Interfaces  map[string]*Interface
 	Ipmi        *Ipmi
 	Management  *Management
 	DeviceInfo  *DeviceInfo
@@ -24,20 +24,17 @@ type NodeInfo struct {
 }
 
 type Ipmi struct {
-	Verify   bool
 	Ip       string
 	Username string
 	Key      string
 }
 
 type Management struct {
-	Verify   bool
 	Hostname string
 	Ip       string
 }
 
 type DeviceInfo struct {
-	Verify       bool
 	SerialNumber string
 	Vendor       string
 	Model        string
@@ -47,11 +44,6 @@ type DeviceParam struct {
 	CpuCore int64
 	Memory  int64
 	Disk    int64
-}
-
-type Interfaces struct {
-	Verify     bool
-	Interfaces map[string]*Interface
 }
 
 type Interface struct {

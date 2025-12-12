@@ -1,12 +1,12 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package capi
 
 import (
-	commonapi "asn.amiasys.com/asn-service-api/v25/common"
-	"asn.amiasys.com/asn-service-api/v25/iam"
-	"asn.amiasys.com/asn-service-api/v25/log"
-	"asn.amiasys.com/asn-service-api/v25/subscription"
+	commonapi "asn.amiasys.com/asn-service-api/v26/common"
+	"asn.amiasys.com/asn-service-api/v26/iam"
+	"asn.amiasys.com/asn-service-api/v26/log"
+	"asn.amiasys.com/asn-service-api/v26/subscription"
 )
 
 // ASNController

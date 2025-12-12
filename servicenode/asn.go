@@ -1,10 +1,10 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package snapi
 
 import (
-	commonapi "asn.amiasys.com/asn-service-api/v25/common"
-	"asn.amiasys.com/asn-service-api/v25/log"
+	commonapi "asn.amiasys.com/asn-service-api/v26/common"
+	"asn.amiasys.com/asn-service-api/v26/log"
 )
 
 // ASNServiceNode contains the APIs provided by ASN Service Node.

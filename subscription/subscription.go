@@ -1,13 +1,13 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package subscription
 
 import (
 	"net/http"
 
-	"asn.amiasys.com/asn-service-api/v25/subscription/apple"
-	"asn.amiasys.com/asn-service-api/v25/subscription/google"
-	"asn.amiasys.com/asn-service-api/v25/subscription/stripe"
+	"asn.amiasys.com/asn-service-api/v26/subscription/apple"
+	"asn.amiasys.com/asn-service-api/v26/subscription/google"
+	"asn.amiasys.com/asn-service-api/v26/subscription/stripe"
 )
 
 type Instance interface {

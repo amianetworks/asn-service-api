@@ -1,9 +1,9 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package snapi
 
 import (
-	commonapi "asn.amiasys.com/asn-service-api/v25/common"
+	commonapi "asn.amiasys.com/asn-service-api/v26/common"
 )
 
 // StaticResource groups pre-init metadata and hooks that must be available before Init():

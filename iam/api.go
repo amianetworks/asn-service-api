@@ -1,4 +1,4 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package iam
 
@@ -20,21 +20,22 @@ type Instance interface {
 		weChatAppID, weChatCode string,
 		appleIDToken string,
 	) (string, error)
-	AccountDelete(username string) error
-	AccountExists(username string) (bool, error)
-	AccountGet(id, username, countryCode, number, email string) (*Account, error)
+	AccountDelete(accountID string) error
+	AccountExists(accountID string) (bool, error)
+	AccountGet(accountID, username, countryCode, number, email string) (*Account, error)
 	AccountList(username, countryCode, number, email string) ([]*Account, error)
-	AccountRename(username, newUsername string) error
-	AccountPhoneUpdate(username string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
-	AccountEmailUpdate(username, email, emailCode string, skipEmailValidation bool) error
-	AccountWeChatUpdate(username, weChatAppID, weChatCode string) error
-	AccountAppleUpdate(username, appleIDToken string) error
-	AccountMetadataUpdate(username, metadata string) error
-	AccountPasswordUpdate(username, oldPassword, newPassword string) error
-	AccountPasswordReset(username, newPassword string) error
+	AccountRenameAllowed() (bool, error)
+	AccountRename(accountID, newUsername string) error
+	AccountPhoneUpdate(accountID string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
+	AccountEmailUpdate(accountID, email, emailCode string, skipEmailValidation bool) error
+	AccountWeChatUpdate(accountID, weChatAppID, weChatCode string) error
+	AccountAppleUpdate(accountID, appleIDToken string) error
+	AccountMetadataUpdate(accountID, metadata string) error
+	AccountPasswordUpdate(accountID, oldPassword, newPassword string) error
+	AccountPasswordReset(accountID, newPassword string) error
 
-	AccountRecoverByPhone(username, newPassword, code string) error
-	AccountRecoverByEmail(username, newPassword, code string) error
+	AccountRecoverByPhone(accountID, newPassword, code string) error
+	AccountRecoverByEmail(accountID, newPassword, code string) error
 
 	LoginMethods() (
 		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple bool,
@@ -43,36 +44,36 @@ type Instance interface {
 	PasswordVerify(username, countryCode, number, email, password string) error
 	LoginWithPassword(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
-		inputUsername, countryCode, number, email, password string,
-	) (username string, needMfa bool, tokenSet *TokenSet, err error)
+		username, countryCode, number, email, password string,
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithPhone(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		phone *Phone, code string,
-	) (username string, needMfa bool, tokenSet *TokenSet, err error)
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithEmail(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		email, code string,
-	) (username string, needMfa bool, tokenSet *TokenSet, err error)
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithWeChat(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		appID, code string,
-	) (username string, needMfa bool, tokenSet *TokenSet, err error)
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithApple(
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
-	) (username string, needMfa bool, tokenSet *TokenSet, err error)
-	Logout(username, deviceID string) error
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
+	Logout(accountID, deviceID string) error
 
 	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
-	TokenVerify(accessToken string) (mfaNeeded bool, username, deviceID, userClaims string, err error)
+	TokenVerify(accessToken string) (mfaNeeded bool, accountID, deviceID, userClaims string, err error)
 	TokenRevoke(accessToken string) error
 
-	AccountEnableMFA(username string) error
-	AccountDisableMFA(username string) error
+	AccountEnableMFA(accountID string) error
+	AccountDisableMFA(accountID string) error
 	MFALoginVerify(accessToken string, method MfaType, code string) (*TokenSet, error)
-	TotpBindConfirm(username, code string) error
-	TotpBind(username string) (img, issuer, secret string, err error)
-	TotpUnbind(username string) error
+	TotpBindConfirm(accountID, code string) error
+	TotpBind(accountID string) (img, issuer, secret string, err error)
+	TotpUnbind(accountID string) error
 
 	GroupCreate(groupName, metadata string) error
 	GroupDelete(groupName string) error
@@ -82,16 +83,16 @@ type Instance interface {
 	GroupGet(groupName string) (*Group, error)
 	GroupList() ([]*Group, error)
 	GroupMemberList(groupName string) ([]*Account, error)
-	AccountJoinGroup(groupName string, usernames []string) error
-	AccountLeaveGroup(groupName string, usernames []string) error
-	AccountGroupList(username string) ([]*Group, error)
+	AccountJoinGroup(groupName string, accountIDs []string) error
+	AccountLeaveGroup(groupName string, accountIDs []string) error
+	AccountGroupList(accountID string) ([]*Group, error)
 
 	AccessCreate(name, scope, operation string, time *TimeControl) error
 	AccessUpdate(name, scope, operation string, time *TimeControl) error
 	AccessDelete(name string) error
 	AccessExists(name string) (bool, error)
 	AccessList() ([]*Access, error)
-	AccountAccessList(username string) (map[string][]*Access, error)
+	AccountAccessList(accountID string) (map[string][]*Access, error)
 	GroupAccessList(groupName string) ([]*Access, error)
 	AccessGrantToGroup(groupName string, accesses []string) error
 	AccessRevokeFromGroup(groupName string, accesses []string) error

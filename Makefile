@@ -1,6 +1,6 @@
-# Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+# Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
-PACKAGE := asn-service-api/v25
+PACKAGE := asn-service-api/v26
 .PHONY: code-inspect
 
 code-inspect:

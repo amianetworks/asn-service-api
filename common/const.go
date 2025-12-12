@@ -1,4 +1,4 @@
-// Copyright 2025 Amiasys Corporation and/or its affiliates. All rights reserved.
+// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
 package commonapi
 
@@ -57,8 +57,8 @@ const (
 	NetIfTypeData       NetIfType = "data"
 	NetIfTypeControl    NetIfType = "control"
 	NetIfTypeManagement NetIfType = "management"
-	NetIfTypeInbond     NetIfType = "inbond"
-	NetIfTypeOutbond    NetIfType = "outbond"
+	NetIfTypeInbound    NetIfType = "inbound"
+	NetIfTypeOutbound   NetIfType = "outbound"
 )
 
 var LocationTiers = []string{
