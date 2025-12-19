@@ -7,7 +7,7 @@ This is a subproject and contains APIs only.
 ASN (AI-Driving Secure Networking) is a distributed framework of secure network functions.\
 This API package is shared by all ASN services built as plugins.
 To build an ASN Distributed Service, you can refer to `asn-service-template` to get started.\
-The latest version is `v26.0.0`.
+The latest version is `v26.0.1`.
 
 ## API Layout
     ├── common        // common structs and functions for both controller and service node use. 

@@ -65,7 +65,7 @@ type Instance interface {
 	Logout(accountID, deviceID string) error
 
 	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
-	TokenVerify(accessToken string) (mfaNeeded bool, accountID, deviceID, userClaims string, err error)
+	TokenVerify(accessToken string) (mfaNeeded bool, accountID, username, deviceID, userClaims string, err error)
 	TokenRevoke(accessToken string) error
 
 	AccountEnableMFA(accountID string) error
