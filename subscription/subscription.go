@@ -17,6 +17,7 @@ type Instance interface {
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
 	AddGoogle(envConfig *google.EnvConfig, replayConfig *google.ReplayConfig) (
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
+	RestoreGooglePurchaseToken(accountID, purchaseToken string) error
 	AddStripe(config *stripe.Config) (
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
 	GetStripeProductInfo(priceID string) (*Product, error)
