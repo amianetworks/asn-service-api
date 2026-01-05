@@ -12,6 +12,17 @@ type StaticResource interface {
 	// Version returns the service's version.
 	// Safe to call before Init().
 	Version() commonapi.Version
+
+	// SharedData returns the shared data's keys that the service provides.
+	//
+	// In some cases, services need to query another service for values.
+	// If the service you are implementing is a data PROVIDER, i.e., another service will ask you for data,
+	// you should implement this function.
+	// Otherwise, you can ignore this function by returning (nil, nil).
+	//
+	// `aggregated` are the data's keys that can be queried.
+	// `subscribable` are the data's keys that can be subscribed to.
+	SharedData() (aggregated, subscribable []string)
 }
 
 // ASNService interface provides the service's API for the ASN Service Node usage,
@@ -53,6 +64,39 @@ type ASNService interface {
 	//
 	// Please carefully use the returns to be compatible with the framework design. THANKS!
 	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
+
+	// OnQuerySharedData returns the shared data's value of the service based on the given keys.
+	//
+	// This function works in pairs with `ASNServiceNode.QueryServiceSharedData`.
+	//
+	// In some cases, services need to query another service for data.
+	// If the service you are implementing is a data PROVIDER, i.e., another service will ask you for data,
+	// you should implement this function.
+	// Otherwise, you can ignore this function by returning ErrKeyNotFound.
+	//
+	// The keys should be negotiated between services beforehand so that other services know what you are providing.
+	//
+	// If one of the given keys does not exist, ErrKeyNotFound should be returned for the caller to know.
+	//
+	// Please carefully use the returns to be compatible with the framework design. THANKS!
+	OnQuerySharedData(keys []string) (values map[string]any, err error)
+
+	// OnSubscribeSharedData returns a channel for the shared data's value based on the given keys.
+	//
+	// This function works in pairs with `ASNServiceNode.SubscribeServiceSharedData`.
+	//
+	// In some cases, services need to subscribe to data from another service.
+	// If the service you are implementing is a data PROVIDER, i.e., another service will ask you for data,
+	// you should implement this function.
+	// Otherwise, you can ignore this function by returning ErrKeyNotFound.
+	//
+	// The keys should be negotiated between services beforehand so that other services know what you are providing.
+	//
+	// If one of the given keys does not exist, ErrKeyNotFound should be returned for the caller to know.
+	// For each key, after all values are dumped, you should ALWAYS close the returned channel to let the listener know.
+	//
+	// Please carefully use the returns to be compatible with the framework design. THANKS!
+	OnSubscribeSharedData(keys []string) (values map[string]<-chan any, err error)
 
 	// Stop stops the service.
 	//
