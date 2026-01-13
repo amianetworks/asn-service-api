@@ -38,6 +38,7 @@ type Account struct {
 	Totp       bool
 	WeChat     bool
 	Apple      bool
+	Google     bool
 	MfaEnabled bool
 
 	ServiceAdmin bool

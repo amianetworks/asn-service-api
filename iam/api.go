@@ -2,7 +2,10 @@
 
 package iam
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 type Instance interface {
 	JWKSGet() (string, error)
@@ -19,7 +22,10 @@ type Instance interface {
 		phone *Phone, phoneCode string, skipPhoneValidation bool,
 		weChatAppID, weChatCode string,
 		appleIDToken string,
-	) (string, error)
+		googleIDToken string,
+		loginAfterCreation bool,
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	AccountDelete(accountID string) error
 	AccountExists(accountID string) (bool, error)
 	AccountGet(accountID, username, countryCode, number, email string) (*Account, error)
@@ -30,6 +36,7 @@ type Instance interface {
 	AccountEmailUpdate(accountID, email, emailCode string, skipEmailValidation bool) error
 	AccountWeChatUpdate(accountID, weChatAppID, weChatCode string) error
 	AccountAppleUpdate(accountID, appleIDToken string) error
+	AccountGoogleUpdate(accountID, googleIDToken string) error
 	AccountMetadataUpdate(accountID, metadata string) error
 	AccountPasswordUpdate(accountID, oldPassword, newPassword string) error
 	AccountPasswordReset(accountID, newPassword string) error
@@ -38,7 +45,7 @@ type Instance interface {
 	AccountRecoverByEmail(accountID, newPassword, code string) error
 
 	LoginMethods() (
-		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple bool,
+		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple, google bool,
 		err error,
 	)
 	PasswordVerify(username, countryCode, number, email, password string) error
@@ -62,8 +69,14 @@ type Instance interface {
 		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
+	LoginWithGoogle(
+		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		idToken string,
+	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	Logout(accountID, deviceID string) error
+	AppleRedirect(w http.ResponseWriter, r *http.Request)
 
+	TokenList() (map[string]map[string][]*TokenSet, error) // accountID: deviceID: tokenSets
 	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
 	TokenVerify(accessToken string) (mfaNeeded bool, accountID, username, deviceID, userClaims string, err error)
 	TokenRevoke(accessToken string) error
