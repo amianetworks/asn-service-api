@@ -9,11 +9,13 @@ import (
 
 type Instance interface {
 	JWKSGet() (string, error)
+	RenameEnabled() bool
 
 	ServiceMfaSet(mfaRequired bool) error
 
-	AccountPhoneSend(countryCode, number string) (string, error)
-	AccountEmailSend(email string) (string, error)
+	SupportedCountryCodesGet() (PhoneCountryCodeMode, []string)
+	AccountPhoneSend(countryCode, number string, sendWhenExistOnly bool) (string, error)
+	AccountEmailSend(email string, sendWhenExistOnly bool) (string, error)
 
 	AccountCreate(
 		username, metadata string,

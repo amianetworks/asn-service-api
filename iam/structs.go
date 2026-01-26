@@ -12,6 +12,14 @@ const (
 	MfaTypePhone MfaType = "phone"
 )
 
+type PhoneCountryCodeMode string
+
+const (
+	PhoneCountryCodeModeAll     PhoneCountryCodeMode = "all"
+	PhoneCountryCodeModeInclude PhoneCountryCodeMode = "include"
+	PhoneCountryCodeModeExclude PhoneCountryCodeMode = "exclude"
+)
+
 type TimeInfo struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
