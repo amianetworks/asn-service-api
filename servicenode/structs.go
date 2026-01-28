@@ -16,4 +16,5 @@ var (
 type NodeInfo struct {
 	ID string
 	commonapi.NodeInfo
+	ConfigOps []string
 }

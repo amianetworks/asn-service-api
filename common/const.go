@@ -44,10 +44,10 @@ const (
 	ServiceScopeNode
 )
 
-type ServiceConfigSource int
+type ServiceSource int
 
 const (
-	ServiceConfigSourceNode ServiceConfigSource = 1 + iota
+	ServiceConfigSourceNode ServiceSource = 1 + iota
 	ServiceConfigSourceNodeGroup
 )
 

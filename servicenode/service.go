@@ -65,6 +65,21 @@ type ASNService interface {
 	// Please carefully use the returns to be compatible with the framework design. THANKS!
 	ApplyServiceOps(opCmd, opParams string) (resp string, err error)
 
+	// AddConfigOps add config operations to the service
+	//
+	// If return error for any reason, the service will be set as malfunction
+	AddConfigOps(configParams []string) error
+
+	// UpdateConfigOp updates a config operation
+	//
+	// If return error for any reason, the service will be set as malfunction
+	UpdateConfigOp(oldConfigParam, newConfigParam string) error
+
+	// DeleteConfigOps deletes config operations from the service
+	//
+	// If return error for any reason, the service will be set as malfunction
+	DeleteConfigOps(configParams []string) error
+
 	// OnQuerySharedData returns the shared data's value of the service based on the given keys.
 	//
 	// This function works in pairs with `ASNServiceNode.QueryServiceSharedData`.

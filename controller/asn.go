@@ -104,6 +104,29 @@ type ASNController interface {
 	// There will be a timeout context, so the service controller will eventually get a response from the node called.
 	SendServiceOpsToNode(nodeID string, opCmd, opParams string) (res *OpsResponse, paramErr error)
 
+	// AddConfigOps add config operations under a node or node group
+	//
+	// ASN will save the ops under the node group or node, and send the notification to service node to apply the ops
+	//
+	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
+	// configParams is a list of config operation params defined by Service and unrecognizable by ASN
+	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) error
+
+	// UpdateConfigOp updates config operation under a node or node group
+	//
+	// ASN will update the op saved in the node group or node and send the notification to service node to update the op
+	//
+	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
+	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) error
+
+	// DeleteConfigOps deletes config operations under a node or node group
+	//
+	// ASN will remove the ops from the node group or node and send the notification to service node to delete the ops
+	//
+	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
+	// configOpIDs is a list of config operation IDs, ASN use the ID to locate the service operations
+	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) error
+
 	/*
 		Networks
 	*/
