@@ -36,9 +36,10 @@ type Access struct {
 type Account struct {
 	TimeInfo TimeInfo
 
-	ID       string
-	Username string
-	Metadata string
+	ID          string
+	Username    string
+	Metadata    string
+	DeviceLimit int
 
 	Password   bool
 	Phone      Phone
@@ -69,4 +70,82 @@ type Group struct {
 type TokenSet struct {
 	AccessToken  string
 	RefreshToken string
+}
+
+type DeviceCategory int
+
+const (
+	DeviceCategoryUnknown DeviceCategory = 1 + iota
+	DeviceCategoryPhone
+	DeviceCategoryTablet
+	DeviceCategoryWearable
+	DeviceCategoryBrowser
+	DeviceCategoryMiniProgram
+)
+
+type DeviceType int
+
+const (
+	DeviceTypeUnknownUnknown DeviceType = 1 + iota
+)
+
+const (
+	DeviceTypePhoneUnknown DeviceType = 1 + iota
+	DeviceTypePhoneIPhone
+	DeviceTypePhoneAndroid
+)
+
+const (
+	DeviceTypeTabletUnknown DeviceType = 1 + iota
+	DeviceTypeTabletIPad
+	DeviceTypeTabletAndroid
+)
+
+const (
+	DeviceTypeWearableUnknown DeviceType = 1 + iota
+	DeviceTypeWearableAppleWatch
+	DeviceTypeWearableAndroidWatch
+)
+
+const (
+	DeviceTypeBrowserUnknown DeviceType = 1 + iota
+	DeviceTypeBrowserChrome
+	DeviceTypeBrowserSafari
+	DeviceTypeBrowserFirefox
+)
+
+const (
+	DeviceTypeMiniProgramUnknown DeviceType = 1 + iota
+	DeviceTypeMiniProgramPhone
+	DeviceTypeMiniProgramComputer
+)
+
+type DeviceOs string
+
+const (
+	DeviceOsIos         DeviceOs = "ios"
+	DeviceOsAndroid     DeviceOs = "android"
+	DeviceOsWatchOS     DeviceOs = "watchos"
+	DeviceOsAndroidWear DeviceOs = "android_wear"
+	DeviceOsWeChat      DeviceOs = "wechat"
+)
+
+type DeviceLanguage int
+
+const (
+	DeviceLanguageEN DeviceLanguage = 1 + iota
+	DeviceLanguageZH
+)
+
+type Device struct {
+	ID           string // uuid
+	Category     DeviceCategory
+	Type         DeviceType
+	OS           DeviceOs
+	Language     DeviceLanguage
+	Name         string
+	Model        string
+	SerialNumber string
+	PushToken    string
+	Metadata     string
 }

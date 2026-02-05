@@ -26,7 +26,8 @@ type Instance interface {
 		appleIDToken string,
 		googleIDToken string,
 		loginAfterCreation bool,
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device,
+		userClaims string, durationAccess, durationRefresh time.Duration,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	AccountDelete(accountID string) error
 	AccountExists(accountID string) (bool, error)
@@ -52,27 +53,27 @@ type Instance interface {
 	)
 	PasswordVerify(username, countryCode, number, email, password string) error
 	LoginWithPassword(
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
 		username, countryCode, number, email, password string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithPhone(
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
 		phone *Phone, code string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithEmail(
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
 		email, code string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithWeChat(
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
 		appID, code string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithApple(
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	LoginWithGoogle(
-		deviceID, userClaims string, durationAccess, durationRefresh time.Duration,
+		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
 	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
 	Logout(accountID, deviceID string) error
@@ -82,6 +83,11 @@ type Instance interface {
 	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
 	TokenVerify(accessToken string) (mfaNeeded bool, accountID, username, deviceID, userClaims string, err error)
 	TokenRevoke(accessToken string) error
+
+	DeviceGet(accountID, deviceID string) (*Device, error)
+	DeviceList(accountID string) ([]*Device, error)
+	DeviceLimitUpdate(accountID string, limit int) error
+	DeviceInfoUpdate(device *Device) error
 
 	AccountEnableMFA(accountID string) error
 	AccountDisableMFA(accountID string) error
