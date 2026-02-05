@@ -123,6 +123,7 @@ const (
 type DeviceOs string
 
 const (
+	DeviceOsUnknown     DeviceOs = "unknown"
 	DeviceOsIos         DeviceOs = "ios"
 	DeviceOsAndroid     DeviceOs = "android"
 	DeviceOsWatchOS     DeviceOs = "watchos"
