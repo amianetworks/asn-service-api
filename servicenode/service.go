@@ -68,17 +68,17 @@ type ASNService interface {
 	// AddConfigOps add config operations to the service
 	//
 	// If return error for any reason, the service will be set as malfunction
-	AddConfigOps(configParams []string) error
+	AddConfigOps(configParams []string) (resp string, err error)
 
 	// UpdateConfigOp updates a config operation
 	//
 	// If return error for any reason, the service will be set as malfunction
-	UpdateConfigOp(oldConfigParam, newConfigParam string) error
+	UpdateConfigOp(oldConfigParam, newConfigParam string) (resp string, err error)
 
 	// DeleteConfigOps deletes config operations from the service
 	//
 	// If return error for any reason, the service will be set as malfunction
-	DeleteConfigOps(configParams []string) error
+	DeleteConfigOps(configParams []string) (resp string, err error)
 
 	// OnQuerySharedData returns the shared data's value of the service based on the given keys.
 	//

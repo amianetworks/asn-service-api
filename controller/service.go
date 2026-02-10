@@ -60,6 +60,15 @@ type ASNServiceController interface {
 	// It may be called multiple times, the configuration from the last call must be effective by the end.
 	Start(config string) error
 
+	// AddConfigOps add config operations under a node or node group, need service to decide how to deal with the config ops
+	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) error
+
+	// UpdateConfigOp updates config operation under a node or node group, need service to decide how to deal with the config ops
+	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) error
+
+	// DeleteConfigOps deletes config operations under a node or node group, need service to decide how to deal with the config ops
+	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) error
+
 	// HandleMessageFromNode handles up-calls from service nodes if needed.
 	HandleMessageFromNode(nodeID, messageType, payload string) error
 

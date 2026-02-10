@@ -108,24 +108,40 @@ type ASNController interface {
 	//
 	// ASN will save the ops under the node group or node, and send the notification to service node to apply the ops
 	//
+	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is incorrect.
+	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
+	//
 	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
 	// configParams is a list of config operation params defined by Service and unrecognizable by ASN
-	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) error
+	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) (resChan <-chan *OpsResponse, paramErr error)
 
 	// UpdateConfigOp updates config operation under a node or node group
 	//
 	// ASN will update the op saved in the node group or node and send the notification to service node to update the op
 	//
+	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is incorrect.
+	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
+	//
 	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
-	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) error
+	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) (resChan <-chan *OpsResponse, paramErr error)
 
 	// DeleteConfigOps deletes config operations under a node or node group
 	//
 	// ASN will remove the ops from the node group or node and send the notification to service node to delete the ops
 	//
+	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is incorrect.
+	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
+	//
 	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
 	// configOpIDs is a list of config operation IDs, ASN use the ID to locate the service operations
-	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) error
+	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) (resChan <-chan *OpsResponse, paramErr error)
+
+	// ListConfigOps lists config operations under a node or node group
+	//
+	// Will only list the config operations directly under the scope. That means will not return config operations under node group if request for node
+	//
+	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
+	ListConfigOps(serviceScope commonapi.ServiceScope, scopeID string) ([]ConfigOp, error)
 
 	/*
 		Networks
