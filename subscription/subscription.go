@@ -15,6 +15,7 @@ type Instance interface {
 
 	AddApple(envConfig *apple.EnvConfig, apiConfig *apple.APIConfig) (
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
+	RestoreApplePurchaseToken(accountID, purchaseToken string) error
 	AddGoogle(envConfig *google.EnvConfig, replayConfig *google.ReplayConfig) (
 		func(w http.ResponseWriter, r *http.Request), <-chan error, error)
 	RestoreGooglePurchaseToken(accountID, purchaseToken string) error
