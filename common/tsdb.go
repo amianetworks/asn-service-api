@@ -53,6 +53,8 @@ type TSDBHandler interface {
 
 	DeleteRetentionPolicies(rps []TSRetentionPolicy) error
 
+	NewPoint() TSPoint
+
 	AddDataPoint(pt TSPoint, useTimeout bool) error
 
 	AddDataPoints(pt []TSPoint, useTimeout bool) error
