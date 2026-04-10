@@ -48,7 +48,7 @@ type ASNController interface {
 	// GetIAM returns the IAM instance for user and group management.
 	//
 	// SHOULD ONLY call once. Further calls will get an error.
-	GetIAM(forceMfa bool) (iam.Instance, error)
+	GetIAM() (iam.Instance, error)
 
 	// GetSubscription returns the In-App Subscription instance.
 	//

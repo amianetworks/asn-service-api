@@ -52,6 +52,8 @@ type Account struct {
 
 	ServiceAdmin bool
 	Groups       []string
+
+	Devices map[string]*Device
 }
 
 type Phone struct {
@@ -81,6 +83,7 @@ const (
 	DeviceCategoryWearable
 	DeviceCategoryBrowser
 	DeviceCategoryMiniProgram
+	DeviceCategoryPC
 )
 
 type DeviceType int
@@ -120,6 +123,13 @@ const (
 	DeviceTypeMiniProgramComputer
 )
 
+const (
+	DeviceTypePCUnknown DeviceType = 1 + iota
+	DeviceTypePCWindows
+	DeviceTypePCMacOS
+	DeviceTypePCLinux
+)
+
 type DeviceOs string
 
 const (
@@ -129,6 +139,9 @@ const (
 	DeviceOsWatchOS     DeviceOs = "watchos"
 	DeviceOsAndroidWear DeviceOs = "android_wear"
 	DeviceOsWeChat      DeviceOs = "wechat"
+	DeviceOsWindows     DeviceOs = "windows"
+	DeviceOsMacOS       DeviceOs = "macos"
+	DeviceOsLinux       DeviceOs = "linux"
 )
 
 type DeviceLanguage int
@@ -139,7 +152,11 @@ const (
 )
 
 type Device struct {
-	ID           string // uuid
+	ID string // uuid
+	DeviceInfo
+}
+
+type DeviceInfo struct {
 	Category     DeviceCategory
 	Type         DeviceType
 	OS           DeviceOs

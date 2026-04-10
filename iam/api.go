@@ -25,15 +25,11 @@ type Instance interface {
 		weChatAppID, weChatCode string,
 		appleIDToken string,
 		googleIDToken string,
-		loginAfterCreation bool,
-		device *Device,
-		userClaims string, durationAccess, durationRefresh time.Duration,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
+	) (accountID string, err error)
 	AccountDelete(accountID string) error
 	AccountExists(accountID string) (bool, error)
 	AccountGet(accountID, username, countryCode, number, email string) (*Account, error)
 	AccountList(username, countryCode, number, email string) ([]*Account, error)
-	AccountRenameAllowed() (bool, error)
 	AccountRename(accountID, newUsername string) error
 	AccountPhoneUpdate(accountID string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
 	AccountEmailUpdate(accountID, email, emailCode string, skipEmailValidation bool) error
@@ -52,42 +48,46 @@ type Instance interface {
 		err error,
 	)
 	PasswordVerify(username, countryCode, number, email, password string) error
-	LoginWithPassword(
-		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
+	LoginOrCreateWithPassword(
+		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		username, countryCode, number, email, password string,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
-	LoginWithPhone(
-		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
+		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	LoginOrCreateWithPhone(
+		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		phone *Phone, code string,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
-	LoginWithEmail(
-		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
+		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	LoginOrCreateWithEmail(
+		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		email, code string,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
-	LoginWithWeChat(
-		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
+		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	LoginOrCreateWithWeChat(
+		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		appID, code string,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
-	LoginWithApple(
-		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
+		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	LoginOrCreateWithApple(
+		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
-	LoginWithGoogle(
-		device *Device, userClaims string, durationAccess, durationRefresh time.Duration,
+		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	LoginOrCreateWithGoogle(
+		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
-	) (accountID string, needMfa bool, tokenSet *TokenSet, err error)
+		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
 	Logout(accountID, deviceID string) error
 	AppleRedirect(w http.ResponseWriter, r *http.Request)
 
-	TokenList() (map[string]map[string][]*TokenSet, error) // accountID: deviceID: tokenSets
 	TokenRefresh(userClaims string, tokenSet *TokenSet, durationAccess time.Duration) (*TokenSet, error)
 	TokenVerify(accessToken string) (mfaNeeded bool, accountID, username, deviceID, userClaims string, err error)
 	TokenRevoke(accessToken string) error
 
-	DeviceGet(accountID, deviceID string) (*Device, error)
-	DeviceList(accountID string) ([]*Device, error)
 	DeviceLimitUpdate(accountID string, limit int) error
 	DeviceInfoUpdate(device *Device) error
+	DeviceDelete(accountID, deviceID string) error
 
 	AccountEnableMFA(accountID string) error
 	AccountDisableMFA(accountID string) error
