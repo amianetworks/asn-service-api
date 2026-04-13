@@ -45,9 +45,9 @@ type Account struct {
 	Phone      Phone
 	Email      string
 	Totp       bool
-	WeChat     bool
-	Apple      bool
-	Google     bool
+	WeChat     *AccountWeChatInfo
+	Apple      *AccountAppleInfo
+	Google     *AccountGoogleInfo
 	MfaEnabled bool
 
 	ServiceAdmin bool
@@ -59,6 +59,27 @@ type Account struct {
 type Phone struct {
 	CountryCode string
 	Number      string
+}
+
+type AccountWeChatInfo struct {
+	Bound      bool
+	Nickname   string
+	HeadImgURL string
+}
+
+type AccountAppleInfo struct {
+	Bound          bool
+	Email          string
+	EmailVerified  bool
+	IsPrivateEmail bool
+}
+
+type AccountGoogleInfo struct {
+	Bound         bool
+	Email         string
+	EmailVerified bool
+	Name          string
+	Picture       string
 }
 
 type Group struct {
