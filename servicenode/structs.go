@@ -11,6 +11,7 @@ import (
 var (
 	ErrServiceNotFound = errors.New("target service not found")
 	ErrKeyNotFound     = errors.New("key not found in target service")
+	ErrRestartNeeded   = errors.New("restart needed")
 )
 
 type NodeInfo struct {

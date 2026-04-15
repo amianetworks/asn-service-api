@@ -37,11 +37,9 @@ type ASNService interface {
 
 	// Start starts the service with the configuration.
 	//
-	// IMPORTANT: If this service wishes to be auto-started by ASN,
-	// DO NOT rely on startResponse to report to the controller, as it will NOT be returned in all cases.
-	// Instead, use SendMessageToController to communicate with the controller.
-	//
-	// However, if auto-start is not needed, then it is safe for startResponse to reach the controller.
+	// IMPORTANT: This function MUST be idempotent and will be called multiple times if the config changes.
+	// If the service is not able to hot-reload its configuration, it should return ErrRestartNeeded.
+	// In this case, the framework will restart the service with the new config.
 	//
 	// Parameters:
 	// - Config: Configurations used to start the service.
