@@ -4,12 +4,20 @@ package iam
 
 import "time"
 
+type AccountPasswordRecoveryMethod int
+
+const (
+	AccountPasswordRecoveryMethodEmail AccountPasswordRecoveryMethod = 1 + iota
+	AccountPasswordRecoveryMethodPhone
+)
+
 type MfaType string
 
 const (
-	MfaTypeTotp  MfaType = "totp"
-	MfaTypeEmail MfaType = "email"
-	MfaTypePhone MfaType = "phone"
+	MfaTypeTotp    MfaType = "totp"
+	MfaTypeEmail   MfaType = "email"
+	MfaTypePhone   MfaType = "phone"
+	MfaTypePasskey MfaType = "passkey"
 )
 
 type PhoneCountryCodeMode string
@@ -36,10 +44,11 @@ type Access struct {
 type Account struct {
 	TimeInfo TimeInfo
 
-	ID          string
-	Username    string
-	Metadata    string
-	DeviceLimit int
+	ID               string
+	Username         string
+	UsernameModified bool
+	Metadata         string
+	DeviceLimit      int
 
 	Password   bool
 	Phone      Phone
@@ -48,12 +57,19 @@ type Account struct {
 	WeChat     *AccountWeChatInfo
 	Apple      *AccountAppleInfo
 	Google     *AccountGoogleInfo
+	Passkeys   []AccountPasskey
 	MfaEnabled bool
 
 	ServiceAdmin bool
 	Groups       []string
 
 	Devices map[string]*Device
+}
+
+type AccountPasskey struct {
+	ID           string
+	DeviceID     string
+	CredentialID string
 }
 
 type Phone struct {

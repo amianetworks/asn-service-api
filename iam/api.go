@@ -10,6 +10,7 @@ import (
 type Instance interface {
 	JWKSGet() (string, error)
 	RenameEnabled() bool
+	MfaEnforced() bool
 
 	ServiceMfaSet(mfaRequired bool) error
 
@@ -22,14 +23,12 @@ type Instance interface {
 		password string,
 		email, emailCode string, skipEmailValidation bool,
 		phone *Phone, phoneCode string, skipPhoneValidation bool,
-		weChatAppID, weChatCode string,
-		appleIDToken string,
-		googleIDToken string,
 	) (accountID string, err error)
 	AccountDelete(accountID string) error
 	AccountExists(accountID string) (bool, error)
 	AccountGet(accountID, username, countryCode, number, email string) (*Account, error)
 	AccountList(username, countryCode, number, email string) ([]*Account, error)
+	AccountListByIDs(accountIDs []string) ([]*Account, error)
 	AccountRename(accountID, newUsername string) error
 	AccountPhoneUpdate(accountID string, phone *Phone, phoneCode string, skipPhoneValidation bool) error
 	AccountEmailUpdate(accountID, email, emailCode string, skipEmailValidation bool) error
@@ -37,14 +36,15 @@ type Instance interface {
 	AccountAppleUpdate(accountID, appleIDToken string) error
 	AccountGoogleUpdate(accountID, googleIDToken string) error
 	AccountMetadataUpdate(accountID, metadata string) error
-	AccountPasswordUpdate(accountID, oldPassword, newPassword string) error
+	AccountPasswordUpdate(accountID, accessToken, oldPassword, newPassword string) error
 	AccountPasswordReset(accountID, newPassword string) error
+	AccountPasskeyBindChallengeGet(domain, accountID string) (sessionID, data string, err error)
+	AccountPasskeyBind(domain, accountID, sessionID, deviceID, data string) error
 
-	AccountRecoverByPhone(accountID, newPassword, code string) error
-	AccountRecoverByEmail(accountID, newPassword, code string) error
+	AccountPasswordRecoverVerify(accountID string, method AccountPasswordRecoveryMethod, code string) (accessToken string, err error)
 
 	LoginMethods() (
-		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple, google bool,
+		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple, google, passkey bool,
 		err error,
 	)
 	PasswordVerify(username, countryCode, number, email, password string) error
@@ -77,6 +77,12 @@ type Instance interface {
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
 		createIfNotExist bool,
+	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	AccountPasskeyLoginChallengeGet(domain, accountID string) (sessionID, data string, err error)
+	AccountPasskeyAuth(
+		device *DeviceInfo,
+		userClaims string, durationAccess, durationRefresh time.Duration,
+		domain, sessionID, data string,
 	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
 	Logout(accountID, deviceID string) error
 	AppleRedirect(w http.ResponseWriter, r *http.Request)
