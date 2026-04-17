@@ -97,7 +97,7 @@ type Instance interface {
 
 	AccountEnableMFA(accountID string) error
 	AccountDisableMFA(accountID string) error
-	MFALoginVerify(accessToken string, method MfaType, code string) (*TokenSet, error)
+	MFALoginVerify(accessToken string, method MfaType, code, domain, sessionID, data string) (*TokenSet, error)
 	TotpBindConfirm(accountID, code string) error
 	TotpBind(accountID string) (img, issuer, secret string, err error)
 	TotpUnbind(accountID string) error
