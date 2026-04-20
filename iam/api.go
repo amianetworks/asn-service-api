@@ -40,6 +40,8 @@ type Instance interface {
 	AccountPasswordReset(accountID, newPassword string) error
 	AccountPasskeyBindChallengeGet(domain, accountID string) (sessionID, data string, err error)
 	AccountPasskeyBind(domain, accountID, sessionID, deviceID, data string) error
+	AccountPasskeyUnbind(accountID, id string) error
+	AccountPasskeyUnbindAll(accountID string) error
 
 	AccountPasswordRecoverVerify(accountID string, method AccountPasswordRecoveryMethod, code string) (accessToken string, err error)
 
@@ -78,7 +80,7 @@ type Instance interface {
 		idToken string,
 		createIfNotExist bool,
 	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
-	AccountPasskeyLoginChallengeGet(domain, accountID string) (sessionID, data string, err error)
+	AccountPasskeyLoginChallengeGet(domain string) (sessionID, data string, err error)
 	AccountPasskeyAuth(
 		device *DeviceInfo,
 		userClaims string, durationAccess, durationRefresh time.Duration,
