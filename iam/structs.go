@@ -4,13 +4,6 @@ package iam
 
 import "time"
 
-type AccountPasswordRecoveryMethod int
-
-const (
-	AccountPasswordRecoveryMethodEmail AccountPasswordRecoveryMethod = 1 + iota
-	AccountPasswordRecoveryMethodPhone
-)
-
 type MfaType string
 
 const (
