@@ -92,7 +92,7 @@ type Instance interface {
 	TokenRevoke(accessToken string) error
 
 	DeviceLimitUpdate(accountID string, limit int) error
-	DeviceInfoUpdate(device *Device) error
+	DeviceInfoUpdate(accountID string, device *Device) error
 	DeviceDelete(accountID, deviceID string) error
 
 	AccountEnableMFA(accountID string) error
