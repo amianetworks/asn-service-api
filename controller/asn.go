@@ -9,206 +9,181 @@ import (
 	"asn.amiasys.com/asn-service-api/v26/subscription"
 )
 
-// ASNController
+// ASNController is the framework-provided handle passed to ASNServiceController.Init().
+// All methods are goroutine-safe after Init() unless stated otherwise.
 //
-// Provided resource and functions:
-// 1. Initialization and Resource Allocation
-// 2. Service Management
-// 3. Networks
-// 4. Nodes
-// 5. Node Group
+// Functional areas:
+//  1. Resource initialization (Init* / Get* — one-shot, call in Init())
+//  2. Service lifecycle management
+//  3. Ops dispatch
+//  4. Config ops dispatch
+//  5. Node topology
+//  6. Node group management
 type ASNController interface {
 
-	/*
-		Initialization and Resource Allocation
-	*/
+	// -------------------------------------------------------------------------
+	// Resource Initialization
+	// Must be called in Init(). All are one-shot; a second call returns an error.
+	// -------------------------------------------------------------------------
 
-	// InitLogger returns the logger for a service.
-	//
-	// ASN Framework manages loggers for all services, and the default log files are <servicename>-*.log.
-	// SHOULD ONLY call once. Further calls will get an error.
+	// InitLogger returns the logger for this service.
+	// Call once in Init(). Default log files are named <servicename>-*.log.
 	InitLogger() (*log.Logger, error)
 
-	// InitDocDB returns a doc DB handle.
-	//
-	// The DB is connected and ready for use through the DocDBHandler upon return.
-	// SHOULD ONLY call once for each name. Further calls will get an error.
+	// InitDocDB returns a connected document database handle.
+	// name scopes the DB instance; multiple names yield independent handles.
+	// Call once per name in Init().
 	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
 	// InitTSDB returns a connected time-series database handle.
-	//
-	// SHOULD ONLY call once for each name. Further calls will get an error.
+	// Call once per name in Init().
 	InitTSDB(name string) (commonapi.TSDBHandler, error)
 
-	// InitLocker returns a distributed locker for the service.
-	//
-	// SHOULD ONLY call once. Further calls will get an error.
+	// InitLocker returns a cluster-wide distributed lock.
+	// Call once in Init().
 	InitLocker() (Lock, error)
 
-	// GetIAM returns the IAM instance for user and group management.
-	//
-	// SHOULD ONLY call once. Further calls will get an error.
+	// GetIAM returns the IAM instance for account, group, and access management.
+	// Call once in Init().
 	GetIAM() (iam.Instance, error)
 
 	// GetSubscription returns the In-App Subscription instance.
-	//
-	// SHOULD ONLY call once. Further calls will get an error.
+	// Call once in Init().
 	GetSubscription() (subscription.Instance, error)
 
-	/*
-		Service Management
-	*/
+	// -------------------------------------------------------------------------
+	// Service Lifecycle Management
+	// -------------------------------------------------------------------------
 
-	// AddServiceToNode loads the service .so into an existing node and initializes it.
+	// AddServiceToNode loads this service's .so onto the target node and triggers Init().
+	// The node must be online (NodeStateOnline).
 	AddServiceToNode(nodeID string) error
 
-	// DeleteServiceFromNode unloads the service .so from an existing node.
+	// DeleteServiceFromNode calls Stop() + Finish() on the node's service instance,
+	// then unloads the .so. Use for permanent removal; not a substitute for StopService().
 	DeleteServiceFromNode(nodeID string) error
 
-	// StartService starts the service on the specified Service Nodes.
+	// StartService triggers Start(config) on the service running on each matched node.
+	// serviceScope and serviceScopeList determine the target set; see ServiceScope constants.
 	StartService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
-	// StopService stops the service on the specified Service Nodes.
+	// StopService triggers Stop() on the service running on each matched node.
 	StopService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
-	// ResetService resets the service on the specified Service Nodes.
+	// ResetService triggers Stop() followed by Start() on each matched node.
 	ResetService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
-	// SendServiceOps sends an op command to service nodes.
+	// -------------------------------------------------------------------------
+	// Ops Dispatch
+	// -------------------------------------------------------------------------
+
+	// SendServiceOps dispatches an op command to all nodes matched by serviceScope / serviceScopeList.
+	// Fan-out, asynchronous.
 	//
-	// The service defines the op payload. Both service.controller and service.sn
-	// should share the same structure, so they can use json.Marshal/json.Unmarshal to convert
-	// between string and the struct.
+	// If paramErr != nil, the scope or scopeList is invalid; resChan is nil.
+	// Otherwise, returns immediately; responses stream into resChan as nodes reply.
+	// resChan is closed after all nodes have responded or timed out.
+	// Check OpsResponse.FrameworkError before using ServiceResponse / ServiceError.
 	//
-	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is wrong.
-	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
-	//
-	// The service controller can listen for responses from resChan.
-	// It will return the responses from all the nodes called, followed by a close() call to the channel.
-	// There will be a timeout context, so the service controller will eventually get responses from each node called.
-	//
-	// Example:
-	//   for res := range resChan {
-	//     // do something...
-	//   }
+	//	resChan, paramErr := ctrl.SendServiceOps(scope, list, cmd, params)
+	//	if paramErr != nil { ... }
+	//	for res := range resChan {
+	//	    if res.FrameworkError != nil { ... }
+	//	}
 	SendServiceOps(
 		serviceScope commonapi.ServiceScope, serviceScopeList []string,
 		opCmd, opParams string,
 	) (resChan <-chan *OpsResponse, paramErr error)
 
-	// SendServiceOpsToNode sends an op command to service nodes.
-	//
-	// This function is a simplified version for SendServiceOps.
-	// It sends the op to ONE node, and WAITS for the node to response before returning.
-	//
-	// There will be a timeout context, so the service controller will eventually get a response from the node called.
+	// SendServiceOpsToNode dispatches an operation to a single node and blocks until it responds or times out.
+	// If paramErr != nil, nodeID is invalid; res is nil.
+	// Check res.FrameworkError before using res.ServiceResponse / res.ServiceError.
 	SendServiceOpsToNode(nodeID string, opCmd, opParams string) (res *OpsResponse, paramErr error)
 
-	// AddConfigOps add config operations under a node or node group
-	//
-	// ASN will save the ops under the node group or node, and send the notification to service node to apply the ops
-	//
-	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is incorrect.
-	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
-	//
-	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
-	// configParams is a list of config operation params defined by Service and unrecognizable by ASN
+	// -------------------------------------------------------------------------
+	// Config Ops Dispatch
+	// Scope is limited to ServiceScopeNodeGroup (3) or ServiceScopeNode (4).
+	// -------------------------------------------------------------------------
+
+	// AddConfigOps persists new config ops for the given scope, then fans out to all affected nodes.
+	// If paramErr != nil, scope or scopeID is invalid; resChan is nil.
+	// Otherwise, returns immediately; each OpsResponse reflects the result of ASNService.AddConfigOps on that node.
+	// resChan is closed after all nodes have responded or timed out.
 	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) (resChan <-chan *OpsResponse, paramErr error)
 
-	// UpdateConfigOp updates config operation under a node or node group
-	//
-	// ASN will update the op saved in the node group or node and send the notification to service node to update the op
-	//
-	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is incorrect.
-	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
-	//
-	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
+	// UpdateConfigOp updates a single config op identified by configOpID, persists the change,
+	// and fans out to affected nodes.
+	// If paramErr != nil, scope or scopeID is invalid; resChan is nil.
 	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) (resChan <-chan *OpsResponse, paramErr error)
 
-	// DeleteConfigOps deletes config operations under a node or node group
-	//
-	// ASN will remove the ops from the node group or node and send the notification to service node to delete the ops
-	//
-	// If a paramErr is returned directly, it indicates that the input serviceScope or serviceScopeList is incorrect.
-	// Otherwise, the function will return success immediately, and a channel for responses will be returned.
-	//
-	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
-	// configOpIDs is a list of config operation IDs, ASN use the ID to locate the service operations
+	// DeleteConfigOps removes config ops by ID for the given scope, persists, and fans out to affected nodes.
+	// If paramErr != nil, scope or scopeID is invalid; resChan is nil.
 	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) (resChan <-chan *OpsResponse, paramErr error)
 
-	// ListConfigOps lists config operations under a node or node group
-	//
-	// Will only list the config operations directly under the scope. That means will not return config operations under node group if request for node
-	//
-	// serviceScope can only be "3 - node group" or "4 - node", scopeID is the corresponding nodeGroupID or nodeID
+	// ListConfigOps returns config ops directly attached to the given scope.
+	// Does not traverse the group-to-node inheritance hierarchy.
+	// Synchronous; does not fan out to nodes.
 	ListConfigOps(serviceScope commonapi.ServiceScope, scopeID string) ([]ConfigOp, error)
 
-	/*
-		Networks
-	*/
+	// -------------------------------------------------------------------------
+	// Node Topology
+	// -------------------------------------------------------------------------
 
-	// GetNetworks returns all networks, their info, and subnetworks in the topology.
+	// GetNetworks returns the full network tree. Each Network embeds nested Networks (subnetworks).
 	GetNetworks() ([]*Network, error)
 
-	/*
-		Nodes
-	*/
-
-	// GetNodeByID returns a node's info by ID that includes Metadata set by the service.
+	// GetNodeByID returns full node details: hardware info, service-defined Metadata,
+	// and ServiceInfo (service state, config source, active config ops).
 	GetNodeByID(nodeID string) (*Node, error)
 
-	// UpdateNodeMetadata updates a service-specific metadata for the Node.
-	//
-	// The framework stores the Metadata for services and can be retrieved by GetNodeByID.
+	// UpdateNodeMetadata persists an opaque service-defined string on the node.
+	// Retrievable via GetNodeByID().Metadata.
 	UpdateNodeMetadata(nodeID, metadata string) error
 
-	// SetConfigOfNode saves the service config for a node.
-	//
-	// config is expected to contain YAML (UTF-8).
+	// SetConfigOfNode persists the service config (YAML, UTF-8) for the node.
+	// Used on the next StartService() call targeting this node.
 	SetConfigOfNode(nodeID, config string) error
 
-	// GetNodesOfNetwork returns all nodes of a network, and its internal and external links.
-	//
-	// If withService is true, only nodes currently with this service are returned.
-	//
-	// Links may contain two types:
-	// - Internal links connect nodes within the same network; referenced nodes are included in the returned nodes slice.
-	// - External links connect in-network nodes to external "To" nodes via NodeExternalLink.
+	// GetNodesOfNetwork returns all nodes of a network and its links.
+	// If withService is true, only nodes that have this service loaded are returned.
+	// Internal links: both endpoints within the network; the To node is included in the returned nodes slice.
+	// External links: the To endpoint is outside the network and is not included in nodes.
 	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
 
-	// SubscribeNodeStateChanges returns a receive-only channel for node state changes.
-	//
-	// Upon subscription, the channel first yields all initial states, then the following state changes.
-	// SHOULD ONLY be called once. Further calls will get an error.
+	// SubscribeNodeStateChanges returns a channel for node state changes.
+	// One-shot: a second call returns an error.
+	// On subscription, the channel first delivers a NodeStateChange for every node's current state
+	// (initial snapshot), then delivers incremental changes. The channel is never closed during
+	// normal framework operation.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
-	/*
-		Node Group
-	*/
+	// -------------------------------------------------------------------------
+	// Node Group Management
+	// All methods are re-entrant.
+	// -------------------------------------------------------------------------
 
-	// CreateNodeGroup creates a node group for *this* service.
+	// CreateNodeGroup creates a node group scoped to this service within the given network.
 	CreateNodeGroup(networkID, name, description, metadata string) error
 
-	// ListNodeGroups returns all node groups for *this* service.
+	// ListNodeGroups returns all node groups for this service in the given network.
 	ListNodeGroups(networkID string) ([]*NodeGroup, error)
 
-	// GetNodeGroupByID returns a node group's info by ID that includes service metadata.
+	// GetNodeGroupByID returns group details including service-defined Metadata and active ConfigOps.
 	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
 
-	// UpdateNodeGroupMetadata updates a node group's metadata used by *this* service.
+	// UpdateNodeGroupMetadata persists service-defined metadata on the group.
 	UpdateNodeGroupMetadata(nodeGroupID, metadata string) error
 
-	// DeleteNodeGroup removes a node group for *this* service.
+	// DeleteNodeGroup removes the node group. Member nodes are not affected.
 	DeleteNodeGroup(nodeGroupID string) error
 
-	// SetConfigOfNodeGroup saves the service config for a node group.
-	//
-	// config format is private to the service.
+	// SetConfigOfNodeGroup persists service config for the group.
+	// Member nodes inherit this config unless they have a node-level config override.
 	SetConfigOfNodeGroup(nodeGroupID, config string) error
 
-	// AddNodesToNodeGroup adds the specified nodes to the node group identified by ID.
+	// AddNodesToNodeGroup adds the specified nodes to the group.
 	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error
 
-	// RemoveNodesFromNodeGroup removes the specified nodes from the node group identified by ID.
+	// RemoveNodesFromNodeGroup removes the specified nodes from the group.
 	RemoveNodesFromNodeGroup(nodeGroupID string, nodeIDs []string) error
 }

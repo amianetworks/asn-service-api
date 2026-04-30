@@ -27,3 +27,6 @@ go.work.sum
 
 .idea/
 scripts/builder/ssh/id_rsa
+
+.cursor/
+.claude/

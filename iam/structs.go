@@ -9,7 +9,7 @@ type MfaType string
 const (
 	MfaTypeTotp    MfaType = "totp"
 	MfaTypeEmail   MfaType = "email"
-	MfaTypePhone   MfaType = "phone"
+	MfaTypeSms     MfaType = "sms"
 	MfaTypePasskey MfaType = "passkey"
 )
 

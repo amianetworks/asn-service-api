@@ -7,100 +7,77 @@ import (
 	"asn.amiasys.com/asn-service-api/v26/log"
 )
 
-// ASNServiceNode contains the APIs provided by ASN Service Node.
+// ASNServiceNode is the framework-provided handle passed to ASNService.Init().
+// All methods are goroutine-safe after Init() unless stated otherwise.
 //
-// 1. Initialization
-// 2. Node Info
-// 3. SendMessageToController
+// Functional areas:
+//  1. Resource initialization (Init* — one-shot, call in Init())
+//  2. Node information
+//  3. Controller communication
+//  4. Cross-service data access
 type ASNServiceNode interface {
-	/*
-		Initialization and Resource Allocation
-	*/
 
-	// InitLogger returns a logger dedicated to the service.
-	//
-	// ASN Framework manages logging for all services, and the default log files are <servicename>-*.log.
-	// SHOULD ONLY call once. Further calls will get an error.
+	// -------------------------------------------------------------------------
+	// Resource Initialization
+	// Must be called in Init(). All are one-shot; a second call returns an error.
+	// -------------------------------------------------------------------------
+
+	// InitLogger returns the logger for this service.
+	// Call once in Init(). Default log files are named <servicename>-*.log.
 	InitLogger() (*log.Logger, error)
 
-	// InitDocDB returns a doc DB handle.
-	//
-	// The DB is connected and ready for use through the DocDBHandler upon return.
-	// SHOULD ONLY call once for each name. Further calls will get an error.
+	// InitDocDB returns a connected document database handle.
+	// name scopes the DB instance; multiple names yield independent handles.
+	// Call once per name in Init().
 	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
-	// InitTSDB returns a doc DB handle.
-	//
-	// The DB is connected and ready for use through the TSDBHandler upon return.
-	// SHOULD ONLY call once for each name. Further calls will get an error.
+	// InitTSDB returns a connected time-series database handle.
+	// Call once per name in Init().
 	InitTSDB(name string) (commonapi.TSDBHandler, error)
 
-	// Placeholder for Locker, in case it's necessary.
-	// Placeholder for IAM, in case it's necessary.
+	// -------------------------------------------------------------------------
+	// Node Information
+	// -------------------------------------------------------------------------
 
-	/*
-		Node Info
-	*/
-
-	// GetNodeType returns the service node's type.
+	// GetNodeType returns the hardware/role type of this node.
 	GetNodeType() commonapi.NodeType
 
-	// GetNodeInfo returns the service node's info.
+	// GetNodeInfo returns this node's hardware info, management addresses,
+	// and the active ConfigOps string list.
 	GetNodeInfo() *NodeInfo
 
-	/*
-		SendMessageToController
-	*/
+	// -------------------------------------------------------------------------
+	// Controller Communication
+	// -------------------------------------------------------------------------
 
-	// SendMessageToController
-	//
-	// Service Node may send a formated message to its controller, which may handle the message by
-	// implementing HandleMessageFromNode(). NO DIRECT RESPONSE to the message should be expected.
+	// SendMessageToController sends a fire-and-forget upcall to the service controller,
+	// handled by ASNServiceController.HandleMessageFromNode().
+	// No response is returned. To receive a reply, the controller must initiate a
+	// separate SendServiceOpsToNode() call.
 	SendMessageToController(messageType, payload string) error
 
-	// GetSharedData returns the shared data's keys that a service provides.
-	//
-	// `aggregated` are the data's keys that can be queried.
-	// `subscribable` are the data's keys that can be subscribed to.
-	//
-	// If the given serviceName does not exist, ErrServiceNotFound will be returned.
+	// -------------------------------------------------------------------------
+	// Cross-Service Data Access
+	// Enables data exchange between services co-located on the same node.
+	// -------------------------------------------------------------------------
+
+	// GetSharedData returns the key sets advertised by another service on this node.
+	// aggregated: keys queryable via QueryServiceSharedData (pull model).
+	// subscribable: keys subscribable via SubscribeServiceSharedData (push model).
+	// Returns ErrServiceNotFound if the named service is not loaded.
 	GetSharedData(serviceName string) (aggregated, subscribable []string, err error)
 
-	// QueryServiceSharedData asks a service for data's values based on the given keys.
-	//
-	// This function works in pairs with `ASNService.OnQuerySharedData`.
-	// It is used for fetching data from another service.
-	// If you wish to subscribe to TS-like data, use `ASNServiceNode.SubscribeServiceSharedData` instead.
-	//
-	// In some cases, services need to query another service for data.
-	// If the service you are implementing is a data CONSUMER, i.e., you will ask another service for data,
-	// this is the function you should call when you need to get the values.
-	// Otherwise, you can ignore this function.
-	//
-	// The keys should be negotiated between services beforehand so that other services know what you are providing.
-	//
-	// If the given serviceName does not exist, ErrServiceNotFound will be returned.
-	// If one of the given keys does not exist, ErrKeyNotFound will be returned.
+	// QueryServiceSharedData fetches current values for the given keys from another service.
+	// Pairs with ASNService.OnQuerySharedData on the provider side.
+	// Key names and value types must be agreed upon out-of-band between service teams.
+	// Returns ErrServiceNotFound or ErrKeyNotFound on failure.
 	QueryServiceSharedData(serviceName string, keys []string) (values map[string]any, err error)
 
-	// SubscribeServiceSharedData subscribes to data's values from a service based on the given keys.
-	//
-	// This function works in pairs with `ASNService.OnSubscribeSharedData`.
-	// It is used for subscribing to TS-like data.
-	// If you wish to fetch data, use `ASNServiceNode.QueryServiceSharedData` instead.
-	//
-	// In some cases, services need to subscribe to data from another service.
-	// If the service you are implementing is a data CONSUMER, i.e., you will ask another service for data,
-	// this is the function you should call when you need to subscribe to the values.
-	// Otherwise, you can ignore this function.
-	//
-	// The keys should be negotiated between services beforehand so that other services know what you are providing.
-	//
-	// If the given serviceName does not exist, ErrServiceNotFound will be returned.
-	// If one of the given keys does not exist, ErrKeyNotFound will be returned.
-	// For each key, after all values are dumped, the returned channel will be closed.
-	//
-	// CAUTION: for each key, only one subscription is allowed.
-	// Multiple subscriptions before the previous one closes will lead to unexpected results.
+	// SubscribeServiceSharedData subscribes to a stream of values for the given keys from another service.
+	// Pairs with ASNService.OnSubscribeSharedData on the provider side.
+	// Each returned channel is closed by the provider when the stream ends.
+	// Constraint: only one active subscription per key is permitted at a time.
+	// Opening a second subscription before the first channel closes is undefined behavior.
+	// Returns ErrServiceNotFound or ErrKeyNotFound on failure.
 	SubscribeServiceSharedData(serviceName string, keys []string) (values map[string]<-chan any, err error)
 }
