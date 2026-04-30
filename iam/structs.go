@@ -53,6 +53,9 @@ type Account struct {
 	Passkeys   []AccountPasskey
 	MfaEnabled bool
 
+	// ServiceAdmin is true for accounts managed by ASN Controller rather than by the service itself.
+	// The service cannot create, delete, or modify these accounts, but must grant them full access.
+	// These accounts appear in AccountList and AccountListByIDs results.
 	ServiceAdmin bool
 	Groups       []string
 

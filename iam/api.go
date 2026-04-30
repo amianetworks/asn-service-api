@@ -340,8 +340,9 @@ type Instance interface {
 	// AccessList returns all access rules in this service's namespace.
 	AccessList() ([]*Access, error)
 
-	// AccountAccessList returns all effective access rules for the account,
-	// keyed by the namespace (service name) each access belongs to.
+	// AccountAccessList returns all effective access rules for the account.
+	// The map key is the service namespace name; in practice each service only receives
+	// accesses under its own namespace. The map structure aligns with the IAM interface for UI reuse.
 	AccountAccessList(accountID string) (map[string][]*Access, error)
 
 	// GroupAccessList returns all access rules currently granted to the group.
