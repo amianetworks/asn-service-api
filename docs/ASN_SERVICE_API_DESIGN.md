@@ -116,55 +116,127 @@ Framework-owned; services cannot set it directly.
 | `2` | `NodeStateOnline` | Connected and reachable |
 | `3` | `NodeStateMaintenance` | Online but in maintenance mode |
 
+#### Node State Transition Diagram
+
 ```
-Unregistered ──► Offline ◄──► Online ◄──► Maintenance
+                    ┌─────────────────────────────────────────────┐
+                    │                                             │
+Unregistered ──(register)──► Offline ◄──(disconnect)── Online ◄──► Maintenance
+                                │                        ▲
+                                └────────(heartbeat)─────┘
 ```
 
-`NodeStateChange` events carry the updated `NodeState`, current `ServiceState`, `FrameworkError` (non-nil on framework-level failures), and `ServiceError` (non-nil when the service reported an error during transition). In-flight ops to an `Offline` node yield `FrameworkErrNodeDisconnected`.
+First-time registration always lands in `Offline`. Subsequent heartbeats drive transitions between `Offline`, `Online`, and `Maintenance`. The framework broadcasts every state change via `SubscribeNodeStateChanges()`.
+
+#### Per-State Capabilities
+
+| | Unregistered | Offline | Online | Maintenance |
+|---|---|---|---|---|
+| Register node | ✓ | — | — | — |
+| Subscribe to node stream | — | ✓ (required) | — | — |
+| Send service commands (Start / Stop / Reset) | — | — | ✓ | ✓ |
+| Send service ops (`SendServiceOps`) | — | ✗ `NodeDisconnected` | ✓ | ✓ |
+| Send config ops | — | ✗ `NodeDisconnected` | ✓ | ✓ |
+| Receive `NodeStateChange` events | — | ✓ | ✓ | ✓ |
+
+**Side effect on going `Offline`:** The framework immediately sets every loaded service on that node to `ServiceStateUnavailable`. All in-flight ops return `FrameworkErrNodeDisconnected`.
+
+**`SubscribeNodeStateChanges`** — one-shot; a second call errors. Delivers an initial snapshot of all registered nodes, then incremental changes. The channel is never closed during normal operation.
+
+`NodeStateChange` events carry the updated `NodeState`, current `ServiceState`, `FrameworkError` (non-nil on framework-level failures), and `ServiceError` (non-nil when the service reported an error during transition).
+
+---
 
 ### Service States (`commonapi.ServiceState`)
 
-Tracked independently per node.
+Tracked independently per node. The framework owns all transitions; the service influences them only through return values from `Init()`, `Start()`, `Stop()`, and config op methods.
 
 | Value | Constant | Meaning |
 |---|---|---|
-| `0` | `ServiceStateUnavailable` | `.so` not loaded |
-| `1` | `ServiceStateUninitialized` | Loaded; `Init()` not yet succeeded |
-| `2` | `ServiceStateInitialized` | `Init()` succeeded |
-| `3` | `ServiceStateConfiguring` | Applying config or config ops |
-| `4` | `ServiceStateRunning` | `Start()` succeeded |
-| `5` | `ServiceStateMalfunctioning` | Fatal error or config op failure |
+| `0` | `ServiceStateUnavailable` | `.so` not loaded, or node went `Offline` |
+| `1` | `ServiceStateUninitialized` | Loaded; `Init()` not yet called or failed |
+| `2` | `ServiceStateInitialized` | `Init()` succeeded; ready to start |
+| `3` | `ServiceStateConfiguring` | `Start()` in progress (transient) |
+| `4` | `ServiceStateRunning` | `Start()` succeeded; fully operational |
+| `5` | `ServiceStateMalfunctioning` | Fatal error; must be explicitly restarted |
+
+#### Service State Transition Diagram
 
 ```
-Unavailable ──(AddServiceToNode)──► Uninitialized ──(Init ok)──► Initialized
-                                                                      │
-                                    ◄──(StopService ok)───────────────┤
-                                                                      │(Start)
-                                                               Configuring ◄──► Running
-                                                                                   │
-                                                                             Malfunctioning
+                       node Offline / unload
+                    ◄──────────────────────────────────────────────────────────┐
+                    │                                                           │
+Unavailable ──(load+Init ok)──► Initialized ──(StartService)──► Configuring ──(Start ok)──► Running
+                │                    ▲                               │                          │
+                │                    │                               │ Start timeout            │ runtimeErrChan
+                │             StopService ok                         │ or error                 │ config op error
+                │                    │                               ▼                          │ Stop timeout/error
+                │                    └──────────────────── Malfunctioning ◄────────────────────┘
+                │                                               │
+                └── Init failed ──────────────────────────────►│ (stays Uninitialized, not Malfunctioning)
 ```
 
-**Service-side state triggers:**
+Key asymmetry: `Init()` failure leaves the service in `Uninitialized` (not `Malfunctioning`). Only post-`Init()` failures produce `Malfunctioning`.
 
-| Trigger | Effect |
-|---|---|
-| `Init()` error | Stays `Uninitialized` |
-| `Start()` → `ErrRestartNeeded` | Framework: `Stop()` → `Start()` with new config (no re-init) |
-| `Start()` → other error | → `Malfunctioning` |
-| `runtimeErrChan` receives value | → `Malfunctioning` |
-| Config op method returns error | → `Malfunctioning` |
+#### Per-State Capabilities
 
-**`FrameworkError` values in `OpsResponse`:**
+The table below answers: *when the service is in state X, which framework operations are allowed?*
+
+| Operation | Unavailable | Uninitialized | Initialized | Configuring | Running | Malfunctioning |
+|---|---|---|---|---|---|---|
+| `AddServiceToNode` (load + Init) | ✓ | — | — | — | — | — |
+| `DeleteServiceFromNode` (unload) | ✓ | ✓ | ✓ | ✓ (stops first) | ✓ (stops first) | ✓ (stops first) |
+| `StartService` | — | — | ✓ | — | — | ✓ |
+| `StopService` | — | — | — | ✓ | ✓ | ✓ |
+| `ResetService` (full reload) | — | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `StartService` with updated config (hot-reload) | — | — | — | ✓ | ✓ | ✓ |
+| `SendServiceOps` / `ApplyServiceOps` | ✗ | ✗ | ✗ | ✗ | **✓ only** | ✗ |
+| `AddConfigOps` | ✗ | ✗ | ✗ | ✗ | **✓ only** | ✗ |
+| `UpdateConfigOp` | ✗ | ✗ | ✗ | ✗ | **✓ only** | ✗ |
+| `DeleteConfigOps` | ✗ | ✗ | ✗ | ✗ | **✓ only** | ✗ |
+
+`✗` returns `FrameworkErrServiceStateNotAllowed`. `—` means the operation is silently skipped or is inapplicable (not an error).
+
+**Critical rule:** `ApplyServiceOps` and all three config op methods (`AddConfigOps`, `UpdateConfigOp`, `DeleteConfigOps`) are only dispatched to a service node when that service is in `Running`. Any other state produces `FrameworkErrServiceStateNotAllowed` in the `OpsResponse`.
+
+#### State Transition Reference
+
+| From | To | Trigger |
+|---|---|---|
+| `Unavailable` | `Uninitialized` | `AddServiceToNode`: `.so` loaded, `Init()` not yet called |
+| `Uninitialized` | `Initialized` | `Init()` returns `nil` |
+| `Uninitialized` | `Uninitialized` | `Init()` returns error (stays; retryable via `ResetService`) |
+| `Initialized` | `Configuring` | `StartService` dispatched |
+| `Malfunctioning` | `Configuring` | `StartService` dispatched |
+| `Configuring` | `Running` | `Start()` returns `nil` |
+| `Configuring` | `Malfunctioning` | `Start()` returns non-`ErrRestartNeeded` error, or start timeout |
+| `Running` | `Configuring` | `StartService` dispatched with updated config (hot-reload attempt) |
+| `Configuring` | `Configuring` | `Start()` returns `ErrRestartNeeded` → framework calls `Stop()` then `Start()` again (no re-`Init()`) |
+| `Running` | `Malfunctioning` | `runtimeErrChan` receives a value |
+| `Running` | `Malfunctioning` | Any config op method returns error |
+| `Running` | `Malfunctioning` | `Stop()` times out or returns error |
+| `Configuring` | `Initialized` | `StopService` succeeds |
+| `Running` | `Initialized` | `StopService` succeeds |
+| `Malfunctioning` | `Initialized` | `StopService` succeeds |
+| `Configuring` / `Running` / `Malfunctioning` | `Unavailable` | Node transitions to `Offline` (framework-forced) |
+| Any | `Unavailable` | `DeleteServiceFromNode` (unload) |
+
+#### `ErrRestartNeeded` Semantics
+
+When `Start()` returns `ErrRestartNeeded`, the framework interprets this as "hot-reload is not supported for this config delta." It automatically executes `Stop()` → `Start(newConfig)` — **without calling `Init()` again** — and the service stays in `Configuring` throughout. The net result is `Configuring → Running` or `Configuring → Malfunctioning` as usual; the intermediate stop is transparent to the caller.
+
+#### `FrameworkError` Values in `OpsResponse`
 
 | Error | Cause |
 |---|---|
-| `FrameworkErrServiceTimeout` | Node reachable; service did not respond in time |
-| `FrameworkErrNodeDisconnected` | Node offline |
-| `FrameworkErrServiceUnavailable` | Service not loaded on node |
-| `FrameworkErrServiceStateNotAllowed` | Service not in `Running` state |
+| `FrameworkErrServiceTimeout` | Node reachable; service did not respond within the per-call deadline |
+| `FrameworkErrNodeDisconnected` | Node is `Offline` |
+| `FrameworkErrServiceUnavailable` | Service `.so` not loaded on the node |
+| `FrameworkErrServiceStateNotAllowed` | Service exists but is not in `Running` |
 
 When `FrameworkError != nil`, `ServiceResponse` and `ServiceError` are undefined.
+
+---
 
 ### Config Source (`commonapi.ServiceSource`)
 
@@ -858,10 +930,10 @@ world → country → state → city → district → campus → building → fl
 
 ```go
 type Link struct {
-    ID          string    // UUID
-    Description string
-    Bandwidth   int64     // bps; symmetric
-    From, To    *LinkNode // {NodeID, Interface}
+ID          string    // UUID
+Description string
+Bandwidth   int64     // bps; symmetric
+From, To    *LinkNode // {NodeID, Interface}
 }
 ```
 
