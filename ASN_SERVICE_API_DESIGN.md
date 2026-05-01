@@ -1,1 +1,0 @@
-docs/ASN_SERVICE_API_DESIGN.md

@@ -1,7 +1,7 @@
 # ASN Service API
 
 Interface package shared by all services built on the ASN (Amiasys Service Network) distributed framework.  
-For the full API contract, see [ASN_SERVICE_API_DESIGN.md](ASN_SERVICE_API_DESIGN.md).
+For the full API contract, see [DESIGN.md](DESIGN.md).
 
 ## Module
 
