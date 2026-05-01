@@ -38,21 +38,13 @@ Issues not yet resolved in the current API design. These must be decided before 
 
 ASN is a distributed control-plane framework with a fixed topology: **one Controller** (management plane) paired with **N Service Nodes** (data plane). Services are loaded as **`.so` shared libraries** at runtime.
 
-```
-┌────────────────────────────────────────────────────────┐
-│                     ASN Framework                      │
-│   ┌──────────────────────────────┐  (single instance)  │
-│   │        ASN Controller        │                     │
-│   │  impl:  ASNController        │                     │
-│   │  calls: ASNServiceController │                     │
-│   └──────────────┬───────────────┘                     │
-│                  │ manages N nodes                     │
-│   ┌──────────────▼───────────────┐  (one per node)     │
-│   │     ASN Service Node ×N      │                     │
-│   │  impl:  ASNServiceNode       │                     │
-│   │  calls: ASNService           │                     │
-│   └──────────────────────────────┘                     │
-└────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Framework["ASN Framework"]
+        C["ASN Controller (single instance)<br/>impl: ASNController<br/>calls: ASNServiceController"]
+        N["ASN Service Node ×N (one per node)<br/>impl: ASNServiceNode<br/>calls: ASNService"]
+        C -->|manages N nodes| N
+    end
 ```
 
 The framework owns all topology (networks, nodes, groups); services observe and annotate it. Services do not communicate through the framework's network layer — intra-node cross-service data exchange uses the Shared Data mechanism (§9).
@@ -74,16 +66,20 @@ The framework owns all topology (networks, nodes, groups); services observe and 
 
 ## 3. Object Relationships and Ownership
 
-```
-  SERVICE-IMPLEMENTED                   FRAMEWORK-PROVIDED
-  ┌─────────────────────┐               ┌─────────────────────┐
-  │ ASNServiceController│◄─ lifecycle ──│   ASNController     │
-  │                     │──── calls ───►│                     │
-  └─────────────────────┘               └─────────────────────┘
-  ┌─────────────────────┐               ┌─────────────────────┐
-  │     ASNService      │◄─ lifecycle ──│   ASNServiceNode    │
-  │                     │──── calls ───►│                     │
-  └─────────────────────┘               └─────────────────────┘
+```mermaid
+graph LR
+    subgraph SVC["SERVICE-IMPLEMENTED"]
+        SC[ASNServiceController]
+        S[ASNService]
+    end
+    subgraph FW["FRAMEWORK-PROVIDED"]
+        AC[ASNController]
+        SN[ASNServiceNode]
+    end
+    AC -->|lifecycle| SC
+    SC -->|calls| AC
+    SN -->|lifecycle| S
+    S -->|calls| SN
 ```
 
 | Interface | Implemented by | Consumed by |
@@ -114,12 +110,15 @@ Framework-owned; services cannot set it directly.
 
 #### Node State Transition Diagram
 
-```
-                    ┌─────────────────────────────────────────────┐
-                    │                                             │
-Unregistered ──(register)──► Offline ◄──(disconnect)── Online ◄──► Maintenance
-                                │                        ▲
-                                └────────(heartbeat)─────┘
+```mermaid
+stateDiagram-v2
+    [*] --> Unregistered
+    Unregistered --> Offline : register
+    Offline --> Online : heartbeat
+    Online --> Offline : disconnect
+    Online --> Maintenance : enter maintenance
+    Maintenance --> Online : exit maintenance
+    Maintenance --> Offline : disconnect
 ```
 
 First-time registration always lands in `Offline`. Subsequent heartbeats drive transitions between `Offline`, `Online`, and `Maintenance`. The framework broadcasts every state change via `SubscribeNodeStateChanges()`.
@@ -158,40 +157,33 @@ Tracked independently per node. The framework owns all transitions; the service 
 
 #### Service State Transition Diagram
 
-```
-                           reset (full reload, re-runs Init)
-              ┌──────────────────────────────────────────────┐
-              │                                              │
-UNAVAILABLE ─(load .so)─► UNINITIALIZED ─(Init ok, auto)─► INITIALIZED
-    ▲                           │ Init fail (stays)              │
-    │                           ▼                                │
-    │                      UNINITIALIZED             cluster mode│  non-cluster
-    │                                                            │
-    │ cluster:                                  registration to controller
-    │ registration fail                                          │ succeed
-    └───────────────────────── fail ─────────────────────────────┤
-                                                                 │ non-cluster: (skip)
-                                                                 ▼
-                                                    auto-start, or wait for start command
-                                                                 │
-                                                           start service
-                                                                 │
-                                                            CONFIGURING
-                                                           ╱            ╲
-                                                  Start() ok         Start() fail / timeout
-                                                       │                      │
-                                                       ▼                      ▼
-                                                    RUNNING ──────────► Malfunctioning
-                                                   ╱    │    ╲               ╱ ╲
-                                    update config ╱     │     ╲  stop/reset    │
-                                    received:    ╱      │      ╲ succeed  fail (stays)
-                         ErrRestartNeeded:      ╱       │       ▼
-                           Stop() → Start(new) ─►       │   INITIALIZED
-                         hot-reload:            │       │
-                           Start(new) ──────────┘   runtimeErrChan / ops fail ──► Malfunctioning
-                                │                   connection fail:
-                                ▼                     auto-stop=yes ──────────► INITIALIZED
-                           CONFIGURING                auto-stop=no  ──────────► Malfunctioning
+```mermaid
+stateDiagram-v2
+    direction TB
+    [*] --> Unavailable
+
+    Unavailable --> Uninitialized : load .so
+
+    Uninitialized --> Initialized : Init ok
+    Uninitialized --> Uninitialized : Init fail
+
+    Initialized --> Unavailable : cluster registration fail
+    Initialized --> Configuring : StartService
+    Initialized --> Uninitialized : ResetService
+
+    Malfunctioning --> Configuring : StartService
+
+    Configuring --> Running : Start ok
+    Configuring --> Malfunctioning : Start fail or timeout
+    Configuring --> Initialized : StopService
+    Configuring --> Configuring : ErrRestartNeeded
+
+    Running --> Configuring : update config
+    Running --> Initialized : StopService, or connection fail with auto-stop yes
+    Running --> Malfunctioning : runtimeErrChan, ops fail, or connection fail with auto-stop no
+
+    Malfunctioning --> Initialized : StopService or ResetService succeeds
+    Malfunctioning --> Malfunctioning : StopService or ResetService fails
 ```
 
 **`Init()` is triggered automatically** by the framework after `.so` load. `Uninitialized` is a stable state only when `Init()` fails — `Init()` failure does **not** produce `Malfunctioning`; the service stays retryable via `ResetService`.
@@ -338,12 +330,18 @@ Persistent, incremental configuration directives stored per node or node group. 
 
 ### Data Flow
 
-```
-Controller                    Framework                 Service Node
-ASNController.AddConfigOps()
-  ├─ persist ────────────────────────────────────────► ASNService.AddConfigOps()
-  └─ OpsResponse chan ◄────────────────────────────────
-ASNServiceController.AddConfigOps()  ← controller-side hook (⚠ Open Item #1)
+```mermaid
+sequenceDiagram
+    participant C as Controller
+    participant F as Framework
+    participant SN as Service Node
+
+    C->>F: ASNController.AddConfigOps()
+    F->>F: persist
+    F->>SN: ASNService.AddConfigOps()
+    SN-->>F: OpsResponse
+    F-->>C: OpsResponse chan
+    F->>C: ASNServiceController.AddConfigOps() ⚠ Open Item #1
 ```
 
 Framework persists and dispatches to nodes **before** invoking `ASNServiceController.AddConfigOps()`.
