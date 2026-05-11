@@ -197,6 +197,7 @@ type DeviceInfo struct {
 	Name         string
 	Model        string
 	SerialNumber string
+	Version      string
 	PushToken    string
 	Metadata     string
 }
