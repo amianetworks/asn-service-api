@@ -27,3 +27,11 @@ type NodeInfo struct {
 	// ConfigOps is the list of active config op param strings applied to this node.
 	ConfigOps []string
 }
+
+// SlaveNodeInfo contains the identifying information for a slave node managed by the master node.
+type SlaveNodeInfo struct {
+	Management *commonapi.Management
+	DeviceInfo *commonapi.DeviceInfo
+
+	GrpcUrl string
+}

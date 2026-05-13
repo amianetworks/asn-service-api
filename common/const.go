@@ -13,6 +13,13 @@ const (
 	NodeStateMaintenance                   // online but in maintenance mode
 )
 
+type NodeMode string
+
+const (
+	NodeModeCluster    NodeMode = "cluster"
+	NodeModeStandalone NodeMode = "standalone"
+)
+
 // ServiceState is the operational state of a service on a specific node.
 // The framework tracks this independently per node.
 // Services influence it only through return values and runtimeErrChan.

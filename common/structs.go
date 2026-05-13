@@ -16,6 +16,7 @@ type Coordinates struct {
 }
 
 type NodeInfo struct {
+	Mode        NodeMode
 	Interfaces  map[string]*Interface
 	Ipmi        *Ipmi
 	Management  *Management

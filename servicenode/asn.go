@@ -46,6 +46,10 @@ type ASNServiceNode interface {
 	// and the active ConfigOps string list.
 	GetNodeInfo() *NodeInfo
 
+	// GetSlaveNodes returns the slave nodes configured for this master node.
+	// Returns nil if this node is not a master node or has no slave nodes configured.
+	GetSlaveNodes() []*SlaveNodeInfo
+
 	// -------------------------------------------------------------------------
 	// Controller Communication
 	// -------------------------------------------------------------------------
