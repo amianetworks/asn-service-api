@@ -54,23 +54,6 @@ type ASNServiceController interface {
 	// Each invocation must fully supersede the previous config.
 	Start(config string) error
 
-	// AddConfigOps is called after the framework persists and dispatches config ops to affected
-	// service nodes. Implement controller-side bookkeeping here (routing, policy, in-memory state).
-	// Concurrent with other callbacks; guard shared state.
-	// serviceScope is ServiceScopeNodeGroup (3) or ServiceScopeNode (4); scopeID is the corresponding ID.
-	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) error
-
-	// UpdateConfigOp is called after the framework persists the config op update and notifies nodes.
-	// configOpID identifies the existing op being replaced.
-	// Concurrent with other callbacks; guard shared state.
-	// serviceScope is ServiceScopeNodeGroup (3) or ServiceScopeNode (4).
-	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) error
-
-	// DeleteConfigOps is called after the framework removes the ops from storage and notifies nodes.
-	// Concurrent with other callbacks; guard shared state.
-	// serviceScope is ServiceScopeNodeGroup (3) or ServiceScopeNode (4).
-	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) error
-
 	// HandleMessageFromNode handles upcalls from service nodes sent via ASNServiceNode.SendMessageToController().
 	// Concurrent — messages from multiple nodes may arrive simultaneously; guard shared state.
 	// No direct response channel exists; to reply, initiate a SendServiceOpsToNode() call.
