@@ -20,6 +20,7 @@ import (
 //  7. Passkey (WebAuthn)
 //  8. Device management
 //  9. Groups
+//
 // 10. Accesses
 type Instance interface {
 
@@ -271,9 +272,6 @@ type Instance interface {
 	// Device Management
 	// The framework tracks one Device record per (account, device) pair.
 	// -------------------------------------------------------------------------
-
-	// DeviceLimitUpdate sets the maximum number of concurrent active devices for the account.
-	DeviceLimitUpdate(accountID string, limit int) error
 
 	// DeviceInfoUpdate updates the stored device record (push token, model, metadata, etc.).
 	DeviceInfoUpdate(accountID string, device *Device) error

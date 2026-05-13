@@ -41,7 +41,6 @@ type Account struct {
 	Username         string
 	UsernameModified bool
 	Metadata         string
-	DeviceLimit      int
 
 	Password   bool
 	Phone      Phone
