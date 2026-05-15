@@ -4,6 +4,15 @@ package iam
 
 import "time"
 
+type CodeSendResult int
+
+const (
+	CodeSendResultSentOrIgnored CodeSendResult = 1 + iota
+	CodeSendResultCodeReturned
+	CodeSendResultForbidden
+	CodeSendResultCooldownRequired
+)
+
 type MfaType string
 
 const (

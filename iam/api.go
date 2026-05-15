@@ -54,12 +54,12 @@ type Instance interface {
 	// AccountPhoneSend sends an OTP code to the given phone number.
 	// Returns a session token to pass to the corresponding login or MFA verify call.
 	// sendWhenExistOnly: if true and no account with this number exists, silently succeeds without sending.
-	AccountPhoneSend(countryCode, number string, sendWhenExistOnly bool) (string, error)
+	AccountPhoneSend(countryCode, number string, sendWhenExistOnly bool) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
 
 	// AccountEmailSend sends an OTP code to the given email address.
 	// Returns a session token to pass to the corresponding login or MFA verify call.
 	// sendWhenExistOnly: if true and no account with this email exists, silently succeeds without sending.
-	AccountEmailSend(email string, sendWhenExistOnly bool) (string, error)
+	AccountEmailSend(email string, sendWhenExistOnly bool) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
 
 	// -------------------------------------------------------------------------
 	// Account Management
