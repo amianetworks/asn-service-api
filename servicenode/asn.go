@@ -46,8 +46,10 @@ type ASNServiceNode interface {
 	// and the active ConfigOps string list.
 	GetNodeInfo() *NodeInfo
 
-	// GetSlaveNodes returns the slave nodes configured for this master node.
-	// Returns nil if this node is not a master node or has no slave nodes configured.
+	// GetSlaveNodes returns all slave nodes configured for this master node AND
+	// have reported loading this service in their registration,
+	// each annotated with its current connection state.
+	// Returns nil if this node is not in cluster mode or has no slaves configured.
 	GetSlaveNodes() []*SlaveNodeInfo
 
 	// -------------------------------------------------------------------------
@@ -59,6 +61,43 @@ type ASNServiceNode interface {
 	// No response is returned. To receive a reply, the controller must initiate a
 	// separate SendServiceOpsToNode() call.
 	SendMessageToController(messageType, payload string) error
+
+	// -------------------------------------------------------------------------
+	// Slave Communication
+	// Only meaningful in cluster (master) mode. All methods return
+	// ErrNotMasterNode in standalone mode, ErrSlaveNotConnected when the named
+	// slave's stream is not established, and ErrSlaveServiceNotFound when the
+	// slave has not reported loading this service.
+	//
+	// Timeouts are enforced by the framework using the service's configured
+	// Timeout value; no context is exposed to the caller.
+	// -------------------------------------------------------------------------
+
+	// SendStartToSlave sends a start command for this service to the named slave.
+	// Returns only a transport-level error; the execution outcome is delivered
+	// asynchronously via ClusterMasterService.OnSlaveServiceState.
+	SendStartToSlave(slaveName, config string) error
+
+	// SendStopToSlave sends a stop command for this service to the named slave.
+	// Returns only a transport-level error; the execution outcome is delivered
+	// asynchronously via ClusterMasterService.OnSlaveServiceState.
+	SendStopToSlave(slaveName string) error
+
+	// SendApplyOpsToSlave sends an ops command to the named slave and blocks
+	// until the slave replies or the call times out.
+	SendApplyOpsToSlave(slaveName, opCmd, opParams string) (resp string, err error)
+
+	// SendAddConfigOpsToSlave sends add-config-ops to the named slave and blocks
+	// until the slave acknowledges or the call times out.
+	SendAddConfigOpsToSlave(slaveName string, params []string) (resp string, err error)
+
+	// SendUpdateConfigOpToSlave sends an update-config-op to the named slave and
+	// blocks until the slave acknowledges or the call times out.
+	SendUpdateConfigOpToSlave(slaveName string, oldParam, newParam string) (resp string, err error)
+
+	// SendDeleteConfigOpsToSlave sends delete-config-ops to the named slave and
+	// blocks until the slave acknowledges or the call times out.
+	SendDeleteConfigOpsToSlave(slaveName string, params []string) (resp string, err error)
 
 	// -------------------------------------------------------------------------
 	// Cross-Service Data Access

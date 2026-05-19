@@ -71,6 +71,23 @@ type ASNService interface {
 	// Returning an error transitions the service to ServiceStateMalfunctioning.
 	DeleteConfigOps(configParams []string) (resp string, err error)
 
+	// OnSlaveStateChange is called when a slave's stream connects or disconnects.
+	// connected=true: stream is established and the slave has sent its node_info.
+	// connected=false: stream has broken.
+	// The service decides its own response: re-sync state to the slave, degrade
+	// gracefully, signal runtimeErrChan for a fatal condition, etc.
+	OnSlaveStateChange(slaveName string, connected bool)
+
+	// OnSlaveServiceState is called when a slave reports a service state change.
+	// This is the async outcome notification for SendStartToSlave / SendStopToSlave.
+	OnSlaveServiceState(slaveName string, state commonapi.ServiceState, timeout bool, errMsg string)
+
+	// OnSlaveMessage is called when a slave's service sends a message upward
+	// (the slave-side equivalent of the service calling SendMessageToController).
+	// The service decides whether to forward it to the controller via
+	// SendMessageToController.
+	OnSlaveMessage(slaveName, messageType, message string)
+
 	// OnQuerySharedData returns current values for the requested keys.
 	// Called when another service on the same node calls QueryServiceSharedData() targeting this service.
 	// Concurrent; guard shared state.

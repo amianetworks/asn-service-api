@@ -16,6 +16,13 @@ var (
 	// ErrRestartNeeded is returned from ASNService.Start() when the service cannot hot-reload
 	// its configuration. The framework will execute Stop() → Start() with the new config.
 	ErrRestartNeeded = errors.New("restart needed")
+
+	// ErrNotMasterNode is returned by slave API methods when the node is not in cluster mode.
+	ErrNotMasterNode = errors.New("not running as master node")
+	// ErrSlaveNotConnected is returned when the named slave's stream is not established.
+	ErrSlaveNotConnected = errors.New("slave is not connected")
+	// ErrSlaveServiceNotFound is returned when the named slave has not reported loading this service.
+	ErrSlaveServiceNotFound = errors.New("service not found on slave")
 )
 
 // NodeInfo is the node information available to a service running on the node.
@@ -30,8 +37,13 @@ type NodeInfo struct {
 
 // SlaveNodeInfo contains the identifying information for a slave node managed by the master node.
 type SlaveNodeInfo struct {
+	// Name is the node_name reported by the slave in its SnRegistrationRequest.
+	// Empty if the slave has never successfully connected.
+	Name      string
+	// Connected reports whether the bidi stream to this slave is currently established.
+	Connected bool
+
 	Management *commonapi.Management
 	DeviceInfo *commonapi.DeviceInfo
-
-	GrpcUrl string
+	GrpcUrl    string
 }
