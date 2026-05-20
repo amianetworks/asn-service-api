@@ -48,8 +48,8 @@ type Instance interface {
 	// GetStripeProductInfo returns product details (name, description, prices by currency) for a Stripe price ID.
 	GetStripeProductInfo(priceID string) (*Product, error)
 
-	// GetStripePaymentLink returns a Stripe Checkout URL for the given account, price, quantity, and redirect URL.
-	GetStripePaymentLink(accountID, priceID string, quantity uint, redirectUrl string) (string, error)
+	// GetStripePaymentLink returns a Stripe Checkout URL for the given account, price, quantity, redirect URL, and trial days.
+	GetStripePaymentLink(accountID, priceID string, quantity uint, redirectUrl string, trialDays int) (string, error)
 
 	// GetStripeBillingPortalUrl returns a Stripe Customer Portal URL for the given account and return URL.
 	GetStripeBillingPortalUrl(accountID, returnUrl string) (string, error)
