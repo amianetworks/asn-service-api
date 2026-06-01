@@ -56,12 +56,13 @@ type ASNController interface {
 	// License related APIs.
 	// -------------------------------------------------------------------------
 
-	// IsLicenseValid determines whether the current machine has a license that is valid to use the service.
+	// IsLicenseValid determines whether the current license is valid for this service.
 	IsLicenseValid() error
 
+	// UseLicense binds or updates the license used by this service.
+	UseLicense(licenseKey string) error
+
 	// GetCurrentLicenseInfo returns the current machine's license snapshot.
-	// The bool reports whether the current machine has a license.
-	// LicenseInfo is non-nil only when the bool is true.
 	GetCurrentLicenseInfo() *LicenseInfo
 
 	// -------------------------------------------------------------------------

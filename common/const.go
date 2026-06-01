@@ -112,6 +112,8 @@ var LocationTiers = []string{
 type LicenseStatus string
 
 const (
+	// LicenseStatusNotBound means no license is bound to the current machine.
+	LicenseStatusNotBound LicenseStatus = "not_bound"
 	// LicenseStatusInactive means the license exists but has not been activated.
 	LicenseStatusInactive LicenseStatus = "inactive"
 	// LicenseStatusExpired means the license is outside its valid time range.

@@ -24,26 +24,3 @@ var (
 	// FrameworkErrServiceStateNotAllowed - the service is not in ServiceStateRunning.
 	FrameworkErrServiceStateNotAllowed FrameworkErr = errors.New("service state not allowed to apply ops")
 )
-
-// LicenseStatusErr is returned when the current license is missing or cannot be used.
-type LicenseStatusErr error
-
-var (
-	// LicenseStatusErrNotFound indicates that no license is installed.
-	LicenseStatusErrNotFound LicenseStatusErr = errors.New("license not found")
-
-	// LicenseStatusErrInactive indicates that the installed license has not been activated.
-	LicenseStatusErrInactive LicenseStatusErr = errors.New("license is inactive")
-
-	// LicenseStatusErrExpired indicates that the installed license is outside its valid time range.
-	LicenseStatusErrExpired LicenseStatusErr = errors.New("license is expired")
-
-	// LicenseStatusErrSuspended indicates that the installed license has been suspended.
-	LicenseStatusErrSuspended LicenseStatusErr = errors.New("license is suspended")
-
-	// LicenseStatusErrAbnormal indicates that the framework cannot reach the license authority.
-	LicenseStatusErrAbnormal LicenseStatusErr = errors.New("cannot reach the license server")
-
-	// LicenseStatusErrInvalidMachineID indicates that the license is not bound to the requested machine.
-	LicenseStatusErrInvalidMachineID LicenseStatusErr = errors.New("machine ID not match")
-)

@@ -127,7 +127,7 @@ type ConfigOp struct {
 	source       commonapi.ServiceSource
 }
 
-// LicenseInfo describes the current machine's license as reported by the framework.
+// LicenseInfo describes the license currently used by this service.
 type LicenseInfo struct {
 	LicenseKey  string
 	MachineID   string
