@@ -150,7 +150,7 @@ type Instance interface {
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		username, countryCode, number, email, password string,
 		createIfNotExist bool,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// LoginOrCreateWithPhone authenticates using a phone OTP.
 	// Send the OTP first via AccountPhoneSend().
@@ -158,7 +158,7 @@ type Instance interface {
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		phone *Phone, code string,
 		createIfNotExist bool,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// LoginOrCreateWithEmail authenticates using an email OTP.
 	// Send the OTP first via AccountEmailSend().
@@ -166,28 +166,28 @@ type Instance interface {
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		email, code string,
 		createIfNotExist bool,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// LoginOrCreateWithWeChat authenticates using a WeChat OAuth code.
 	LoginOrCreateWithWeChat(
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		appID, code string,
 		createIfNotExist bool,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// LoginOrCreateWithApple authenticates using an Apple ID token.
 	LoginOrCreateWithApple(
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
 		createIfNotExist bool,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// LoginOrCreateWithGoogle authenticates using a Google ID token.
 	LoginOrCreateWithGoogle(
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
 		idToken string,
 		createIfNotExist bool,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// AccountPasskeyLoginChallengeGet initiates a WebAuthn authentication ceremony.
 	// Pass sessionID and data to AccountPasskeyAuth() after the client completes the assertion.
@@ -199,7 +199,7 @@ type Instance interface {
 		device *DeviceInfo,
 		userClaims string, durationAccess, durationRefresh time.Duration,
 		domain, sessionID, data string,
-	) (account *Account, needMfa bool, tokenSet *TokenSet, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// Logout invalidates the session for the given device and revokes its tokens.
 	Logout(accountID, deviceID string) error
@@ -234,11 +234,6 @@ type Instance interface {
 	// AccountDisableMFA disables the MFA requirement for the given account.
 	AccountDisableMFA(accountID string) error
 
-	// MFALoginVerify upgrades a pre-MFA access token to a fully-authorized session token.
-	// method selects the verification type. Populate the corresponding parameters
-	// (code, domain, sessionID, data) as required by the method; pass empty strings for unused fields.
-	MFALoginVerify(accessToken string, method MfaType, code, domain, sessionID, data string) (*TokenSet, error)
-
 	// TotpBind initiates TOTP enrollment for the given account.
 	// Returns a QR code image (data URI), issuer name, and raw TOTP secret for display to the user.
 	// Call TotpBindConfirm() with the user-provided code to complete enrollment.
@@ -249,6 +244,39 @@ type Instance interface {
 
 	// TotpUnbind removes the TOTP authenticator from the given account.
 	TotpUnbind(accountID string) error
+
+	// -------------------------------------------------------------------------
+	// Auth Flow APIs (stateful login flow with forced inline MFA setup/verify)
+	// -------------------------------------------------------------------------
+
+	// AuthFlowMfaSetupInitiate begins inline MFA enrollment during a login flow that returned
+	// FLOW_STATE_MFA_SETUP. flowToken is the temporary, MFA-unverified token from LoginResult.
+	// Only TOTP and Passkey need this step, as they require server-generated material:
+	//   - TOTP:    returns totpImage (QR code data URI), totpIssuer, and totpSecret for display.
+	//   - Passkey: pass domain; returns sessionID and data for the WebAuthn create() ceremony.
+	// SMS and Email skip this call — use AccountPhoneSend / AccountEmailSend instead.
+	// Complete enrollment by calling AuthFlowMfaSetupConfirm with the resulting material.
+	AuthFlowMfaSetupInitiate(flowToken string, method MfaType, domain string) (totpImage, totpIssuer, totpSecret, sessionID, data string, err error)
+
+	// AuthFlowMfaSetupConfirm finishes inline MFA enrollment for the FLOW_STATE_MFA_SETUP path,
+	// binding the chosen method to the account and promoting the flow token to a full session.
+	// Populate the fields required by method (pass empty strings for the rest):
+	//   - TOTP / SMS / Email: code (the user-entered or OTP code).
+	//   - Passkey:            domain, sessionID, and data from the WebAuthn create() ceremony.
+	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
+	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
+	AuthFlowMfaSetupConfirm(method MfaType, code, domain, sessionID, data string) (
+		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
+
+	// AuthFlowMfaVerify verifies an already-bound MFA factor during a login flow that returned
+	// FLOW_STATE_MFA_VERIFY, promoting the flow token to a full session on success.
+	// Populate the fields required by method (pass empty strings for the rest):
+	//   - TOTP / SMS / Email: code (send the OTP first via AccountPhoneSend / AccountEmailSend).
+	//   - Passkey:            domain, sessionID, and data from AccountPasskeyLoginChallengeGet.
+	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
+	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
+	AuthFlowMfaVerify(method MfaType, code, domain, sessionID, data string) (
+		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// -------------------------------------------------------------------------
 	// Passkey (WebAuthn)

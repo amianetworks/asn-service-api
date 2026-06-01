@@ -209,3 +209,11 @@ type DeviceInfo struct {
 	PushToken    string
 	Metadata     string
 }
+
+type LoginFlowState int
+
+const (
+	LoginFlowAuthenticated LoginFlowState = iota // login complete; token_set is valid
+	LoginFlowMFAVerify                           // credentials OK; must verify an existing MFA factor
+	LoginFlowMFASetup                            // credentials OK; must bind an MFA factor first
+)
