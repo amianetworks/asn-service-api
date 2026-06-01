@@ -120,6 +120,8 @@ const (
 	LicenseStatusExpired LicenseStatus = "expired"
 	// LicenseStatusSuspended means the license has been suspended by the license authority.
 	LicenseStatusSuspended LicenseStatus = "suspended"
+	// LicenseStatusInvalid indicates a license has past its deadline to be activated.
+	LicenseStatusInvalid LicenseStatus = "invalid"
 	// LicenseStatusAbnormal means the framework cannot currently confirm the license state.
 	LicenseStatusAbnormal LicenseStatus = "abnormal"
 	// LicenseStatusActive means the license is valid for use.
