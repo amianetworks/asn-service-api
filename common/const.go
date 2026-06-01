@@ -107,3 +107,19 @@ var LocationTiers = []string{
 	"rack",
 	"unit",
 }
+
+// LicenseStatus is the framework's current view of a machine license.
+type LicenseStatus string
+
+const (
+	// LicenseStatusInactive means the license exists but has not been activated.
+	LicenseStatusInactive LicenseStatus = "inactive"
+	// LicenseStatusExpired means the license is outside its valid time range.
+	LicenseStatusExpired LicenseStatus = "expired"
+	// LicenseStatusSuspended means the license has been suspended by the license authority.
+	LicenseStatusSuspended LicenseStatus = "suspended"
+	// LicenseStatusAbnormal means the framework cannot currently confirm the license state.
+	LicenseStatusAbnormal LicenseStatus = "abnormal"
+	// LicenseStatusActive means the license is valid for use.
+	LicenseStatusActive LicenseStatus = "active"
+)

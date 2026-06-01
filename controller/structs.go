@@ -126,3 +126,17 @@ type ConfigOp struct {
 	ConfigParams string
 	source       commonapi.ServiceSource
 }
+
+// LicenseInfo describes the current machine's license as reported by the framework.
+type LicenseInfo struct {
+	LicenseKey  string
+	MachineID   string
+	LicenseType string
+	Status      commonapi.LicenseStatus
+
+	ValidStartTime time.Time
+	ValidEndTime   time.Time
+
+	// Content contains service-defined license payload fields.
+	Content map[string]any
+}
