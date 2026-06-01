@@ -64,8 +64,8 @@ type ASNServiceController interface {
 	// Maintain snapshots in background goroutines; do not compute on the call path.
 	GetMetrics(networkID string) (map[string]string, error)
 
-	// UpdateLicenseInfo notifies the service that the license content or status changed.
-	UpdateLicenseInfo(license *LicenseInfo) error
+	// OnLicenseChanged notifies the service that the license content or status changed.
+	OnLicenseChanged(license *LicenseInfo) error
 
 	// Stop gracefully stops the service controller.
 	// Idempotent; must return promptly. Stop all background goroutines started in Start().

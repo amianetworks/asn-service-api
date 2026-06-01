@@ -57,12 +57,12 @@ type ASNController interface {
 	// -------------------------------------------------------------------------
 
 	// IsLicenseValid determines whether the current machine has a license that is valid to use the service.
-	IsLicenseValid(machineID string) error
+	IsLicenseValid() error
 
 	// GetCurrentLicenseInfo returns the current machine's license snapshot.
 	// The bool reports whether the current machine has a license.
 	// LicenseInfo is non-nil only when the bool is true.
-	GetCurrentLicenseInfo() (bool, *LicenseInfo)
+	GetCurrentLicenseInfo() *LicenseInfo
 
 	// -------------------------------------------------------------------------
 	// Service Lifecycle Management
