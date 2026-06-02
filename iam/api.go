@@ -265,7 +265,7 @@ type Instance interface {
 	//   - Passkey:            domain, sessionID, and data from the WebAuthn create() ceremony.
 	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
 	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
-	AuthFlowMfaSetupConfirm(method MfaType, code, domain, sessionID, data string) (
+	AuthFlowMfaSetupConfirm(inputFlowToken string, method MfaType, code, domain, sessionID, data string) (
 		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// AuthFlowMfaVerify verifies an already-bound MFA factor during a login flow that returned
@@ -275,7 +275,7 @@ type Instance interface {
 	//   - Passkey:            domain, sessionID, and data from AccountPasskeyLoginChallengeGet.
 	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
 	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
-	AuthFlowMfaVerify(method MfaType, code, domain, sessionID, data string) (
+	AuthFlowMfaVerify(inputFlowToken string, method MfaType, code, domain, sessionID, data string) (
 		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
 
 	// -------------------------------------------------------------------------

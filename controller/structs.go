@@ -66,7 +66,7 @@ type NodeStateChange struct {
 	NodeID    string
 
 	NodeState      commonapi.NodeState
-	FrameworkError commonapi.FrameworkErr
+	FrameworkError error
 
 	ServiceState commonapi.ServiceState
 	ServiceError error
@@ -79,7 +79,7 @@ type OpsResponse struct {
 	NodeID    string
 
 	// FrameworkError is set when the framework could not reach or invoke the service on this node.
-	FrameworkError commonapi.FrameworkErr
+	FrameworkError error
 
 	// ServiceResponse is the resp string returned by ASNService.ApplyServiceOps() or a config op method.
 	ServiceResponse string
