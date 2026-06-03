@@ -30,6 +30,12 @@ type Instance interface {
 	// RestoreApplePurchaseToken re-links an existing App Store purchase to an account.
 	RestoreApplePurchaseToken(accountID, purchaseToken string) error
 
+	// PreviewRestoreApplePurchaseToken is the read-only precheck for
+	// RestoreApplePurchaseToken. It reports whether the purchase is already bound to
+	// another account (and would be migrated) without modifying any binding, so the
+	// client can prompt the user before committing.
+	PreviewRestoreApplePurchaseToken(accountID, purchaseToken string) (*RestorePreview, error)
+
 	// AddGoogle registers the Google Play platform.
 	// Returns a webhook handler to mount via WebHandler() and an errChan for async backend errors.
 	// Call during Start().
@@ -38,6 +44,12 @@ type Instance interface {
 
 	// RestoreGooglePurchaseToken re-links an existing Play Store purchase to an account.
 	RestoreGooglePurchaseToken(accountID, purchaseToken string) error
+
+	// PreviewRestoreGooglePurchaseToken is the read-only precheck for
+	// RestoreGooglePurchaseToken. It reports whether the token is a claimable orphan,
+	// already bound to the current account, or bound to another account, without
+	// modifying any binding.
+	PreviewRestoreGooglePurchaseToken(accountID, purchaseToken string) (*RestorePreview, error)
 
 	// AddStripe registers the Stripe platform.
 	// Returns a webhook handler to mount via WebHandler() and an errChan for async backend errors.
