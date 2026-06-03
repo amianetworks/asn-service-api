@@ -22,6 +22,35 @@ const (
 	MfaTypePasskey MfaType = "passkey"
 )
 
+// PasswordVerifyMethod is the proof a user supplies during the password flow.
+type PasswordVerifyMethod string
+
+const (
+	PasswordVerifyOldPassword PasswordVerifyMethod = "old_password"
+	PasswordVerifyEmail       PasswordVerifyMethod = "email"
+	PasswordVerifySMS         PasswordVerifyMethod = "sms"
+)
+
+// PasswordFlowInitState is the outcome of AccountPasswordFlowInit.
+type PasswordFlowInitState int
+
+const (
+	PasswordFlowInitUnspecified PasswordFlowInitState = iota
+	// PasswordFlowInitMethodRequired: flowToken and methods are valid; pick a method.
+	PasswordFlowInitMethodRequired
+	// PasswordFlowInitNoRecovery: account not found OR no usable verification method.
+	// No flow token is issued.
+	PasswordFlowInitNoRecovery
+)
+
+// PasswordFlowMethod is one verification option offered after init. MaskedTarget is
+// a masked rendering of the delivery channel (e.g. "a***@example.com"); it is empty
+// for PasswordVerifyOldPassword.
+type PasswordFlowMethod struct {
+	Method       PasswordVerifyMethod
+	MaskedTarget string
+}
+
 type PhoneCountryCodeMode string
 
 const (

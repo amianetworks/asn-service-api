@@ -54,12 +54,16 @@ type Instance interface {
 	// AccountPhoneSend sends an OTP code to the given phone number.
 	// Returns a session token to pass to the corresponding login or MFA verify call.
 	// sendWhenExistOnly: if true and no account with this number exists, silently succeeds without sending.
-	AccountPhoneSend(countryCode, number string, sendWhenExistOnly bool) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
+	// resetFlowToken: when non-empty, the code is sent to the phone registered on the account
+	// bound to that password-flow token, and countryCode/number are ignored.
+	AccountPhoneSend(countryCode, number string, sendWhenExistOnly bool, resetFlowToken string) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
 
 	// AccountEmailSend sends an OTP code to the given email address.
 	// Returns a session token to pass to the corresponding login or MFA verify call.
 	// sendWhenExistOnly: if true and no account with this email exists, silently succeeds without sending.
-	AccountEmailSend(email string, sendWhenExistOnly bool) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
+	// resetFlowToken: when non-empty, the code is sent to the email registered on the account
+	// bound to that password-flow token, and email is ignored.
+	AccountEmailSend(email string, sendWhenExistOnly bool, resetFlowToken string) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
 
 	// -------------------------------------------------------------------------
 	// Account Management
@@ -115,13 +119,35 @@ type Instance interface {
 	// AccountMetadataUpdate updates the service-defined opaque metadata string on the account.
 	AccountMetadataUpdate(accountID, metadata string) error
 
-	// AccountPasswordUpdate changes the account's password, requiring the current password for verification.
-	// For admin-initiated resets without the old password, use AccountPasswordReset.
-	AccountPasswordUpdate(accountID, oldPassword, newPassword string) error
+	// AccountPasswordSet sets the account's password directly, without proof of the old password.
+	// allowOverwrite: if false, the call fails when a password is already set; if true, any
+	// existing password is replaced. For user-initiated changes that require verification
+	// (old password or OTP), use the password flow (AccountPasswordFlow*) instead.
+	AccountPasswordSet(accountID, newPassword string, allowOverwrite bool) error
 
-	// AccountPasswordReset sets a new password without requiring the current password.
-	// For user-initiated changes, use AccountPasswordUpdate.
-	AccountPasswordReset(accountID, newPassword string) error
+	// -------------------------------------------------------------------------
+	// Password Flow
+	// Stateful flow covering both forgot-password recovery and in-session change.
+	// Steps:
+	//  1. AccountPasswordFlowInit  — identify the account, obtain a flow token and methods.
+	//  2. (OTP methods only) AccountPhoneSend / AccountEmailSend with the flow token as
+	//     resetFlowToken to deliver the code; skip for the old-password method.
+	//  3. AccountPasswordFlowVerify — submit the chosen proof to verify the flow token.
+	//  4. AccountPasswordFlowComplete — set the new password for the verified flow token.
+	// -------------------------------------------------------------------------
+
+	// AccountPasswordFlowInit is step 1: identify the account by exactly one of
+	// accountID/username/email/phone and return the available verification methods.
+	// A non-existent account or one with no usable method yields PasswordFlowInitNoRecovery
+	// with an empty flow token.
+	AccountPasswordFlowInit(accountID, username, email, countryCode, number string) (state PasswordFlowInitState, flowToken string, methods []PasswordFlowMethod, err error)
+
+	// AccountPasswordFlowVerify is step 3: submit the chosen proof (old password or OTP).
+	// A nil error means the flow token is now verified and may complete.
+	AccountPasswordFlowVerify(flowToken string, method PasswordVerifyMethod, code, oldPassword string) error
+
+	// AccountPasswordFlowComplete is step 4: set the new password for a verified flow token.
+	AccountPasswordFlowComplete(flowToken, newPassword string) error
 
 	// -------------------------------------------------------------------------
 	// Authentication
