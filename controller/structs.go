@@ -124,7 +124,7 @@ type NodeGroup struct {
 type ConfigOp struct {
 	ID           string
 	ConfigParams string
-	source       commonapi.ServiceSource
+	Source       commonapi.ServiceSource
 }
 
 // LicenseInfo describes the license currently used by this service.

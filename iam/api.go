@@ -141,9 +141,9 @@ type Instance interface {
 	// AccountPasswordFlowSendCode is step 2 for OTP methods: send (or resend, rate-limited)
 	// a code to the account's bound email/phone. The delivery target is always resolved from
 	// the flow's bound account, never caller-supplied, so a stolen flow token cannot redirect
-	// the code. method must be PasswordVerifyEmail or PasswordVerifySMS. Returns the masked
-	// target and, in dev mode, the code in-band.
-	AccountPasswordFlowSendCode(flowToken string, method PasswordVerifyMethod) (result CodeSendResult, nextAllowed time.Duration, maskedTarget, code string, err error)
+	// the code. method must be PasswordVerifyEmail or PasswordVerifySMS. Returns the code
+	// in-band only in dev mode. The masked target is reported by AccountPasswordFlowInit.
+	AccountPasswordFlowSendCode(flowToken string, method PasswordVerifyMethod) (result CodeSendResult, nextAllowed time.Duration, code string, err error)
 
 	// AccountPasswordFlowVerify is step 3: submit the chosen proof (old password or OTP).
 	// A nil error means the flow token is now verified and may complete.
@@ -185,15 +185,15 @@ type Instance interface {
 
 	// AuthFlowGetChallenge is step 2 of the login flow: prepare the verify step. It
 	// dispatches on the flow's method:
-	//   - phone/email code: sends (or resends, rate-limited) an OTP; returns the masked
-	//     target and, in dev mode, the code in-band.
+	//   - phone/email code: sends (or resends, rate-limited) an OTP; returns the code
+	//     in-band only in dev mode. The masked target is reported by AuthFlowVerify's methods.
 	//   - passkey: returns a WebAuthn challenge (sessionID + data) to sign and submit via
 	//     AuthFlowVerify; domain is the relying-party domain.
 	// mfaMethod is only used in the MFA phase to pick the factor; in the credential phase
 	// it is ignored.
 	AuthFlowGetChallenge(
 		flowToken string, mfaMethod MfaType, domain string,
-	) (result CodeSendResult, nextAllowed time.Duration, maskedTarget, code, sessionID, data string, err error)
+	) (result CodeSendResult, nextAllowed time.Duration, code, sessionID, data string, err error)
 
 	// AuthFlowVerify is step 3 of the login flow: submit the proof matching the flow's
 	// method. Fill the field for the method's proof kind: password for *_PASSWORD, code for

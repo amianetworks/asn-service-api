@@ -39,7 +39,7 @@ type NodeInfo struct {
 type SlaveNodeInfo struct {
 	// Name is the node_name reported by the slave in its SnRegistrationRequest.
 	// Empty if the slave has never successfully connected.
-	Name      string
+	Name string
 	// Connected reports whether the bidi stream to this slave is currently established.
 	Connected bool
 

@@ -25,10 +25,11 @@ const (
 // MfaMethodInfo is one MFA option offered to the client during a login flow.
 // MaskedTarget is a masked rendering of the delivery channel (e.g. "1***5678"
 // or "a***@example.com") for SMS/Email, and empty for TOTP/Passkey which have
-// no delivery target.
+// no delivery target. CountryCode is set only for SMS.
 type MfaMethodInfo struct {
 	Method       MfaType
 	MaskedTarget string
+	CountryCode  string
 }
 
 // CredentialMethod encodes the identity kind + proof kind chosen when starting a
@@ -70,10 +71,11 @@ const (
 
 // PasswordFlowMethod is one verification option offered after init. MaskedTarget is
 // a masked rendering of the delivery channel (e.g. "a***@example.com"); it is empty
-// for PasswordVerifyOldPassword.
+// for PasswordVerifyOldPassword. CountryCode is set only for PasswordVerifySMS.
 type PasswordFlowMethod struct {
 	Method       PasswordVerifyMethod
 	MaskedTarget string
+	CountryCode  string
 }
 
 type PhoneCountryCodeMode string
