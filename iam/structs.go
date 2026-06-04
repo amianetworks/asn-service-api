@@ -22,6 +22,31 @@ const (
 	MfaTypePasskey MfaType = "passkey"
 )
 
+// MfaMethodInfo is one MFA option offered to the client during a login flow.
+// MaskedTarget is a masked rendering of the delivery channel (e.g. "1***5678"
+// or "a***@example.com") for SMS/Email, and empty for TOTP/Passkey which have
+// no delivery target.
+type MfaMethodInfo struct {
+	Method       MfaType
+	MaskedTarget string
+}
+
+// CredentialMethod encodes the identity kind + proof kind chosen when starting a
+// stateful login flow with AuthFlowInit.
+type CredentialMethod string
+
+const (
+	CredentialUsernamePassword CredentialMethod = "username_password"
+	CredentialPhonePassword    CredentialMethod = "phone_password"
+	CredentialEmailPassword    CredentialMethod = "email_password"
+	CredentialPhoneCode        CredentialMethod = "phone_code"
+	CredentialEmailCode        CredentialMethod = "email_code"
+	CredentialWeChat           CredentialMethod = "wechat"
+	CredentialApple            CredentialMethod = "apple"
+	CredentialGoogle           CredentialMethod = "google"
+	CredentialPasskey          CredentialMethod = "passkey"
+)
+
 // PasswordVerifyMethod is the proof a user supplies during the password flow.
 type PasswordVerifyMethod string
 
@@ -242,7 +267,9 @@ type DeviceInfo struct {
 type LoginFlowState int
 
 const (
-	LoginFlowAuthenticated LoginFlowState = iota // login complete; token_set is valid
-	LoginFlowMFAVerify                           // credentials OK; must verify an existing MFA factor
-	LoginFlowMFASetup                            // credentials OK; must bind an MFA factor first
+	LoginFlowAuthenticated     LoginFlowState = iota // login complete; token_set is valid
+	LoginFlowMFAVerify                               // credentials OK; must verify an existing MFA factor
+	LoginFlowMFASetup                                // credentials OK; must bind an MFA factor first
+	LoginFlowChallengeRequired                       // call AuthFlowGetChallenge (send OTP / get passkey challenge), then AuthFlowVerify
+	LoginFlowVerifyRequired                          // call AuthFlowVerify with the proof (password / code / id_token / passkey assertion)
 )

@@ -51,19 +51,15 @@ type Instance interface {
 	// Call before OTP-based login or MFA verification to send a code to the user.
 	// -------------------------------------------------------------------------
 
-	// AccountPhoneSend sends an OTP code to the given phone number.
+	// AccountPhoneCodeSend sends an OTP code to the given phone number.
 	// Returns a session token to pass to the corresponding login or MFA verify call.
 	// sendWhenExistOnly: if true and no account with this number exists, silently succeeds without sending.
-	// resetFlowToken: when non-empty, the code is sent to the phone registered on the account
-	// bound to that password-flow token, and countryCode/number are ignored.
-	AccountPhoneSend(countryCode, number string, sendWhenExistOnly bool, resetFlowToken string) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
+	AccountPhoneCodeSend(countryCode, number string, sendWhenExistOnly bool) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
 
-	// AccountEmailSend sends an OTP code to the given email address.
+	// AccountEmailCodeSend sends an OTP code to the given email address.
 	// Returns a session token to pass to the corresponding login or MFA verify call.
 	// sendWhenExistOnly: if true and no account with this email exists, silently succeeds without sending.
-	// resetFlowToken: when non-empty, the code is sent to the email registered on the account
-	// bound to that password-flow token, and email is ignored.
-	AccountEmailSend(email string, sendWhenExistOnly bool, resetFlowToken string) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
+	AccountEmailCodeSend(email string, sendWhenExistOnly bool) (result CodeSendResult, code string, nextAllowed time.Duration, err error)
 
 	// -------------------------------------------------------------------------
 	// Account Management
@@ -129,9 +125,9 @@ type Instance interface {
 	// Password Flow
 	// Stateful flow covering both forgot-password recovery and in-session change.
 	// Steps:
-	//  1. AccountPasswordFlowInit  — identify the account, obtain a flow token and methods.
-	//  2. (OTP methods only) AccountPhoneSend / AccountEmailSend with the flow token as
-	//     resetFlowToken to deliver the code; skip for the old-password method.
+	//  1. AccountPasswordFlowInit — identify the account, obtain a flow token and methods.
+	//  2. (OTP methods only) AccountPasswordFlowSendCode to deliver the code; skip for the
+	//     old-password method.
 	//  3. AccountPasswordFlowVerify — submit the chosen proof to verify the flow token.
 	//  4. AccountPasswordFlowComplete — set the new password for the verified flow token.
 	// -------------------------------------------------------------------------
@@ -142,6 +138,13 @@ type Instance interface {
 	// with an empty flow token.
 	AccountPasswordFlowInit(accountID, username, email, countryCode, number string) (state PasswordFlowInitState, flowToken string, methods []PasswordFlowMethod, err error)
 
+	// AccountPasswordFlowSendCode is step 2 for OTP methods: send (or resend, rate-limited)
+	// a code to the account's bound email/phone. The delivery target is always resolved from
+	// the flow's bound account, never caller-supplied, so a stolen flow token cannot redirect
+	// the code. method must be PasswordVerifyEmail or PasswordVerifySMS. Returns the masked
+	// target and, in dev mode, the code in-band.
+	AccountPasswordFlowSendCode(flowToken string, method PasswordVerifyMethod) (result CodeSendResult, nextAllowed time.Duration, maskedTarget, code string, err error)
+
 	// AccountPasswordFlowVerify is step 3: submit the chosen proof (old password or OTP).
 	// A nil error means the flow token is now verified and may complete.
 	AccountPasswordFlowVerify(flowToken string, method PasswordVerifyMethod, code, oldPassword string) error
@@ -151,81 +154,68 @@ type Instance interface {
 
 	// -------------------------------------------------------------------------
 	// Authentication
-	// All LoginOrCreate* and AccountPasskeyAuth methods share this return pattern:
-	//   (account, needMfa, tokenSet, err)
-	// When needMfa == true, tokenSet is a pre-MFA token; the session is not fully
-	// authorized until MFALoginVerify() upgrades it.
-	// device identifies the calling device and is required.
+	// Login is a single stateful flow regardless of credential kind:
+	//   AuthFlowInit -> (optional) AuthFlowGetChallenge -> AuthFlowVerify
+	// then, if AuthFlowVerify returns LoginFlowMFAVerify / LoginFlowMFASetup,
+	// continue via the Auth Flow MFA APIs (AuthFlowMfaSetupInitiate / Confirm / Verify).
+	// device identifies the calling device and is required at AuthFlowInit.
 	// userClaims is an opaque service-defined string embedded in the issued token,
 	// retrievable via TokenVerify().
 	// createIfNotExist: if true, an account is created on first successful credential validation.
 	// -------------------------------------------------------------------------
 
 	// LoginMethods reports which authentication methods are enabled at runtime.
-	LoginMethods() (
-		usernameAndPassword, emailAndPassword, phoneAndPassword, emailCode, phoneCode, weChat, apple, google, passkey bool,
-		err error,
-	)
+	LoginMethods() ([]CredentialMethod, error)
 
-	// PasswordVerify validates credentials without issuing tokens. Useful for re-authentication flows.
-	PasswordVerify(username, countryCode, number, email, password string) error
-
-	// LoginOrCreateWithPassword authenticates using a password credential.
-	// Pass username, countryCode+number, or email as the identifier; unused fields should be empty.
-	LoginOrCreateWithPassword(
+	// AuthFlowInit is step 1 of the stateful login flow: pick a credential method and
+	// provide the matching identity, creating the flow. The token material needed to mint
+	// the final token pair is collected up front here.
+	// Fill the identity matching the method's identity kind: username for *_USERNAME_*,
+	// phone for PHONE_*, email for EMAIL_*. Third-party methods (WeChat/Apple/Google) and
+	// Passkey leave all identity fields empty — selecting the method starts the flow.
+	// The returned state is either LoginFlowChallengeRequired (call AuthFlowGetChallenge
+	// next, e.g. to send an OTP or fetch a passkey challenge) or LoginFlowVerifyRequired
+	// (call AuthFlowVerify directly with the proof).
+	AuthFlowInit(
 		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
-		username, countryCode, number, email, password string,
 		createIfNotExist bool,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
+		method CredentialMethod,
+		username string, phone *Phone, email string,
+	) (state LoginFlowState, flowToken string, err error)
 
-	// LoginOrCreateWithPhone authenticates using a phone OTP.
-	// Send the OTP first via AccountPhoneSend().
-	LoginOrCreateWithPhone(
-		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
-		phone *Phone, code string,
-		createIfNotExist bool,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
+	// AuthFlowGetChallenge is step 2 of the login flow: prepare the verify step. It
+	// dispatches on the flow's method:
+	//   - phone/email code: sends (or resends, rate-limited) an OTP; returns the masked
+	//     target and, in dev mode, the code in-band.
+	//   - passkey: returns a WebAuthn challenge (sessionID + data) to sign and submit via
+	//     AuthFlowVerify; domain is the relying-party domain.
+	// mfaMethod is only used in the MFA phase to pick the factor; in the credential phase
+	// it is ignored.
+	AuthFlowGetChallenge(
+		flowToken string, mfaMethod MfaType, domain string,
+	) (result CodeSendResult, nextAllowed time.Duration, maskedTarget, code, sessionID, data string, err error)
 
-	// LoginOrCreateWithEmail authenticates using an email OTP.
-	// Send the OTP first via AccountEmailSend().
-	LoginOrCreateWithEmail(
-		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
-		email, code string,
-		createIfNotExist bool,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
-
-	// LoginOrCreateWithWeChat authenticates using a WeChat OAuth code.
-	LoginOrCreateWithWeChat(
-		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
-		appID, code string,
-		createIfNotExist bool,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
-
-	// LoginOrCreateWithApple authenticates using an Apple ID token.
-	LoginOrCreateWithApple(
-		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
-		idToken string,
-		createIfNotExist bool,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
-
-	// LoginOrCreateWithGoogle authenticates using a Google ID token.
-	LoginOrCreateWithGoogle(
-		device *DeviceInfo, userClaims string, durationAccess, durationRefresh time.Duration,
-		idToken string,
-		createIfNotExist bool,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
-
-	// AccountPasskeyLoginChallengeGet initiates a WebAuthn authentication ceremony.
-	// Pass sessionID and data to AccountPasskeyAuth() after the client completes the assertion.
-	AccountPasskeyLoginChallengeGet(domain string) (sessionID, data string, err error)
-
-	// AccountPasskeyAuth completes a WebAuthn authentication ceremony.
-	// Call AccountPasskeyLoginChallengeGet() first to obtain sessionID and data.
-	AccountPasskeyAuth(
-		device *DeviceInfo,
-		userClaims string, durationAccess, durationRefresh time.Duration,
+	// AuthFlowVerify is step 3 of the login flow: submit the proof matching the flow's
+	// method. Fill the field for the method's proof kind: password for *_PASSWORD, code for
+	// *_CODE, weChat for WeChat, appleIDToken/googleIDToken for Apple/Google, and
+	// domain/sessionID/data for the passkey assertion.
+	// On success the returned state is LoginFlowAuthenticated (tokenSet is valid), or
+	// LoginFlowMFAVerify / LoginFlowMFASetup to enter the MFA flow.
+	AuthFlowVerify(
+		flowToken string,
+		password, code string,
+		weChatAppID, weChatCode string,
+		appleIDToken, googleIDToken string,
 		domain, sessionID, data string,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken_ string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
+
+	// AuthFlowResume re-enters the MFA flow when TokenVerify reports that MFA verification
+	// is still needed. Pass the MFA-unverified access token; it returns a result with
+	// LoginFlowMFAVerify / LoginFlowMFASetup, a flow token, and the available methods,
+	// exactly as a fresh AuthFlowVerify would.
+	AuthFlowResume(
+		accessToken string,
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// Logout invalidates the session for the given device and revokes its tokens.
 	Logout(accountID, deviceID string) error
@@ -244,7 +234,7 @@ type Instance interface {
 
 	// TokenVerify validates an access token and returns its claims.
 	// When mfaNeeded == true, the token is a pre-MFA token; only MFA endpoints should accept it
-	// until MFALoginVerify() upgrades the session.
+	// until the MFA flow (re-entered via AuthFlowResume) upgrades the session.
 	TokenVerify(accessToken string) (mfaNeeded bool, accountID, username, deviceID, userClaims string, err error)
 
 	// TokenRevoke immediately invalidates the given access token.
@@ -272,19 +262,19 @@ type Instance interface {
 	TotpUnbind(accountID string) error
 
 	// -------------------------------------------------------------------------
-	// Auth Flow APIs (stateful login flow with forced inline MFA setup/verify)
+	// Auth Flow MFA APIs (inline MFA setup/verify continuing a login flow)
 	// -------------------------------------------------------------------------
 
 	// AuthFlowMfaSetupInitiate begins inline MFA enrollment during a login flow that returned
-	// FLOW_STATE_MFA_SETUP. flowToken is the temporary, MFA-unverified token from LoginResult.
+	// LoginFlowMFASetup. flowToken is the temporary, MFA-unverified token from the login result.
 	// Only TOTP and Passkey need this step, as they require server-generated material:
 	//   - TOTP:    returns totpImage (QR code data URI), totpIssuer, and totpSecret for display.
 	//   - Passkey: pass domain; returns sessionID and data for the WebAuthn create() ceremony.
-	// SMS and Email skip this call — use AccountPhoneSend / AccountEmailSend instead.
+	// SMS and Email skip this call — use AuthFlowGetChallenge to send the code instead.
 	// Complete enrollment by calling AuthFlowMfaSetupConfirm with the resulting material.
 	AuthFlowMfaSetupInitiate(flowToken string, method MfaType, domain string) (totpImage, totpIssuer, totpSecret, sessionID, data string, err error)
 
-	// AuthFlowMfaSetupConfirm finishes inline MFA enrollment for the FLOW_STATE_MFA_SETUP path,
+	// AuthFlowMfaSetupConfirm finishes inline MFA enrollment for the LoginFlowMFASetup path,
 	// binding the chosen method to the account and promoting the flow token to a full session.
 	// Populate the fields required by method (pass empty strings for the rest):
 	//   - TOTP / SMS / Email: code (the user-entered or OTP code).
@@ -292,17 +282,17 @@ type Instance interface {
 	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
 	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
 	AuthFlowMfaSetupConfirm(inputFlowToken string, method MfaType, code, domain, sessionID, data string) (
-		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
+		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// AuthFlowMfaVerify verifies an already-bound MFA factor during a login flow that returned
-	// FLOW_STATE_MFA_VERIFY, promoting the flow token to a full session on success.
+	// LoginFlowMFAVerify, promoting the flow token to a full session on success.
 	// Populate the fields required by method (pass empty strings for the rest):
-	//   - TOTP / SMS / Email: code (send the OTP first via AccountPhoneSend / AccountEmailSend).
-	//   - Passkey:            domain, sessionID, and data from AccountPasskeyLoginChallengeGet.
+	//   - TOTP / SMS / Email: code (send the OTP first via AuthFlowGetChallenge).
+	//   - Passkey:            domain, sessionID, and data from AuthFlowGetChallenge.
 	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
 	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
 	AuthFlowMfaVerify(inputFlowToken string, method MfaType, code, domain, sessionID, data string) (
-		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods, availableSetupMethods []MfaType, err error)
+		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// -------------------------------------------------------------------------
 	// Passkey (WebAuthn)
