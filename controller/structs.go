@@ -138,5 +138,5 @@ type LicenseInfo struct {
 	ValidEndTime   time.Time
 
 	// Content contains service-defined license payload fields.
-	Content map[string]string
+	Contents map[string]string
 }
