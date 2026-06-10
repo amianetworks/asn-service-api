@@ -16,15 +16,14 @@ const (
 type MfaType string
 
 const (
-	MfaTypeTotp    MfaType = "totp"
-	MfaTypeEmail   MfaType = "email"
-	MfaTypeSms     MfaType = "sms"
-	MfaTypePasskey MfaType = "passkey"
+	MfaTypeTotp  MfaType = "totp"
+	MfaTypeEmail MfaType = "email"
+	MfaTypeSms   MfaType = "sms"
 )
 
 // MfaMethodInfo is one MFA option offered to the client during a login flow.
 // MaskedTarget is a masked rendering of the delivery channel (e.g. "1***5678"
-// or "a***@example.com") for SMS/Email, and empty for TOTP/Passkey which have
+// or "a***@example.com") for SMS/Email, and empty for TOTP which has
 // no delivery target. CountryCode is set only for SMS.
 type MfaMethodInfo struct {
 	Method       MfaType

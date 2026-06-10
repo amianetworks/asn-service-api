@@ -273,35 +273,32 @@ type Instance interface {
 	// LoginFlowMFASetup. flowToken is the temporary, MFA-unverified token from the login result.
 	// It dispatches on the chosen factor:
 	//   - TOTP:      returns totpImage (QR code data URI), totpIssuer, and totpSecret for display.
-	//   - Passkey:   pass domain; returns data for the WebAuthn create() ceremony. The session is
-	//                recorded on the flow, so it is not returned — AuthFlowMfaSetupConfirm resolves
-	//                it from the flow token.
 	//   - SMS/Email: supply the new delivery target to bind via phone/email; an OTP is sent there
 	//                and the delivery result (result/nextAllowed, plus the code in dev mode) is
 	//                returned. Pass the same target to AuthFlowMfaSetupConfirm.
 	// Complete enrollment by calling AuthFlowMfaSetupConfirm with the resulting material.
-	AuthFlowMfaSetupInitiate(flowToken string, method MfaType, domain string, phone *Phone, email string) (totpImage, totpIssuer, totpSecret, data string, result CodeSendResult, nextAllowed time.Duration, code string, err error)
+	AuthFlowMfaSetupInitiate(flowToken string, method MfaType, phone *Phone, email string) (totpImage, totpIssuer, totpSecret string, result CodeSendResult, nextAllowed time.Duration, code string, err error)
 
 	// AuthFlowMfaSetupConfirm finishes inline MFA enrollment for the LoginFlowMFASetup path,
 	// binding the chosen method to the account and promoting the flow token to a full session.
-	// Submit the proof only: code for TOTP/SMS/Email, data for the passkey registration assertion.
+	// Submit the proof only: code for TOTP/SMS/Email.
 	// The method and (for SMS/Email) the target being bound were captured by
 	// AuthFlowMfaSetupInitiate and are resolved from the flow — re-initiate to switch
 	// method/target before confirming.
 	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
 	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
-	AuthFlowMfaSetupConfirm(inputFlowToken, code, data string) (
+	AuthFlowMfaSetupConfirm(inputFlowToken, code string) (
 		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// AuthFlowMfaVerify verifies an already-bound MFA factor during a login flow that returned
 	// LoginFlowMFAVerify, promoting the flow token to a full session on success.
-	// Submit the proof only: code for TOTP/SMS/Email, data for the passkey assertion.
-	// The method and (for passkey) the session id / RP domain were captured by
-	// AuthFlowGetChallenge and are resolved from the flow — call AuthFlowGetChallenge first
+	// Submit the proof only: code for TOTP/SMS/Email.
+	// The method was captured by AuthFlowGetChallenge and is resolved
+	// from the flow — call AuthFlowGetChallenge first
 	// (also for TOTP) and re-call it to switch method before verifying.
 	// On success returns the authenticated account and tokenSet; the flow token is then invalidated.
 	// Each failed attempt increments the flow token's attempt counter; exhausting it forces re-login.
-	AuthFlowMfaVerify(inputFlowToken, code, data string) (
+	AuthFlowMfaVerify(inputFlowToken, code string) (
 		account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// -------------------------------------------------------------------------
