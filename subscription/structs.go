@@ -80,6 +80,7 @@ const (
 type RestorePreview struct {
 	EntitlementStatus EntitlementStatus `json:"entitlementStatus"`
 	OwnerRelation     OwnerRelation     `json:"ownerRelation"`
+	OwnerID           string            `json:"ownerId,omitempty"`
 	Action            RestoreAction     `json:"action"`
 
 	ProductID string     `json:"productId,omitempty"`
