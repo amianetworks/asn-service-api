@@ -200,4 +200,13 @@ type ASNController interface {
 
 	// RemoveNodesFromNodeGroup removes the specified nodes from the group.
 	RemoveNodesFromNodeGroup(nodeGroupID string, nodeIDs []string) error
+
+	// EnrollmentAPI -----------------------------------------------------------
+	// Node Enrollment
+	// Service-agnostic onboarding: contribute a static install spec, create a
+	// framework-owned node identity, mint a single-use enrollment token, render
+	// the bootstrap script (lazy key mint + cert sign), and unbind for
+	// re-enrollment. See EnrollmentAPI (enrollment.go).
+	// -------------------------------------------------------------------------
+	EnrollmentAPI
 }

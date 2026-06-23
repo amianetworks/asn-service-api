@@ -13,6 +13,20 @@ const (
 	NodeStateMaintenance                   // online but in maintenance mode
 )
 
+// EnrollmentState is the credential-lifecycle axis of a node, orthogonal to the
+// runtime NodeState (connectivity) above. It is a projection of stored credential
+// facts: whether a single-use enrollment token is outstanding, whether a valid
+// certificate has been issued, and whether the node has registered. Services
+// observe it (via NodeStateChange and the Node struct) but cannot set it.
+type EnrollmentState int
+
+const (
+	EnrollmentStateUnbound     EnrollmentState = iota // no token/cert: open for (re-)enrollment; also the post-unbind state
+	EnrollmentStateTokenIssued                        // a single-use enrollment token is outstanding
+	EnrollmentStateCertIssued                         // certificate lazily signed; awaiting first registration
+	EnrollmentStateBound                              // registered and holding its valid certificate
+)
+
 type NodeMode string
 
 const (

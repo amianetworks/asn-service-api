@@ -25,14 +25,15 @@ type Network struct {
 
 // Node represents a service node within a network.
 type Node struct {
-	ID           string
-	Name         string
-	Type         commonapi.NodeType
-	RegisteredAt time.Time
-	State        commonapi.NodeState
-	NetworkID    string
-	NodeGroupID  string // empty if the node is not in a group
-	Description  string
+	ID              string
+	Name            string
+	Type            commonapi.NodeType
+	RegisteredAt    time.Time
+	State           commonapi.NodeState       // runtime connectivity
+	EnrollmentState commonapi.EnrollmentState // credential lifecycle (orthogonal to State)
+	NetworkID       string
+	NodeGroupID     string // empty if the node is not in a group
+	Description     string
 	// Metadata is an opaque string set by the service via UpdateNodeMetadata().
 	Metadata string
 	Location *commonapi.Location
