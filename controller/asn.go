@@ -69,12 +69,17 @@ type ASNController interface {
 	// Service Lifecycle Management
 	// -------------------------------------------------------------------------
 
-	// AddServiceToNode loads this service's .so onto the target node and triggers Init().
-	// The node must be online (NodeStateOnline).
+	// AddServiceToNode adds this service to the target node's install set: it
+	// ensures the service deb is installed (the node fetches it from the
+	// apt repo configured in asn.conf, idempotent), then loads the .so and
+	// triggers Init(). The service is added to the node's service_names. The node
+	// must be online (NodeStateOnline).
 	AddServiceToNode(nodeID string) error
 
-	// DeleteServiceFromNode calls Stop() + Finish() on the node's service instance,
-	// then unloads the .so. Use for permanent removal; not a substitute for StopService().
+	// DeleteServiceFromNode removes this service from the node's install set: it
+	// calls Stop() + Finish() on the node's service instance, unloads the .so, and
+	// drops the service from service_names. The service deb is NOT uninstalled.
+	// Use for permanent removal; not a substitute for StopService().
 	DeleteServiceFromNode(nodeID string) error
 
 	// StartService triggers Start(config) on the service running on each matched node.

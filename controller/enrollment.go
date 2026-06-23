@@ -5,9 +5,15 @@ package capi
 import commonapi "asn.amiasys.com/asn-service-api/v26/common"
 
 // EnrollmentAPI is the framework's service-agnostic node onboarding surface,
-// embedded in ASNController. A service uses it to contribute its static install
-// spec, create framework-owned node identities, mint single-use enrollment
-// tokens, render bootstrap scripts, and unbind nodes for re-enrollment.
+// embedded in ASNController. A service uses it to create framework-owned node
+// identities, mint single-use enrollment tokens, render bootstrap scripts, and
+// unbind nodes for re-enrollment.
+//
+// The service entry is single-service: a service enrolls nodes only for itself.
+// CreateNode therefore takes no service list, and the token / script methods take
+// no service name — the node's service_names (here, exactly the calling service)
+// is the install set. Install specs (per-service deb coordinates and asnsn) are
+// configured in the controller's asn.conf, so there is no RegisterNodeInstallSpec.
 //
 // The framework owns node-key minting, lazy certificate signing, and ASN-core
 // rendering; the service never mints keys, signs certificates, or re-renders the
@@ -18,15 +24,11 @@ import commonapi "asn.amiasys.com/asn-service-api/v26/common"
 // framework-owned. When added later they become additive fields on the request
 // and identity structs below.
 type EnrollmentAPI interface {
-	// RegisterNodeInstallSpec contributes this service's static install spec.
-	// Call once during Init(); re-registration replaces the prior spec for the
-	// same service name. Carries no secrets.
-	RegisterNodeInstallSpec(spec NodeInstallSpec) error
-
 	// CreateNode atomically creates a persistent, framework-owned node identity
-	// and returns it. This is the ONLY method that creates a node: it mints no
-	// key, issues no token, and renders no script. The node's network path is
-	// derived from its parent placement.
+	// and returns it; service_names is set by the framework to the calling
+	// service. This is the ONLY method that creates a node: it mints no key,
+	// issues no token, and renders no script. The node's network path is derived
+	// from its parent placement.
 	CreateNode(req CreateNodeRequest) (*NodeIdentity, error)
 
 	// MintEnrollmentToken issues a single-use, script-fetch token bound to an
@@ -43,31 +45,24 @@ type EnrollmentAPI interface {
 	// immediately. Access-sensitive; audited.
 	UnbindNode(req UnbindNodeRequest) (*NodeIdentity, error)
 
-	// RenderBootstrapScript renders the install script for the EXISTING node
+	// RenderBootstrapScript renders the FULL install script for the EXISTING node
 	// bound to the token: validates and consumes the single-use token, mints the
-	// (unpersisted) node key, lazily signs the node certificate, and renders from
-	// this service's NodeInstallSpec. The service serves the returned bytes
-	// itself. Never creates a node.
+	// (unpersisted) node key, lazily signs the node certificate, and renders asnsn
+	// plus the deb of every service in the node's service_names (install specs
+	// from asn.conf). The script is idempotent. The service serves the returned
+	// bytes itself. Never creates a node.
 	RenderBootstrapScript(req RenderScriptRequest) (*BootstrapScript, error)
 
 	// GetEnrollmentStatus reads the current enrollment state for a node or token.
 	GetEnrollmentStatus(ref EnrollmentRef) (*EnrollmentStatus, error)
 }
 
-// NodeInstallSpec is the service-contributed, static install spec. No secrets:
-// apt repo, package, and pinned version only.
-type NodeInstallSpec struct {
-	ServiceName string
-	AptRepo     string
-	PackageName string
-	Version     string
-}
-
-// CreateNodeRequest creates a framework-owned node identity. Ownership and trust
-// tier are deferred; when added they become additive fields here.
+// CreateNodeRequest creates a framework-owned node identity. service_names is
+// fixed by the framework to the calling service (the service entry is
+// single-service). Ownership and trust tier are deferred; when added they become
+// additive fields here.
 type CreateNodeRequest struct {
-	ParentNetworkID string   // placement; the node's network path is derived from it
-	ServiceNames    []string // service eligibility (must include the creating service)
+	ParentNetworkID string // placement; the node's network path is derived from it
 	NodeNameHint    string
 	Label           string
 }
@@ -81,10 +76,9 @@ type NodeIdentity struct {
 
 // MintTokenRequest mints a single-use enrollment token for an existing node.
 type MintTokenRequest struct {
-	NodeID      string // existing node the token enrolls; required
-	ServiceName string // which eligible service this token renders for
-	TTLSeconds  int64
-	Label       string
+	NodeID     string // existing node the token enrolls; required
+	TTLSeconds int64
+	Label      string
 }
 
 // UnbindNodeRequest revokes a node's certificate and reopens it for enrollment.
@@ -103,11 +97,11 @@ type EnrollmentToken struct {
 
 // RenderScriptRequest renders the bootstrap script for the token's node.
 type RenderScriptRequest struct {
-	Token       string // presented by the device to the service
-	ServiceName string // which eligible service's install spec to render
+	Token string // presented by the device to the service
 }
 
-// BootstrapScript is the rendered ASN-core install script.
+// BootstrapScript is the rendered ASN-core install script (asnsn + the node's
+// service debs).
 type BootstrapScript struct {
 	Content      []byte
 	ContentType  string // e.g. "text/x-shellscript"
