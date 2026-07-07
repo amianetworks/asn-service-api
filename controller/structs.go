@@ -58,8 +58,10 @@ type ServiceInfo struct {
 }
 
 // NodeStateChange is delivered on the channel returned by SubscribeNodeStateChanges().
-// It carries both the node's connectivity state and the service's operational state
-// at the time of the event.
+// It is a snapshot of the node's three orthogonal axes at the time of the event:
+// connectivity (NodeState), service operational state (ServiceState), and
+// credential lifecycle (EnrollmentState). Every field carries its true current
+// value regardless of which axis triggered the event.
 // FrameworkError is non-nil on framework-level failures (e.g. node disconnection).
 // ServiceError is non-nil when the service itself reported an error during the transition.
 type NodeStateChange struct {
@@ -71,6 +73,16 @@ type NodeStateChange struct {
 
 	ServiceState commonapi.ServiceState
 	ServiceError error
+
+	// EnrollmentState is the node's credential-lifecycle axis at event time
+	// (orthogonal to NodeState). All four values may appear. Enrollment
+	// transitions do not each fire a dedicated event: losing identity
+	// (-> EnrollmentStateUnbound) is signalled explicitly, and a node becoming
+	// EnrollmentStateBound rides the connectivity event of its registration;
+	// the intermediate provisioning states (TokenIssued, CertIssued) are not
+	// separately signalled but still appear here in other events' snapshots.
+	// Token/cert expiry-driven transitions are not delivered in real time.
+	EnrollmentState commonapi.EnrollmentState
 }
 
 // OpsResponse is one node's response to a SendServiceOps or config op dispatch call.

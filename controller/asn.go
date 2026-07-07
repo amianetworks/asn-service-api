@@ -174,6 +174,13 @@ type ASNController interface {
 	// On subscription, the channel first delivers a NodeStateChange for every node's current state
 	// (initial snapshot), then delivers incremental changes. The channel is never closed during
 	// normal framework operation.
+	// Each NodeStateChange is a full snapshot across connectivity, service, and
+	// credential (EnrollmentState) axes. Beyond connectivity and service-state
+	// transitions, the channel fires when a node loses its identity
+	// (-> EnrollmentStateUnbound, e.g. an out-of-band unbind or token revocation);
+	// a node reaching EnrollmentStateBound is observed via the connectivity event
+	// of its registration. See NodeStateChange for the delivery caveats on the
+	// intermediate provisioning states and on expiry-driven transitions.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	// -------------------------------------------------------------------------
