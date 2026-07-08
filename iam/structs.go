@@ -77,6 +77,26 @@ type PasswordFlowMethod struct {
 	CountryCode  string
 }
 
+// PasswordFlowInspectResult is the read-only resolution of a password-flow token,
+// returned by AccountPasswordFlowInspect. It reports the bound account plus the
+// current flow status; the call has no side effects (attempts / pending method /
+// verified state are untouched). Unlike the auth flow there is no device dimension.
+type PasswordFlowInspectResult struct {
+	AccountID         string
+	Verified          bool                 // whether a proof has already succeeded (may proceed to Complete)
+	PendingMethod     PasswordVerifyMethod // OTP method chosen by the last SendCode; empty if none
+	ExpireAt          time.Time            // flow TTL
+	AttemptsRemaining int
+
+	// the bound account's identity (plaintext).
+	Username string
+	Email    string
+	Phone    Phone
+
+	// the verification methods the account can use, same set/masking as PasswordFlowInit.
+	Methods []PasswordFlowMethod
+}
+
 type PhoneCountryCodeMode string
 
 const (
@@ -263,6 +283,48 @@ type DeviceInfo struct {
 	Version      string
 	PushToken    string
 	Metadata     string
+}
+
+// FlowPhase identifies which phase an auth-flow token belongs to. It decides which
+// fields of AuthFlowInspectResult are populated:
+//   - FlowPhaseCredential: the in-memory credential-phase handle. Method / ExpireAt /
+//     the init-supplied identity + device are set; AccountID / DeviceID are empty
+//     (the account may not exist yet).
+//   - FlowPhaseMFA: the MFA-unverified access token. AccountID / DeviceID / the
+//     account's bound identity + registered device / AvailableMfaMethods are set.
+type FlowPhase int
+
+const (
+	FlowPhaseUnspecified FlowPhase = iota
+	FlowPhaseCredential
+	FlowPhaseMFA
+)
+
+// AuthFlowInspectResult is the read-only resolution of an auth-flow token, returned
+// by AuthFlowInspect. Which fields are populated depends on Phase (see FlowPhase).
+// The call has no side effects (attempts / pending method / token are untouched).
+type AuthFlowInspectResult struct {
+	Phase             FlowPhase
+	State             LoginFlowState   // CREDENTIAL: ChallengeRequired / VerifyRequired; MFA: MFAVerify / MFASetup
+	Method            CredentialMethod // CREDENTIAL phase only
+	ExpireAt          time.Time        // CREDENTIAL phase (from the in-memory flow TTL)
+	AttemptsRemaining int              // verification attempts left before the flow is exhausted
+
+	// identity: CREDENTIAL phase carries the value captured at AuthFlowInit (only the
+	// field matching the method is set; empty for third-party methods); MFA phase carries
+	// the account's bound values.
+	AccountID string // MFA phase only (the account is known)
+	Username  string
+	Email     string
+	Phone     Phone
+
+	// device: CREDENTIAL phase echoes the descriptor supplied at AuthFlowInit; MFA phase
+	// carries the registered device record for the token's device.
+	Device   *DeviceInfo
+	DeviceID string // MFA phase only
+
+	// MFA phase: the factors the account can use, each with a masked delivery target.
+	AvailableMfaMethods []MfaMethodInfo
 }
 
 type LoginFlowState int
