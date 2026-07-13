@@ -216,9 +216,11 @@ type ASNController interface {
 	// EnrollmentAPI -----------------------------------------------------------
 	// Node Enrollment
 	// Service-agnostic onboarding: contribute a static install spec, create a
-	// framework-owned node identity, mint a single-use enrollment token, render
-	// the bootstrap script (lazy key mint + cert sign), and unbind for
-	// re-enrollment. See EnrollmentAPI (enrollment.go).
+	// framework-owned node identity (or add the calling service to an existing
+	// node), mint a single-use enrollment token, render the bootstrap script
+	// (lazy key mint + cert sign), unbind for re-enrollment, and permanently
+	// delete a node once the calling service is its last. See EnrollmentAPI
+	// (enrollment.go).
 	// -------------------------------------------------------------------------
 	EnrollmentAPI
 }

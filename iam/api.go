@@ -157,7 +157,7 @@ type Instance interface {
 	// AccountPasswordFlowInspect is a read-only resolution of a password-flow token's
 	// context: it reports the bound account and the current flow status (verified state,
 	// pending OTP method, attempts remaining, TTL) without any side effects.
-	AccountPasswordFlowInspect(flowToken string) (PasswordFlowInspectResult, error)
+	AccountPasswordFlowInspect(flowToken string) (*PasswordFlowInspectResult, error)
 
 	// -------------------------------------------------------------------------
 	// Authentication
@@ -231,7 +231,7 @@ type Instance interface {
 	// handle yields FlowPhaseCredential, an MFA-unverified access token yields FlowPhaseMFA.
 	// Which fields of the result are populated depends on the phase (see FlowPhase).
 	// The call has no side effects.
-	AuthFlowInspect(flowToken string) (AuthFlowInspectResult, error)
+	AuthFlowInspect(flowToken string) (*AuthFlowInspectResult, error)
 
 	// Logout invalidates the session for the given device and revokes its tokens.
 	Logout(accountID, deviceID string) error
