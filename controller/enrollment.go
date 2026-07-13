@@ -55,15 +55,17 @@ type EnrollmentAPI interface {
 	// immediately. Access-sensitive; audited.
 	UnbindNode(req UnbindNodeRequest) (*NodeIdentity, error)
 
-	// DeleteNode permanently destroys a framework-owned node identity. It is
-	// allowed only when the calling service is the last service on the node
-	// (service_names contains no other service); otherwise it returns an error,
-	// so one service can never tear down a node another service still uses. The
-	// calling service is torn down first (Stop() + Finish() + unload on an online
-	// node, as DeleteServiceFromNode), then the identity is destroyed: certificate
-	// revoked, node key deleted, node-group membership dropped, and node config
-	// and any outstanding enrollment token discarded. Contrast UnbindNode, which
-	// keeps the identity for re-enrollment. Access-sensitive; audited.
+	// DeleteNode removes the calling service from the node and, only when that
+	// service was the node's last, optionally destroys the node identity. The
+	// service is always torn down (Stop() + Finish() + unload on an online node,
+	// as DeleteServiceFromNode). If other services remain, only the calling
+	// service is removed and the node is kept — one service can never tear down a
+	// node another service still uses. If the calling service was the last one,
+	// DeleteEmptyNode decides the node's fate: true destroys the identity
+	// (certificate revoked, node key deleted, node-group membership dropped, node
+	// config and any outstanding token discarded); false keeps the now-serviceless
+	// node. Contrast UnbindNode, which keeps a bound identity for re-enrollment.
+	// Access-sensitive; audited.
 	DeleteNode(req DeleteNodeRequest) error
 
 	// RenderBootstrapScript renders the FULL install script for the EXISTING node
@@ -124,11 +126,15 @@ type UnbindNodeRequest struct {
 	Reason string // audit reason (e.g. "machine swap", "lost key")
 }
 
-// DeleteNodeRequest permanently destroys a node identity. Allowed only when the
-// calling service is the node's last service.
+// DeleteNodeRequest removes the calling service from a node and, when it was the
+// node's last service, optionally destroys the node identity (see DeleteEmptyNode).
 type DeleteNodeRequest struct {
 	NodeID string // required
 	Reason string // audit reason (e.g. "decommissioned")
+	// DeleteEmptyNode applies only when the calling service is the node's last
+	// service: true destroys the node identity, false keeps the now-serviceless
+	// node. It is ignored when other services remain (the node is always kept).
+	DeleteEmptyNode bool
 }
 
 // EnrollmentToken is the single-use script-fetch credential bound to a node.
