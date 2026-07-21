@@ -20,9 +20,12 @@ import commonapi "asn.amiasys.com/asn-service-api/v26/common"
 // core. It only relays the returned bytes (optionally wrapping them with its own
 // service-owned config layer in the service-entry flow).
 //
-// Ownership and trust tier are deferred in this version: every node is
-// framework-owned. When added later they become additive fields on the request
-// and identity structs below.
+// Node ownership (OwnerType + OwnerID) is a node-level attribute set through
+// CreateNode below or SetNodeOwner (OwnershipAPI); it is decoupled from the
+// enrollment credential — never carried in the token, certificate, or bootstrap
+// script — and preserved across unbind/re-enroll. The framework trusts the
+// owner the caller asserts and only enforces the OwnerType/OwnerID invariant.
+// Trust tier remains deferred.
 type EnrollmentAPI interface {
 	// CreateNode creates a persistent, framework-owned node identity and returns
 	// it; service_names is set by the framework to the calling service. For a new
@@ -84,13 +87,22 @@ type EnrollmentAPI interface {
 // AllowExisting) adds the calling service to one that already exists with this
 // NodeName in the parent's root network tree. service_names is fixed by the
 // framework to the calling service (the service entry is single-service).
-// Ownership and trust tier are deferred; when added they become additive fields
-// here.
+//
+// OwnerType/OwnerID set the node's ownership; the caller asserts them from its
+// own authenticated context and the framework stores them verbatim after the
+// invariant check. Omitted (empty OwnerType) => OwnerTypeGlobal. On the
+// AllowExisting path they are ignored — ownership of an existing node is changed
+// only via SetNodeOwner. Trust tier is deferred.
 type CreateNodeRequest struct {
 	ParentNetworkID string             // placement; the node's network path is derived from it
 	NodeName        string             // authoritative; unique across the parent's whole root network tree
 	Type            commonapi.NodeType // hardware/logical role, e.g. NodeTypeServer, NodeTypeAppliance
 	Label           string
+	// OwnerType/OwnerID assert the new node's owner. Trusted verbatim; the
+	// framework enforces only OwnerTypeGlobal<=>empty OwnerID and
+	// OwnerTypeAccount<=>non-empty OwnerID. Empty OwnerType => OwnerTypeGlobal.
+	OwnerType commonapi.OwnerType
+	OwnerID   string
 	// AllowExisting makes CreateNode add the calling service to a node that
 	// already exists with this NodeName in the parent's root network tree instead
 	// of failing on the name collision. The framework acts by runtime state: online ->
@@ -111,6 +123,8 @@ type NodeIdentity struct {
 	NodeID          string
 	ServiceNames    []string
 	EnrollmentState commonapi.EnrollmentState
+	OwnerType       commonapi.OwnerType // as stored (empty OwnerType normalized to OwnerTypeGlobal)
+	OwnerID         string
 }
 
 // MintTokenRequest mints a single-use enrollment token for an existing node.

@@ -62,6 +62,20 @@ const (
 	NodeTypeServer       NodeType = "server"
 )
 
+// OwnerType is the ownership classification axis of a node, orthogonal to
+// EnrollmentState (credential lifecycle) and NodeState (connectivity). It is
+// node-level (shared across every service on the node). Extensible: a future
+// value (e.g. "group"/"org") only reinterprets the paired OwnerID.
+//
+// Invariant: OwnerTypeGlobal <=> OwnerID == ""; OwnerTypeAccount <=> OwnerID != "".
+// An empty OwnerType is normalized to OwnerTypeGlobal by the framework.
+type OwnerType string
+
+const (
+	OwnerTypeGlobal  OwnerType = "global"  // operator/framework-owned; OwnerID empty
+	OwnerTypeAccount OwnerType = "account" // owned by a specific account; OwnerID = account id
+)
+
 // ServiceScope defines the targeting granularity for service management and operations dispatch.
 // Used in StartService, StopService, ResetService, SendServiceOps, and config op methods.
 type ServiceScope int

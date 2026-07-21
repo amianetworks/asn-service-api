@@ -167,7 +167,24 @@ type ASNController interface {
 	// If withService is true, only nodes that have this service loaded are returned.
 	// Internal links: both endpoints within the network; the To node is included in the returned nodes slice.
 	// External links: the To endpoint is outside the network and is not included in nodes.
-	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
+	//
+	// An optional NodeOwnerFilter restricts the returned nodes by ownership; omit
+	// it (pass nothing) for no owner filtering. Owner filtering is the caller's
+	// responsibility for tenant isolation — pass the tenant's OwnerID to scope to
+	// one account; the framework applies the filter but does not otherwise enforce
+	// isolation. At most one filter may be passed; the first is used.
+	GetNodesOfNetwork(networkID string, withService bool, ownerFilter ...NodeOwnerFilter) (nodes []*Node, links []*Link, err error)
+
+	// SetNodeOwner sets, transfers, or clears a node's ownership (OwnerType +
+	// OwnerID), a node-level attribute decoupled from the enrollment credential
+	// and preserved across unbind/re-enroll. The caller asserts the owner from its
+	// own authenticated context; the framework trusts it and enforces only the
+	// invariant (OwnerTypeAccount requires a non-empty OwnerID; OwnerTypeGlobal
+	// requires it empty; an empty OwnerType is normalized to OwnerTypeGlobal). The
+	// framework does not adjudicate owner identity, entitlement, or tenant
+	// isolation. Ownership also changes via CreateNode and the account-deletion
+	// cascade. Access-sensitive; audited. See workflow/design/PrivateNode.md.
+	SetNodeOwner(req SetNodeOwnerRequest) error
 
 	// SubscribeNodeStateChanges returns a channel for node state changes.
 	// One-shot: a second call returns an error.

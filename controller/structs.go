@@ -41,6 +41,13 @@ type Node struct {
 	Managed bool
 	Info    *commonapi.NodeInfo
 
+	// Ownership axis (node-level, shared across every service on the node).
+	// Set/cleared via CreateNode / SetNodeOwner; decoupled from the enrollment
+	// credential. Invariant: OwnerTypeGlobal <=> OwnerID == "";
+	// OwnerTypeAccount <=> OwnerID != "".
+	OwnerType commonapi.OwnerType
+	OwnerID   string
+
 	// ServiceInfo is nil if the service is not loaded on this node.
 	ServiceInfo *ServiceInfo
 }
@@ -152,4 +159,27 @@ type LicenseInfo struct {
 
 	// Content contains service-defined license payload fields.
 	Contents map[string]string
+}
+
+// Node ownership (OwnerType + OwnerID) is a node-level attribute decoupled from
+// the enrollment credential: the caller asserts the owner from its own
+// authenticated context and the framework stores it verbatim, enforcing only the
+// OwnerType/OwnerID invariant. The framework does not adjudicate owner identity,
+// entitlement, or tenant isolation — those stay with the service. Ownership is
+// set via CreateNode or ASNController.SetNodeOwner, read on the Node struct, and
+// filtered via ASNController.GetNodesOfNetwork. See workflow/design/PrivateNode.md.
+
+// SetNodeOwnerRequest sets, transfers, or clears a node's ownership.
+type SetNodeOwnerRequest struct {
+	NodeID    string
+	OwnerType commonapi.OwnerType // empty => OwnerTypeGlobal
+	OwnerID   string              // required for OwnerTypeAccount; must be empty otherwise
+}
+
+// NodeOwnerFilter optionally restricts GetNodesOfNetwork by ownership. The two
+// axes are independent; an empty slice means that axis is not filtered, and when
+// both are set a node must match both (AND).
+type NodeOwnerFilter struct {
+	OwnerTypes []commonapi.OwnerType // empty => no owner-type filter
+	OwnerIDs   []string              // empty => no owner-id filter
 }
