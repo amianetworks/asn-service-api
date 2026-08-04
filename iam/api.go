@@ -216,7 +216,7 @@ type Instance interface {
 		weChatAppID, weChatCode string,
 		appleIDToken, googleIDToken string,
 		data string,
-	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken_ string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
+	) (accountCreated bool, account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken_ string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// AuthFlowResume re-enters the MFA flow when TokenVerify reports that MFA verification
 	// is still needed. Pass the MFA-unverified access token; it returns a result with
