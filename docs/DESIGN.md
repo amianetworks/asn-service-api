@@ -21,7 +21,7 @@ Issues not yet resolved in the current API design. These must be decided before 
 
 1. [Architecture Overview](#1-architecture-overview)
 2. [Package Organization](#2-package-organization)
-3. [Object Relationships and Ownership](#3-object-relationships-and-ownership)
+3. [Object Relationships](#3-object-relationships)
 4. [State Management](#4-state-management)
 5. [Controller Side — `capi`](#5-controller-side--capi)
 6. [Service Node Side — `snapi`](#6-service-node-side--snapi)
@@ -64,7 +64,7 @@ The framework owns all topology (networks, nodes, groups); services observe and 
 
 ---
 
-## 3. Object Relationships and Ownership
+## 3. Object Relationships
 
 ```mermaid
 graph LR
