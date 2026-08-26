@@ -69,11 +69,18 @@ type ASNController interface {
 	// Service Lifecycle Management
 	// -------------------------------------------------------------------------
 
-	// AddServiceToNode adds this service to the target node's install set: it
-	// ensures the service deb is installed (the node fetches it from the
-	// apt repo configured in asn.conf, idempotent), then loads the .so and
-	// triggers Init(). The service is added to the node's service_names. The node
-	// must be online (NodeStateOnline).
+	// AddServiceToNode adds this service to the target node's install set: the
+	// service is added to the node's service_names, then the framework loads the
+	// .so and triggers Init(). The node must be online (NodeStateOnline).
+	//
+	// It does NOT install the service deb. The node is only told to load, so the
+	// load fails unless the .so is already present, and the deb must be placed by
+	// re-fetching the node's bootstrap script (RenderBootstrapScript), which
+	// installs the full current service_names without unbinding or re-keying an
+	// already-enrolled node. That first failed load is expected and self-correcting:
+	// the node converges when the re-fetched script installs the deb and asnsn
+	// restarts and re-registers. A node-side install path is intended and will
+	// remove this step; treat the deb as a prerequisite until then.
 	AddServiceToNode(nodeID string) error
 
 	// DeleteServiceFromNode removes this service from the node's install set: it
@@ -217,10 +224,10 @@ type ASNController interface {
 	// Node Enrollment
 	// Service-agnostic onboarding: contribute a static install spec, create a
 	// framework-owned node identity (or add the calling service to an existing
-	// node), mint a single-use enrollment token, render the bootstrap script
-	// (lazy key mint + cert sign), unbind for re-enrollment, and permanently
-	// delete a node once the calling service is its last. See EnrollmentAPI
-	// (enrollment.go).
+	// node), mint an enrollment token, render the bootstrap script (lazy key mint
+	// and cert sign, but only for a node with no valid certificate), unbind for
+	// re-enrollment, and permanently delete a node once the calling service is its
+	// last. See EnrollmentAPI (enrollment.go).
 	// -------------------------------------------------------------------------
 	EnrollmentAPI
 }
