@@ -86,7 +86,7 @@ type ASNService interface {
 	// (the slave-side equivalent of the service calling SendMessageToController).
 	// The service decides whether to forward it to the controller via
 	// SendMessageToController.
-	OnSlaveMessage(slaveName, messageType, message string)
+	OnSlaveMessage(slaveName, messageType string, message []byte)
 
 	// OnQuerySharedData returns current values for the requested keys.
 	// Called when another service on the same node calls QueryServiceSharedData() targeting this service.
