@@ -60,7 +60,7 @@ type ASNServiceNode interface {
 	// handled by ASNServiceController.HandleMessageFromNode().
 	// No response is returned. To receive a reply, the controller must initiate a
 	// separate SendServiceOpsToNode() call.
-	SendMessageToController(messageType, payload string) error
+	SendMessageToController(messageType string, payload []byte) error
 
 	// -------------------------------------------------------------------------
 	// Slave Communication

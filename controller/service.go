@@ -57,7 +57,7 @@ type ASNServiceController interface {
 	// HandleMessageFromNode handles upcalls from service nodes sent via ASNServiceNode.SendMessageToController().
 	// Concurrent — messages from multiple nodes may arrive simultaneously; guard shared state.
 	// No direct response channel exists; to reply, initiate a SendServiceOpsToNode() call.
-	HandleMessageFromNode(nodeID, messageType, payload string) error
+	HandleMessageFromNode(nodeID, messageType string, payload []byte) error
 
 	// GetMetrics returns display-only metrics scoped to the given network.
 	// Concurrent; must return promptly. Values must be JSON-serializable.
