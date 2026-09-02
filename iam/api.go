@@ -348,7 +348,8 @@ type Instance interface {
 	// -------------------------------------------------------------------------
 
 	// GroupCreate creates a new group within this service's namespace.
-	GroupCreate(groupName, metadata string) error
+	// Params groupName and (prefix, suffix) pair are mutually exclusive.
+	GroupCreate(groupName, prefix, suffix, metadata string) (string, error)
 
 	// GroupDelete deletes the group.
 	GroupDelete(groupName string) error
