@@ -3,6 +3,8 @@
 package capi
 
 import (
+	"github.com/redis/go-redis/v9"
+
 	commonapi "asn.amiasys.com/asn-service-api/v26/common"
 	"asn.amiasys.com/asn-service-api/v26/iam"
 	"asn.amiasys.com/asn-service-api/v26/log"
@@ -38,6 +40,11 @@ type ASNController interface {
 	// InitTSDB returns a connected time-series database handle.
 	// Call once per name in Init().
 	InitTSDB(name string) (commonapi.TSDBHandler, error)
+
+	// InitRedis returns a connected redis database handle.
+	// Only one redis database handle is provided to each service.
+	// Call once in Init().
+	InitRedis() (*redis.Client, error)
 
 	// InitLocker returns a cluster-wide distributed lock.
 	// Call once in Init().
