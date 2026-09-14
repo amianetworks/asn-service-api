@@ -15,13 +15,14 @@ import (
 //  2. OTP code sending
 //  3. Account management
 //  4. Authentication
-//  5. Token lifecycle
-//  6. MFA
-//  7. Passkey (WebAuthn)
-//  8. Device management
-//  9. Groups
+//  5. Session delegation
+//  6. Token lifecycle
+//  7. MFA
+//  8. Passkey (WebAuthn)
+//  9. Device management
 //
-// 10. Accesses
+// 10. Groups
+// 11. Accesses
 type Instance interface {
 
 	// -------------------------------------------------------------------------
@@ -232,6 +233,49 @@ type Instance interface {
 	// Which fields of the result are populated depends on the phase (see FlowPhase).
 	// The call has no side effects.
 	AuthFlowInspect(flowToken string) (*AuthFlowInspectResult, error)
+
+	// -------------------------------------------------------------------------
+	// Session Delegation
+	// Hand an authorised session to a second device without that device
+	// authenticating itself: SessionDelegateCreate -> SessionDelegateRedeem.
+	// -------------------------------------------------------------------------
+
+	// SessionDelegateCreate exchanges a live session for a one-time ticket that a second
+	// device can redeem into a session of its own, without that device authenticating
+	// itself (app -> browser hand-off, or a device that cannot practically log in).
+	//
+	// accessToken is the delegating session's access token; it must still be the live token
+	// on file for its device, and a session that was itself delegated may not delegate again.
+	// targetDeviceHint is advisory only, for a confirmation prompt — it never resolves,
+	// matches or registers a device, since the redeeming device reports its own descriptor.
+	// durationAccess is the requested lifetime of the delegated access token; 0 means the
+	// configured default for the category of the device that actually redeems the ticket.
+	// wantRefresh asks for a refresh token on the delegated session, honoured only when the
+	// service config allows it.
+	//
+	// What comes back is a ticket, never a token: the channel between the two devices is
+	// usually a URL, deep link or QR code, so the credential must be one that dies in
+	// seconds and can be redeemed exactly once. ticketExpireAt is when the ticket itself
+	// dies; maxExpireAt is the latest instant the delegated session can expire, after
+	// clamping against the parent session's ceiling and the configured maximum — it is the
+	// exact expiry when durationAccess was given, and only a bound when it was not.
+	SessionDelegateCreate(
+		accessToken string, targetDeviceHint *DeviceInfo,
+		durationAccess time.Duration, wantRefresh bool,
+	) (ticket string, ticketExpireAt, maxExpireAt time.Time, err error)
+
+	// SessionDelegateRedeem turns a ticket from SessionDelegateCreate into a session for the
+	// device presenting it. device is the redeeming device's own descriptor — the only place
+	// its identity is established — and goes through the same registration, recognition and
+	// device-limit path as an ordinary login.
+	//
+	// The returned state is not necessarily LoginFlowAuthenticated: a delegation taken from
+	// an MFA-unverified session yields an MFA-unverified session, so this may return
+	// LoginFlowMFAVerify / LoginFlowMFASetup with a flow token, which this device must carry
+	// through the MFA flow itself (AuthFlowMfa*) exactly as a fresh login would.
+	SessionDelegateRedeem(
+		ticket string, device *DeviceInfo, userClaims string,
+	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// Logout invalidates the session for the given device and revokes its tokens.
 	Logout(accountID, deviceID string) error
