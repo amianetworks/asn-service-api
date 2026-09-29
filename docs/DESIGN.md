@@ -29,8 +29,7 @@ Issues not yet resolved in the current API design. These must be decided before 
 8. [Ops Commands](#8-ops-commands)
 9. [Cross-Service Data Sharing](#9-cross-service-data-sharing)
 10. [IAM](#10-iam)
-11. [Subscription](#11-subscription)
-12. [Implementation Checklist](#12-implementation-checklist)
+11. [Implementation Checklist](#12-implementation-checklist)
 
 ---
 
@@ -59,7 +58,6 @@ The framework owns all topology (networks, nodes, groups); services observe and 
 | `snapi` | `/servicenode` | Service-node-side interfaces and structs |
 | `commonapi` | `/common` | Shared enums, structs, DB/log abstractions |
 | `iam` | `/iam` | IAM interface |
-| `subscription` | `/subscription` | Subscription / IAP interface |
 | `log` | `/log` | Structured logger interface |
 
 ---
@@ -89,7 +87,6 @@ graph LR
 | `ASNServiceNode` | Framework | `ASNService` |
 | `ASNService` | Service | Framework |
 | `iam.Instance` | Framework | `ASNServiceController` via `GetIAM()` |
-| `subscription.Instance` | Framework | `ASNServiceController` via `GetSubscription()` |
 
 Both `ASNServiceController` and `ASNService` expose a `StaticResource` sub-interface callable **before** `Init()`.
 
@@ -411,21 +408,7 @@ Accesses are granted at the group level. `AccountAccessList` returns all effecti
 
 ---
 
-## 11. Subscription
-
-Obtained via `ASNController.GetSubscription()`. Full API: `subscription/subscription.go`.
-
-### Registration Pattern
-
-Register platforms during `ASNServiceController.Start()`. Each `Add*()` call returns:
-- An HTTP webhook handler — mount it via the `http.Handler` returned from `WebHandler()`.
-- An `errChan` for async backend failures — monitor in a background goroutine.
-
-`GetNotificationChannel()` returns a unified channel for lifecycle events across all platforms; consume it independently of each platform's `errChan`.
-
----
-
-## 12. Implementation Checklist
+## 11. Implementation Checklist
 
 ### ASNServiceController
 
