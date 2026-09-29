@@ -84,9 +84,9 @@ type ASNController interface {
 	// load fails unless the .so is already present, and the deb must be placed by
 	// re-fetching the node's bootstrap script (RenderBootstrapScript), which
 	// installs the deb without unbinding or re-keying an already-enrolled node
-	// (the host keeps its own certificate). That first failed load is expected and self-correcting:
-	// the node converges when the re-fetched script installs the deb and asnsn
-	// restarts and re-registers. A node-side install path is intended and will
+	// (the host keeps its own certificate). That first failed load is expected
+	// and self-correcting: the node converges when the re-fetched script installs
+	// the deb and asnsn restarts and re-registers. A node-side install path is intended and will
 	// remove this step; treat the deb as a prerequisite until then.
 	AddServiceToNode(nodeID string) error
 
@@ -180,7 +180,8 @@ type ASNController interface {
 	SetConfigOfNode(nodeID, config string) error
 
 	// GetNodesOfNetwork returns all nodes of a network and its links.
-	// If withService is true, only nodes that have this service loaded are returned.
+	// If withService is true, only nodes eligible for this service (this service
+	// in their service_names) are returned, whether or not it is loaded yet.
 	// Internal links: both endpoints within the network; the To node is included in the returned nodes slice.
 	// External links: the To endpoint is outside the network and is not included in nodes.
 	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
@@ -192,11 +193,8 @@ type ASNController interface {
 	// normal framework operation.
 	// Each NodeStateChange is a full snapshot across connectivity, service, and
 	// credential (EnrollmentState) axes. Beyond connectivity and service-state
-	// transitions, the channel fires when a node loses its identity
-	// (-> EnrollmentStateUnbound, e.g. an out-of-band unbind or token revocation);
-	// a node reaching EnrollmentStateBound is observed via the connectivity event
-	// of its registration. See NodeStateChange for the delivery caveats on the
-	// intermediate provisioning states and on expiry-driven transitions.
+	// transitions, the channel fires on every EnrollmentState change; see
+	// NodeStateChange for when expiry-driven changes are delivered.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	// -------------------------------------------------------------------------
@@ -231,9 +229,8 @@ type ASNController interface {
 
 	// EnrollmentAPI -----------------------------------------------------------
 	// Node Enrollment
-	// Service-agnostic onboarding: contribute a static install spec, create a
-	// framework-owned node identity (or add the calling service to an existing
-	// node), mint an enrollment token, render the install script (lazy key mint
+	// Service-agnostic onboarding: create a framework-owned node identity (or add
+	// the calling service to an existing node), mint an enrollment token, render the install script (lazy key mint
 	// and candidate cert sign; the first candidate to register binds), render the
 	// uninstall script, unbind for re-enrollment, and permanently delete a node
 	// once the calling service is its last. See EnrollmentAPI (enrollment.go).

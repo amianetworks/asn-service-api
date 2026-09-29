@@ -36,10 +36,11 @@ type EnrollmentAPI interface {
 	// unique across the entire root network tree that parent belongs to; an
 	// existing node is matched by that name within the tree. If such a node
 	// already exists: with AllowExisting the framework adds the calling service to
-	// it (acting by runtime state — a live install of deb + .so + Init() if the
-	// node is online, otherwise appended to service_names to install when the node
-	// next bootstraps) and returns the existing identity; without AllowExisting a
-	// name collision returns an error.
+	// its service_names and returns the existing identity — an online node is told
+	// to load the .so and Init() it (as AddServiceToNode, so the deb must already
+	// be present), an offline one loads it on its next registration, and the deb
+	// arrives through the install script; without AllowExisting a name collision
+	// returns an error.
 	// On the AllowExisting path UpdateInfo governs the node's shared attributes:
 	// when set, the request's Type and Label overwrite the existing values (which
 	// affects every service on the node); when unset they are left unchanged.
@@ -82,11 +83,16 @@ type EnrollmentAPI interface {
 	// as DeleteServiceFromNode). If other services remain, only the calling
 	// service is removed and the node is kept — one service can never tear down a
 	// node another service still uses. If the calling service was the last one,
-	// DeleteEmptyNode decides the node's fate: true destroys the identity
-	// (certificate revoked, node key deleted, node-group membership dropped, node
-	// config and any outstanding token discarded); false keeps the now-serviceless
-	// node. Contrast UnbindNode, which keeps a bound identity for re-enrollment.
-	// Access-sensitive; audited.
+	// DeleteEmptyNode decides the node's fate: true destroys the identity (bound
+	// certificate revoked, candidate certificates and any outstanding token
+	// discarded, node-group membership and node config dropped); false keeps the
+	// now-serviceless node. Contrast UnbindNode, which keeps a bound identity for
+	// re-enrollment. Access-sensitive; audited.
+	//
+	// DeleteNode never touches the host: the service deb and asnsn stay
+	// installed. To also remove them, use RenderUninstallScript instead, which
+	// performs the same removal (including DeleteEmptyNode) and returns the
+	// script that cleans up the host.
 	DeleteNode(req DeleteNodeRequest) error
 
 	// RenderBootstrapScript renders the install/upgrade script for the EXISTING
@@ -122,8 +128,10 @@ type EnrollmentAPI interface {
 	// asnsn. When that leaves service_names empty, it also unbinds the node (as
 	// UnbindNode) and the script purges asnsn and removes the node certificate,
 	// key, and asn.conf. The decision is made from the controller's record, never
-	// by inspecting the host. The node record itself is kept; DeleteNode remains
-	// the way to destroy it.
+	// by inspecting the host. The emptied node record is kept, unless
+	// DeleteEmptyNode asks for it to be destroyed as DeleteNode would — the only
+	// chance to do so from the service entry, since afterwards the calling service
+	// is no longer eligible for the node.
 	//
 	// The controller record changes when the script is rendered, not when it
 	// runs; the script only brings the host in line. It carries no key,
@@ -149,9 +157,9 @@ type CreateNodeRequest struct {
 	Label           string
 	// AllowExisting makes CreateNode add the calling service to a node that
 	// already exists with this NodeName in the parent's root network tree instead
-	// of failing on the name collision. The framework acts by runtime state: online ->
-	// live install (deb + .so + Init(), as AddServiceToNode); not yet online ->
-	// appended to service_names and installed at the node's next bootstrap.
+	// of failing on the name collision. The service is added to service_names;
+	// an online node loads the .so and runs Init() at once (as AddServiceToNode —
+	// the deb is not installed by this call), others load it when they register.
 	AllowExisting bool
 	// UpdateInfo applies only on the AllowExisting path: when true, Type and Label
 	// in this request overwrite the existing node's values; when false they are
@@ -224,6 +232,11 @@ type BootstrapScript struct {
 // service from a node.
 type RenderUninstallRequest struct {
 	NodeID string // required
+	Reason string // audit reason (e.g. "decommissioned")
+	// DeleteEmptyNode applies only when the calling service is the node's last
+	// service: true destroys the node identity (as DeleteNode), false keeps the
+	// now-serviceless, unbound node. Ignored when other services remain.
+	DeleteEmptyNode bool
 }
 
 // UninstallScript is the rendered uninstall script. It carries no secret.
@@ -232,7 +245,8 @@ type UninstallScript struct {
 	ContentType string // e.g. "text/x-shellscript"
 	NodeID      string
 	// LastService reports that the calling service was the node's last: the node
-	// was unbound and the script also purges asnsn and the node credential.
+	// was unbound (or destroyed, with DeleteEmptyNode) and the script also purges
+	// asnsn and the node credential.
 	LastService bool
 }
 

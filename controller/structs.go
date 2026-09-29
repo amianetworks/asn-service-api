@@ -41,7 +41,9 @@ type Node struct {
 	Managed bool
 	Info    *commonapi.NodeInfo
 
-	// ServiceInfo is nil if the service is not loaded on this node.
+	// ServiceInfo is nil if this service is not in the node's service_names (not
+	// eligible). An eligible node whose plugin is not loaded yet has ServiceInfo
+	// with State ServiceStateUnavailable.
 	ServiceInfo *ServiceInfo
 }
 
@@ -75,13 +77,11 @@ type NodeStateChange struct {
 	ServiceError error
 
 	// EnrollmentState is the node's credential-lifecycle axis at event time
-	// (orthogonal to NodeState). All four values may appear. Enrollment
-	// transitions do not each fire a dedicated event: losing identity
-	// (-> EnrollmentStateUnbound) is signalled explicitly, and a node becoming
-	// EnrollmentStateBound rides the connectivity event of its registration;
-	// the intermediate provisioning states (TokenIssued, CertIssued) are not
-	// separately signalled but still appear here in other events' snapshots.
-	// Token/cert expiry-driven transitions are not delivered in real time.
+	// (orthogonal to NodeState). All four values may appear. Every change of
+	// EnrollmentState fires an event: token mint, script fetch, registration,
+	// unbind, token revocation, and uninstall of the last service as they
+	// happen; expiry of a token or candidate certificate within the
+	// framework's expiry-sweep interval, not at the exact expiry instant.
 	EnrollmentState commonapi.EnrollmentState
 }
 
