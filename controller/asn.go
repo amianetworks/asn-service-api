@@ -8,6 +8,7 @@ import (
 	commonapi "asn.amiasys.com/asn-service-api/v26/common"
 	"asn.amiasys.com/asn-service-api/v26/iam"
 	"asn.amiasys.com/asn-service-api/v26/log"
+	"asn.amiasys.com/asn-service-api/v26/subscription"
 )
 
 // ASNController is the framework-provided handle passed to ASNServiceController.Init().
@@ -52,6 +53,10 @@ type ASNController interface {
 	// GetIAM returns the IAM instance for account, group, and access management.
 	// Call once in Init().
 	GetIAM() (iam.Instance, error)
+
+	// GetSubscription returns the In-App Subscription instance.
+	// Call once in Init().
+	GetSubscription() (subscription.Instance, error)
 
 	// -------------------------------------------------------------------------
 	// License Management
