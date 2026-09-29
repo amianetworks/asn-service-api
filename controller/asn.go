@@ -83,8 +83,8 @@ type ASNController interface {
 	// It does NOT install the service deb. The node is only told to load, so the
 	// load fails unless the .so is already present, and the deb must be placed by
 	// re-fetching the node's bootstrap script (RenderBootstrapScript), which
-	// installs the full current service_names without unbinding or re-keying an
-	// already-enrolled node. That first failed load is expected and self-correcting:
+	// installs the deb without unbinding or re-keying an already-enrolled node
+	// (the host keeps its own certificate). That first failed load is expected and self-correcting:
 	// the node converges when the re-fetched script installs the deb and asnsn
 	// restarts and re-registers. A node-side install path is intended and will
 	// remove this step; treat the deb as a prerequisite until then.
@@ -92,8 +92,10 @@ type ASNController interface {
 
 	// DeleteServiceFromNode removes this service from the node's install set: it
 	// calls Stop() + Finish() on the node's service instance, unloads the .so, and
-	// drops the service from service_names. The service deb is NOT uninstalled.
-	// Use for permanent removal; not a substitute for StopService().
+	// drops the service from service_names. The service deb is NOT uninstalled;
+	// RenderUninstallScript does the same removal and also renders the script
+	// that purges the deb. Use for permanent removal; not a substitute for
+	// StopService().
 	DeleteServiceFromNode(nodeID string) error
 
 	// StartService triggers Start(config) on the service running on each matched node.
@@ -231,10 +233,10 @@ type ASNController interface {
 	// Node Enrollment
 	// Service-agnostic onboarding: contribute a static install spec, create a
 	// framework-owned node identity (or add the calling service to an existing
-	// node), mint an enrollment token, render the bootstrap script (lazy key mint
-	// and cert sign, but only for a node with no valid certificate), unbind for
-	// re-enrollment, and permanently delete a node once the calling service is its
-	// last. See EnrollmentAPI (enrollment.go).
+	// node), mint an enrollment token, render the install script (lazy key mint
+	// and candidate cert sign; the first candidate to register binds), render the
+	// uninstall script, unbind for re-enrollment, and permanently delete a node
+	// once the calling service is its last. See EnrollmentAPI (enrollment.go).
 	// -------------------------------------------------------------------------
 	EnrollmentAPI
 }

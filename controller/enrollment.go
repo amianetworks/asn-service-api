@@ -6,7 +6,7 @@ import commonapi "asn.amiasys.com/asn-service-api/v26/common"
 
 // EnrollmentAPI is the framework's service-agnostic node onboarding surface,
 // embedded in ASNController. A service uses it to create framework-owned node
-// identities, mint single-use enrollment tokens, render bootstrap scripts,
+// identities, mint enrollment tokens, render install and uninstall scripts,
 // unbind nodes for re-enrollment, and permanently delete nodes.
 //
 // The service entry is single-service: a service enrolls nodes only for itself.
@@ -20,12 +20,13 @@ import commonapi "asn.amiasys.com/asn-service-api/v26/common"
 // core. It only relays the returned bytes (optionally wrapping them with its own
 // service-owned config layer in the service-entry flow).
 //
-// Whether a rendered script carries a credential at all is decided by the
-// framework from server-side state: it mints one only when the controller holds
-// no valid certificate for the node. A node that is already credentialed can
-// therefore re-fetch its script — to install a service deb added after
-// enrollment, for instance — without unbinding and without rotating its key. See
-// RenderBootstrapScript.
+// Binding is deferred to registration. Every install script carries a freshly
+// signed candidate certificate for the node; the first candidate to complete
+// registration becomes the node's one bound certificate and every other
+// candidate is invalidated. A host that already holds a certificate for the node
+// keeps it and ignores the candidate, so a credentialed node can re-fetch its
+// script — to install a service deb added after enrollment, for instance —
+// without unbinding and without rotating its key. See RenderBootstrapScript.
 type EnrollmentAPI interface {
 	// CreateNode creates a persistent, framework-owned node identity and returns
 	// it; service_names is set by the framework to the calling service. For a new
@@ -45,27 +46,34 @@ type EnrollmentAPI interface {
 	CreateNode(req CreateNodeRequest) (*NodeIdentity, error)
 
 	// MintEnrollmentToken issues a script-fetch token bound to an EXISTING node,
-	// in any EnrollmentState. A fresh token supersedes a prior unused token. Does
-	// not create a node.
+	// in any EnrollmentState. A fresh token supersedes the node's prior token.
+	// Does not create a node.
 	//
-	// A token authorizes fetching the node's install script; it does not by itself
-	// authorize a new certificate. Against a node that already holds a valid
-	// certificate the fetch reuses that certificate and mints nothing, so a token
-	// can never displace a running node — which is why minting is unrestricted.
-	// Enrollment remains non-reentrant, enforced at issuance: to obtain a NEW
+	// The token is reusable until it expires: every fetch renders a script. Its
+	// lifetime is TTLSeconds, capped by the controller's configured token lifetime
+	// (servicenode.enrollment.token_ttl), which is also the default when
+	// TTLSeconds is zero.
+	//
+	// A token authorizes fetching the node's install script; it never displaces a
+	// running node. A candidate certificate fetched while the node already holds a
+	// bound certificate can never bind, which is why minting is unrestricted.
+	// Binding is non-reentrant, enforced at registration: to bind a NEW
 	// certificate for a node (a lost key, a replaced machine) call UnbindNode
-	// first, otherwise the fetch will refuse to re-key.
+	// first.
 	MintEnrollmentToken(req MintTokenRequest) (*EnrollmentToken, error)
 
-	// UnbindNode revokes the node's current certificate and cancels any
-	// outstanding token, returning the node to EnrollmentStateUnbound so it can
-	// enroll again. It does NOT delete the node: identity, service eligibility,
-	// and service config are preserved. A bound, live node loses its session
-	// immediately. Access-sensitive; audited.
+	// UnbindNode revokes the node's bound certificate, invalidates every
+	// unbound candidate certificate, and cancels any outstanding token, returning
+	// the node to EnrollmentStateUnbound so it can enroll again. It does NOT
+	// delete the node: identity, service eligibility, and service config are
+	// preserved. A bound, live node loses its session immediately.
+	// Access-sensitive; audited.
 	//
-	// This is the only way to re-key a node. Clearing the certificate is what lets
-	// the next RenderBootstrapScript issue a new one; without it the fetch reuses
-	// the existing certificate and refuses a host that cannot present it.
+	// This is the only way to re-key a node: only a node with no bound
+	// certificate lets a candidate bind at registration. A host that still holds
+	// the revoked certificate keeps it (install scripts never overwrite a local
+	// certificate), so re-enrolling that same host requires removing its local
+	// certificate first.
 	UnbindNode(req UnbindNodeRequest) (*NodeIdentity, error)
 
 	// DeleteNode removes the calling service from the node and, only when that
@@ -81,28 +89,50 @@ type EnrollmentAPI interface {
 	// Access-sensitive; audited.
 	DeleteNode(req DeleteNodeRequest) error
 
-	// RenderBootstrapScript renders the FULL install script for the EXISTING node
-	// bound to the token: asnsn plus the deb of every service in the node's
-	// service_names, at the versions and apt repos configured in asn.conf. The
-	// service serves the returned bytes itself. Never creates a node.
+	// RenderBootstrapScript renders the install/upgrade script for the EXISTING
+	// node bound to the token: asnsn plus the CALLING service's deb only, at the
+	// versions and apt repos configured in asn.conf (debs of other services the
+	// node is eligible for belong to the ASN entry). A service that is not itself
+	// eligible for the node is refused before anything is signed. The service
+	// serves the returned bytes itself. Never creates a node, never consumes the
+	// token.
 	//
-	// Credential handling depends on one framework-side fact, the node's current
-	// certificate, and the caller selects nothing:
+	// Every call mints a fresh (unpersisted) node key and signs a candidate
+	// certificate, embeds both, and records the candidate on the node
+	// (EnrollmentStateCertIssued until one binds). The first candidate to
+	// complete registration binds; the others are invalidated. The number of live
+	// candidates per node is capped by the controller; beyond it the call fails
+	// and signs nothing.
 	//
-	//   - No valid certificate (never enrolled, expired, or unbound): mints the
-	//     (unpersisted) node key, lazily signs the certificate, embeds both,
-	//     CONSUMES the token, and moves the node to EnrollmentStateCertIssued.
-	//   - A valid certificate: embeds no key and no certificate. The script
-	//     instead requires the host to already hold that exact certificate, and
-	//     aborts if it does not. Nothing is minted, nothing is rebound, and the
-	//     token is NOT consumed, so the same token may fetch again within its TTL.
+	// The script decides on the host, before it mutates anything:
 	//
-	// The script is idempotent and safe to re-run, but it is not indiscriminate:
-	// before touching anything it verifies that the host is the node it claims to
-	// be, and exits non-zero without modifying apt sources, certificates, or
-	// configuration when it is not. A host that already belongs to a different
-	// node, or that cannot present the expected certificate, is never adopted.
+	//   - Credential: no local certificate -> install the embedded candidate and
+	//     asn.conf; a local certificate for this node -> keep it and asn.conf,
+	//     ignore the candidate; a local certificate for another node -> abort.
+	//   - Packages: not installed -> install; lower version -> upgrade; equal ->
+	//     leave; any installed version HIGHER than the target -> abort the whole
+	//     script without changing anything.
+	//
+	// The script is idempotent and safe to re-run with any unexpired token.
 	RenderBootstrapScript(req RenderScriptRequest) (*BootstrapScript, error)
+
+	// RenderUninstallScript removes the CALLING service from the node's
+	// service_names (as DeleteServiceFromNode, so a live node unloads it at once)
+	// and renders a script that purges the service's deb on the host and restarts
+	// asnsn. When that leaves service_names empty, it also unbinds the node (as
+	// UnbindNode) and the script purges asnsn and removes the node certificate,
+	// key, and asn.conf. The decision is made from the controller's record, never
+	// by inspecting the host. The node record itself is kept; DeleteNode remains
+	// the way to destroy it.
+	//
+	// The controller record changes when the script is rendered, not when it
+	// runs; the script only brings the host in line. It carries no key,
+	// certificate, or token, and before mutating anything it verifies that the
+	// host holds this node's certificate (and, when the node was bound, the bound
+	// serial). The calling service must be eligible for the node at call time, so
+	// a retry after a successful render goes through the operator entry.
+	// Access-sensitive; audited.
+	RenderUninstallScript(req RenderUninstallRequest) (*UninstallScript, error)
 
 	// GetEnrollmentStatus reads the current enrollment state for a node or token.
 	GetEnrollmentStatus(ref EnrollmentRef) (*EnrollmentStatus, error)
@@ -139,10 +169,10 @@ type NodeIdentity struct {
 	EnrollmentState commonapi.EnrollmentState
 }
 
-// MintTokenRequest mints a single-use enrollment token for an existing node.
+// MintTokenRequest mints an enrollment token for an existing node.
 type MintTokenRequest struct {
 	NodeID     string // existing node the token enrolls; required
-	TTLSeconds int64
+	TTLSeconds int64  // 0 = controller default; capped by servicenode.enrollment.token_ttl
 	Label      string
 }
 
@@ -163,9 +193,8 @@ type DeleteNodeRequest struct {
 	DeleteEmptyNode bool
 }
 
-// EnrollmentToken is the script-fetch credential bound to a node. It is consumed
-// when a fetch issues a certificate; a fetch that reuses the node's existing
-// certificate consumes nothing and may be repeated until ExpiresAt.
+// EnrollmentToken is the script-fetch credential bound to a node. It is never
+// consumed: any number of fetches may use it until ExpiresAt.
 type EnrollmentToken struct {
 	Token     string
 	TokenID   string
@@ -178,17 +207,33 @@ type RenderScriptRequest struct {
 	Token string // presented by the device to the service
 }
 
-// BootstrapScript is the rendered ASN-core install script (asnsn + the node's
-// service debs). Depending on the node's credential state the script may carry no
-// key or certificate at all; see RenderBootstrapScript.
+// BootstrapScript is the rendered ASN-core install script (asnsn + the calling
+// service's deb). It always carries a freshly signed candidate certificate and
+// key; see RenderBootstrapScript.
 type BootstrapScript struct {
 	Content     []byte
 	ContentType string // e.g. "text/x-shellscript"
 	NodeID      string // the existing node this script enrolls / re-keys
-	// CertNotAfter is when the NODE's certificate expires — the one just signed if
-	// this script carries a credential, otherwise the one the node already holds.
-	// It is not necessarily the validity of anything contained in Content.
+	// CertNotAfter is when the candidate certificate carried in Content expires.
+	// The host uses that certificate only if it has none of its own, and it binds
+	// only if it is the first candidate to register.
 	CertNotAfter int64
+}
+
+// RenderUninstallRequest renders the uninstall script that removes the calling
+// service from a node.
+type RenderUninstallRequest struct {
+	NodeID string // required
+}
+
+// UninstallScript is the rendered uninstall script. It carries no secret.
+type UninstallScript struct {
+	Content     []byte
+	ContentType string // e.g. "text/x-shellscript"
+	NodeID      string
+	// LastService reports that the calling service was the node's last: the node
+	// was unbound and the script also purges asnsn and the node credential.
+	LastService bool
 }
 
 // EnrollmentRef identifies an enrollment by node or token.
