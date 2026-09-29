@@ -86,12 +86,10 @@ type Instance interface {
 	// the remaining fields are ignored.
 	AccountGet(accountID, username, countryCode, number, email string) (*Account, error)
 
-	// AccountList returns accounts matching all provided filter fields.
-	// Empty strings match all values for that field.
-	AccountList(username, countryCode, number, email string) ([]*Account, error)
-
-	// AccountListByIDs returns accounts for the given IDs.
-	AccountListByIDs(accountIDs []string) ([]*Account, error)
+	// AccountList returns the page of accounts visible to this service that match filter,
+	// in sort order, and how many match in all regardless of page.
+	// The zero filter, sort and page return every account, oldest first.
+	AccountList(filter AccountListFilter, sort AccountListSort, page Page) (accounts []*Account, total int, err error)
 
 	// AccountRename changes the account's username.
 	AccountRename(accountID, newUsername string) error
@@ -246,8 +244,6 @@ type Instance interface {
 	//
 	// accessToken is the delegating session's access token; it must still be the live token
 	// on file for its device, and a session that was itself delegated may not delegate again.
-	// targetDeviceHint is advisory only, for a confirmation prompt — it never resolves,
-	// matches or registers a device, since the redeeming device reports its own descriptor.
 	// durationAccess is the requested lifetime of the delegated access token; 0 means the
 	// configured default for the category of the device that actually redeems the ticket.
 	// wantRefresh asks for a refresh token on the delegated session, honoured only when the
@@ -260,7 +256,7 @@ type Instance interface {
 	// clamping against the parent session's ceiling and the configured maximum — it is the
 	// exact expiry when durationAccess was given, and only a bound when it was not.
 	SessionDelegateCreate(
-		accessToken string, targetDeviceHint *DeviceInfo,
+		accessToken string,
 		durationAccess time.Duration, wantRefresh bool,
 	) (ticket string, ticketExpireAt, maxExpireAt time.Time, err error)
 
@@ -410,20 +406,17 @@ type Instance interface {
 	// GroupGet returns the group's details.
 	GroupGet(groupName string) (*Group, error)
 
-	// GroupList returns all groups in this service's namespace.
-	GroupList() ([]*Group, error)
-
-	// GroupMemberList returns all accounts that are members of the group.
-	GroupMemberList(groupName string) ([]*Account, error)
+	// GroupList returns the page of groups in this service's namespace that match filter,
+	// in sort order, and how many match in all regardless of page.
+	// The zero filter, sort and page return every group, oldest first.
+	// For a group's members, use AccountList with AccountListFilter.Groups.
+	GroupList(filter GroupListFilter, sort GroupListSort, page Page) (groups []*Group, total int, err error)
 
 	// AccountJoinGroup adds the given accounts to the group.
 	AccountJoinGroup(groupName string, accountIDs []string) error
 
 	// AccountLeaveGroup removes the given accounts from the group.
 	AccountLeaveGroup(groupName string, accountIDs []string) error
-
-	// AccountGroupList returns all groups (within this service's namespace) the account belongs to.
-	AccountGroupList(accountID string) ([]*Group, error)
 
 	// -------------------------------------------------------------------------
 	// Accesses
