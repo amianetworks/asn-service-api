@@ -10,7 +10,7 @@ import (
 	"asn.amiasys.com/asn-service-api/v26/subscription/stripe"
 )
 
-// Instance is the subscription interface obtained via ASNController.GetSubscription().
+// Instance is the subscription interface obtained via ASNController.GetSubscription.
 // All methods are goroutine-safe.
 //
 // Registration pattern: call Add* during ASNServiceController.Start(). Each returns:

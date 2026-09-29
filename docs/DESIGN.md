@@ -89,7 +89,7 @@ graph LR
 | `ASNServiceNode` | Framework | `ASNService` |
 | `ASNService` | Service | Framework |
 | `iam.Instance` | Framework | `ASNServiceController` via `GetIAM()` |
-| `subscription.Instance` | Framework | `ASNServiceController` via `GetSubscription()` |
+| `subscription.Instance` | Framework | `ASNServiceController` via `GetSubscription(...)` |
 
 Both `ASNServiceController` and `ASNService` expose a `StaticResource` sub-interface callable **before** `Init()`.
 
@@ -413,7 +413,7 @@ Accesses are granted at the group level. `AccountAccessList` returns all effecti
 
 ## 11. Subscription
 
-Obtained via `ASNController.GetSubscription()`. Full API: `subscription/subscription.go`.
+Obtained via `ASNController.GetSubscription(docDBName, docDBSubCollName, docDBSubRecordCollName)`. Full API: `subscription/subscription.go`.
 
 ### Registration Pattern
 

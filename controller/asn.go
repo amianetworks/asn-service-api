@@ -34,6 +34,8 @@ type ASNController interface {
 
 	// InitDocDB returns a connected document database handle.
 	// name scopes the DB instance; multiple names yield independent handles.
+	// The framework prefixes it with the service's configured docdb db_name:
+	// an empty name opens <db_name> itself, any other opens <db_name>_<name>.
 	// Call once per name in Init().
 	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
@@ -54,7 +56,18 @@ type ASNController interface {
 	// Call once in Init().
 	GetIAM() (iam.Instance, error)
 
-	// GetSubscription returns the In-App Subscription instance.
+	// GetSubscription returns the In-App Subscription instance, whose state is
+	// kept in the service's own document database.
+	//
+	// docDBName selects that database exactly as InitDocDB's name does: the
+	// framework prefixes it with the service's configured docdb db_name, so an
+	// empty string means <db_name> itself and any other value <db_name>_<name>.
+	// docDBSubCollName is the collection holding each account's current
+	// subscription; docDBSubRecordCollName is the collection holding the
+	// subscription records. Both are required (an empty name is an error), are
+	// collections inside that database, and must not be used by the service for
+	// anything else.
+	//
 	// Call once in Init().
 	GetSubscription(docDBName, docDBSubCollName, docDBSubRecordCollName string) (subscription.Instance, error)
 
