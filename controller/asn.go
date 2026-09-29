@@ -56,7 +56,7 @@ type ASNController interface {
 
 	// GetSubscription returns the In-App Subscription instance.
 	// Call once in Init().
-	GetSubscription() (subscription.Instance, error)
+	GetSubscription(docDBName, docDBSubCollName, docDBSubRecordCollName string) (subscription.Instance, error)
 
 	// -------------------------------------------------------------------------
 	// License Management
