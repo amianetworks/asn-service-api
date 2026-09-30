@@ -6,9 +6,3 @@ type EnvConfig struct {
 	PackageName        string
 	ServiceAccountJSON []byte
 }
-
-type ReplayConfig struct {
-	// GCP project and the RTDN subscription id you own.
-	ProjectID      string
-	SubscriptionID string // e.g. "rtdn-sub"
-}

@@ -62,9 +62,9 @@ type ASNController interface {
 	// docDBName selects that database exactly as InitDocDB's name does: the
 	// framework prefixes it with the service's configured docdb db_name, so an
 	// empty string means <db_name> itself and any other value <db_name>_<name>.
-	// docDBSubCollName is the collection holding each account's current
-	// subscription; docDBSubRecordCollName is the collection holding the
-	// subscription records. Both are required (an empty name is an error), are
+	// docDBSubCollName is the collection holding the store subscriptions (an
+	// account may have several); docDBSubRecordCollName is the collection
+	// holding their per-billing-period records. Both are required (an empty name is an error), are
 	// collections inside that database, and must not be used by the service for
 	// anything else.
 	//

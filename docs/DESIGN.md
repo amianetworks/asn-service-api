@@ -417,11 +417,17 @@ Obtained via `ASNController.GetSubscription(docDBName, docDBSubCollName, docDBSu
 
 ### Registration Pattern
 
-Register platforms during `ASNServiceController.Start()`. Each `Add*()` call returns:
-- An HTTP webhook handler — mount it via the `http.Handler` returned from `WebHandler()`.
-- An `errChan` for async backend failures — monitor in a background goroutine.
+Register platforms during `ASNServiceController.Start()`, and call every `Add*()` before using any other method. Each `Add*()` only returns an error: the module queries the stores itself (no webhooks), and background failures go to the framework's runtime log.
 
-`GetNotificationChannel()` returns a unified channel for lifecycle events across all platforms; consume it independently of each platform's `errChan`.
+`GetNotificationChannel()` returns a unified channel that emits the account ID whenever that account's subscriptions or records change.
+
+### Usage
+
+- `RedeemCredential` — the client reports a purchase or restore credential (Apple signed transaction, Google purchase token, Stripe checkout session ID); the purchase is verified with the store and stored under the account. `needMigrate` must be true to move a purchase owned by another account.
+- `GetCredentialInfo` — read-only precheck of a credential: store state, current owner, plan, and expiry.
+- `RefreshAccount` — asynchronously re-query the stores for one account.
+- `ListAccountSubscriptions` / `ListSubscriptionRecords` — paged queries; records carry one billing period each, with payment and refund amounts.
+- `GetStripeCheckoutUrl` / `GetStripeBillingPortalUrl` / `GetStripeProductInfo` — Stripe-only; after checkout, pass the returned session ID to `RedeemCredential`.
 
 ---
 

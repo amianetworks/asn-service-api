@@ -6,83 +6,72 @@ import (
 	"time"
 )
 
-type Method string
+const (
+	ProviderAppStore   = "AppStore"
+	ProviderGooglePlay = "GooglePlay"
+	ProviderStripe     = "Stripe"
+)
 
 const (
-	MethodAppStore   = "AppStore"
-	MethodGooglePlay = "GooglePlay"
-	MethodStripe     = "Stripe"
+	SubStateActive       = "active"
+	SubStateGrace        = "grace"
+	SubStateBillingRetry = "billing_retry"
+	SubStatePaused       = "paused"
+	SubStateExpired      = "expired"
+	SubStateRevoked      = "revoked"
+)
+
+const (
+	RecordStateNormal   = "normal"
+	RecordStateExtended = "extended"
+	RecordStateReplaced = "replaced"
+	RecordStateRefunded = "refunded"
+	RecordStateRevoked  = "revoked"
 )
 
 type Subscription struct {
-	AccountID string // UUID
-
-	SubscriptionMethod Method
-	ProductID          string // Apple: transaction.productId; Google: winning lineItem.productId
-
 	SubscriptionID   string
-	SubscriptionTime time.Time
+	Provider         string
+	ExternalID       string
+	AccountID        string
+	State            string
+	BundleRef        string
+	StripeCustomerID string
 
-	StartTime time.Time
-	EndTime   time.Time
+	CreatedAt time.Time
 }
 
-type Currency string
+type SubscriptionRecord struct {
+	ID             string
+	SubscriptionID string
+	AccountID      string
+	PlanID         string
+
+	StartTime     time.Time
+	EndTime       time.Time
+	ActualEndTime time.Time
+	State         string
+
+	PaymentID    string
+	Amount       int64
+	Currency     string
+	RefundAmount int64
+}
+
+type CredentialInfo struct {
+	State   string
+	OwnerID string
+
+	PlanID    string
+	ExpiresAt time.Time
+}
 
 type Product struct {
 	Name        string
 	Description string
 
-	DefaultCurrency Currency
+	DefaultCurrency string
 	DefaultPrice    int64
 
-	PriceOptions map[Currency]int64
-}
-
-// EntitlementStatus describes whether the subscription behind a restore
-// request still grants access.
-type EntitlementStatus string
-
-const (
-	EntitlementActive  EntitlementStatus = "active"
-	EntitlementExpired EntitlementStatus = "expired"
-	EntitlementRevoked EntitlementStatus = "revoked"
-	EntitlementUnknown EntitlementStatus = "unknown"
-)
-
-// OwnerRelation describes how the subscription is currently bound relative to
-// the account asking to restore it.
-type OwnerRelation string
-
-const (
-	OwnerCurrentUser OwnerRelation = "currentUser" // already bound to the requesting account
-	OwnerOtherUser   OwnerRelation = "otherUser"   // bound to a different account
-	OwnerUnbound     OwnerRelation = "unbound"     // claimable / not bound to any account
-	OwnerUnknown     OwnerRelation = "unknown"     // backend has not ingested this purchase yet
-)
-
-// RestoreAction is the recommended next step for the client, given what a real
-// restore would actually do on this provider.
-type RestoreAction string
-
-const (
-	ActionSync               RestoreAction = "sync"               // already bound to the current account & valid; no migration needed
-	ActionMigrate            RestoreAction = "migrate"            // bound to another account; restore will move it (needs user confirmation)
-	ActionBind               RestoreAction = "bind"               // unbound/orphan; restore will bind it to the current account
-	ActionReject             RestoreAction = "reject"             // bound to another account and this provider cannot migrate it here
-	ActionRepurchaseRequired RestoreAction = "repurchaseRequired" // no valid entitlement (expired/revoked)
-	ActionWait               RestoreAction = "wait"               // backend has not ingested this purchase yet; retry later
-)
-
-// RestorePreview is the read-only result of a restore precheck. It NEVER
-// modifies any binding; it only reports what a real restore would do, so the
-// client can decide whether to prompt the user before committing.
-type RestorePreview struct {
-	EntitlementStatus EntitlementStatus `json:"entitlementStatus"`
-	OwnerRelation     OwnerRelation     `json:"ownerRelation"`
-	OwnerID           string            `json:"ownerId,omitempty"`
-	Action            RestoreAction     `json:"action"`
-
-	ProductID string     `json:"productId,omitempty"`
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	PriceOptions map[string]int64
 }
