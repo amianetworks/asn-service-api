@@ -21,6 +21,7 @@ import (
 //  4. Config ops dispatch
 //  5. Node topology
 //  6. Node group management
+//  7. Node enrollment
 type ASNController interface {
 
 	// -------------------------------------------------------------------------
@@ -88,28 +89,6 @@ type ASNController interface {
 	// -------------------------------------------------------------------------
 	// Service Lifecycle Management
 	// -------------------------------------------------------------------------
-
-	// AddServiceToNode adds this service to the target node's install set: the
-	// service is added to the node's service_names, then the framework loads the
-	// .so and triggers Init(). The node must be online (NodeStateOnline).
-	//
-	// It does NOT install the service deb. The node is only told to load, so the
-	// load fails unless the .so is already present, and the deb must be placed by
-	// re-fetching the node's bootstrap script (RenderBootstrapScript), which
-	// installs the deb without unbinding or re-keying an already-enrolled node
-	// (the host keeps its own certificate). That first failed load is expected
-	// and self-correcting: the node converges when the re-fetched script installs
-	// the deb and asnsn restarts and re-registers. A node-side install path is intended and will
-	// remove this step; treat the deb as a prerequisite until then.
-	AddServiceToNode(nodeID string) error
-
-	// DeleteServiceFromNode removes this service from the node's install set: it
-	// calls Stop() + Finish() on the node's service instance, unloads the .so, and
-	// drops the service from service_names. The service deb is NOT uninstalled;
-	// RenderUninstallScript does the same removal and also renders the script
-	// that purges the deb. Use for permanent removal; not a substitute for
-	// StopService().
-	DeleteServiceFromNode(nodeID string) error
 
 	// StartService triggers Start(config) on the service running on each matched node.
 	// serviceScope and serviceScopeList determine the target set; see ServiceScope constants.
@@ -204,10 +183,9 @@ type ASNController interface {
 	// On subscription, the channel first delivers a NodeStateChange for every node's current state
 	// (initial snapshot), then delivers incremental changes. The channel is never closed during
 	// normal framework operation.
-	// Each NodeStateChange is a full snapshot across connectivity, service, and
-	// credential (EnrollmentState) axes. Beyond connectivity and service-state
-	// transitions, the channel fires on every EnrollmentState change; see
-	// NodeStateChange for when expiry-driven changes are delivered.
+	// Each NodeStateChange is a full snapshot of the connectivity and service
+	// axes. Credential changes inside the framework (token issue, certificate
+	// binding or revocation) are not service-visible and produce no event.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	// -------------------------------------------------------------------------
@@ -240,13 +218,130 @@ type ASNController interface {
 	// RemoveNodesFromNodeGroup removes the specified nodes from the group.
 	RemoveNodesFromNodeGroup(nodeGroupID string, nodeIDs []string) error
 
-	// EnrollmentAPI -----------------------------------------------------------
-	// Node Enrollment
-	// Service-agnostic onboarding: create a framework-owned node identity (or add
-	// the calling service to an existing node), mint an enrollment token, render the install script (lazy key mint
-	// and candidate cert sign; the first candidate to register binds), render the
-	// uninstall script, unbind for re-enrollment, and permanently delete a node
-	// once the calling service is its last. See EnrollmentAPI (enrollment.go).
 	// -------------------------------------------------------------------------
-	EnrollmentAPI
+	// Node Enrollment
+	// CreateNode, GetInstallToken and DeleteNode each perform their whole
+	// controller-side effect at call time (the node is created, the service is
+	// added, the service is removed, the node is destroyed) and return a
+	// ScriptToken for the host-side work still to be done. RedeemScriptToken
+	// turns any ScriptToken, whatever call issued it, into the script bytes; it
+	// makes no service-visible change.
+	//
+	// Typical flow: the service issues a token and hands it to the operator or
+	// the device; the device presents it back to the service, which redeems it
+	// with RedeemScriptToken and serves the returned script bytes itself.
+	//
+	// These methods act only for the calling service: none takes a service name,
+	// and every script covers asnsn plus the calling service's deb only. Install
+	// specs (deb coordinates, apt repos, asnsn versions) come from the
+	// controller's asn.conf.
+	//
+	// Node credentials are framework-internal. Key minting, certificate signing,
+	// binding and revocation happen inside the framework as a side effect of
+	// these calls and of the scripts running on the host; the service never sees
+	// a key or certificate, cannot bind or unbind one, and cannot query a node's
+	// credential state.
+	//
+	// A node whose host can no longer authenticate (the machine was replaced, its
+	// key was lost, or its certificate expired) cannot be recovered with an
+	// install token: an install script never replaces the credential of a node
+	// that already has one. Recovery is one of:
+	//   - an operator unbinds the node's certificate from ASN web, after which a
+	//     fresh install token re-enrolls it under the same node ID;
+	//   - when the calling service is the node's last, DeleteNode (which revokes
+	//     the credential) followed by CreateNode: with DeleteEmptyNode false and
+	//     AllowExisting the node keeps its ID, with DeleteEmptyNode true it is a
+	//     new node. On the same host, run the uninstall script first so the old
+	//     certificate is removed.
+	// A service can never do this for a node other services are still on: only
+	// ASN may revoke the credential of a node shared with other services.
+	// -------------------------------------------------------------------------
+
+	// CreateNode creates a framework-owned node for the calling service and
+	// returns an install token for it.
+	//
+	// The node is placed under ParentNetworkID (its network path derives from
+	// that placement) with service_names set to the calling service. NodeName
+	// must be unique across the whole root network tree that the parent belongs
+	// to, not only within the parent.
+	//
+	// If a node with NodeName already exists in that tree:
+	//   - without AllowExisting the call fails and nothing changes;
+	//   - with AllowExisting the calling service is added to the existing node's
+	//     service_names (a no-op if it is already there) and an install token for
+	//     that node is returned. An online node is told to load the .so and
+	//     Init() the service at once, which succeeds only if the deb is already
+	//     on the host; an offline node loads it at its next registration. Either
+	//     way, running the install script puts the deb in place, after which
+	//     asnsn restarts, re-registers and loads the service. UpdateInfo controls
+	//     whether the request's Type and Label overwrite the existing node's
+	//     attributes.
+	//
+	// The returned token is ScriptKindInstall.
+	CreateNode(req CreateNodeRequest) (*CreateNodeResult, error)
+
+	// GetInstallToken returns a fresh install token for an EXISTING node the
+	// calling service is already on (in its service_names). Use it to (re)install
+	// or upgrade asnsn and the calling service's deb on the node's host: after the
+	// deb version in asn.conf is bumped, after a host was reimaged, or when the
+	// token returned by CreateNode has expired.
+	//
+	// It changes nothing on the node itself; its only effect is issuing the
+	// token. Tokens issued earlier stay valid until they expire. A node the
+	// calling service is not on is refused; use CreateNode with AllowExisting to
+	// join one.
+	GetInstallToken(req GetInstallTokenRequest) (*ScriptToken, error)
+
+	// DeleteNode removes the calling service from the node and returns an
+	// uninstall token for cleaning up the host. Access-sensitive; audited.
+	//
+	// All controller-side removal happens here, not at redemption:
+	//   - The calling service is torn down (Stop() + Finish() + unload of the .so
+	//     on an online node) and dropped from service_names.
+	//   - If other services remain on the node, nothing else changes; one service
+	//     can never tear down a node another service still uses.
+	//   - If the calling service was the node's last, the node's credential is
+	//     revoked (a live node loses its session). DeleteEmptyNode then decides
+	//     the node record: true destroys it (node-group membership and node
+	//     config included); false keeps it, serviceless, and it comes back only
+	//     through CreateNode with AllowExisting.
+	//
+	// The returned token is ScriptKindUninstall. It stays redeemable even when
+	// the node was destroyed. Install tokens the calling service issued for the
+	// node earlier no longer redeem, since the service is no longer on the node.
+	// The service may discard the uninstall token if the host does not need
+	// cleaning up; the removal above has already taken effect either way.
+	DeleteNode(req DeleteNodeRequest) (*DeleteNodeResult, error)
+
+	// RedeemScriptToken renders the script a token stands for. It is the single
+	// redemption point for every token, whichever call issued it; the script's
+	// kind follows the token's Kind. The token must have been issued to the
+	// calling service and must not be expired.
+	//
+	// Redemption makes no service-visible change: it never creates, modifies or
+	// deletes a node, never changes its service_names, state or config, and never
+	// consumes the token, so it may be repeated any number of times until the
+	// token expires. Redeeming an install token does record framework-internal
+	// credential state (each rendered script carries a freshly signed candidate
+	// certificate), and the number of unregistered candidates per node is
+	// capped: past the cap redemption fails with ResourceLimitReached until one
+	// registers or the candidates expire.
+	//
+	// An install script (ScriptKindInstall) installs or upgrades asnsn and the
+	// calling service's deb at the versions in asn.conf, and carries the
+	// credential the node needs to register. The calling service must still be
+	// on the node at redemption time. Before changing anything, the script
+	// checks the host and aborts if the host already belongs to a different node,
+	// or if any package is installed at a version higher than the target. A host
+	// already enrolled as this node keeps its own credential, so re-running an
+	// install script on a working node never disrupts it.
+	//
+	// An uninstall script (ScriptKindUninstall) purges the calling service's
+	// deb and restarts asnsn; when the service was the node's last, it also
+	// purges asnsn and removes the node's credential and asn.conf. Which of the
+	// two was fixed when DeleteNode ran. Before changing anything, the script
+	// checks that the host belongs to this node and aborts otherwise.
+	//
+	// Both scripts are idempotent and safe to re-run.
+	RedeemScriptToken(req RedeemScriptTokenRequest) (*Script, error)
 }

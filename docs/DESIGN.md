@@ -204,8 +204,8 @@ The table below answers: *when the service is in state X, which framework operat
 
 | Operation | Unavailable | Uninitialized | Initialized | Configuring | Running | Malfunctioning |
 |---|---|---|---|---|---|---|
-| `AddServiceToNode` (load + Init) | ✓ | — | — | — | — | — |
-| `DeleteServiceFromNode` (unload) | ✓ | ✓ | ✓ | ✓ (stops first) | ✓ (stops first) | ✓ (stops first) |
+| `CreateNode` (load + Init) | ✓ | — | — | — | — | — |
+| `DeleteNode` (unload) | ✓ | ✓ | ✓ | ✓ (stops first) | ✓ (stops first) | ✓ (stops first) |
 | `StartService` | — | — | ✓ | — | — | ✓ |
 | `StopService` | — | — | — | ✓ | ✓ | ✓ |
 | `ResetService` (full reload) | — | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -223,7 +223,7 @@ The table below answers: *when the service is in state X, which framework operat
 
 | From | To | Trigger |
 |---|---|---|
-| `Unavailable` | `Uninitialized` | `AddServiceToNode`: `.so` loaded; `Init()` auto-triggered |
+| `Unavailable` | `Uninitialized` | `.so` loaded (after `CreateNode` on an online node, or at registration); `Init()` auto-triggered |
 | `Uninitialized` | `Initialized` | `Init()` returns `nil` |
 | `Uninitialized` | `Uninitialized` | `Init()` returns error (stays; retryable via `ResetService`) |
 | `Initialized` | `Unavailable` | Cluster mode: registration to controller fails |
@@ -243,7 +243,7 @@ The table below answers: *when the service is in state X, which framework operat
 | `Malfunctioning` | `Initialized` | `StopService` or `ResetService` succeeds |
 | `Malfunctioning` | `Malfunctioning` | `StopService` or `ResetService` fails (stays) |
 | `Initialized` | `Uninitialized` | `ResetService` (full reload): `Stop` → `Finish` → reload `.so` → `Init()` |
-| Any | `Unavailable` | `DeleteServiceFromNode` (unload) |
+| Any | `Unavailable` | `DeleteNode` (unload) |
 
 #### `ErrRestartNeeded` Semantics
 
