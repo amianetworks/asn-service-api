@@ -28,9 +28,13 @@ type AccountSortField int
 const (
 	AccountSortCreatedAt AccountSortField = iota
 	AccountSortUsername
+	AccountSortEmail
+	AccountSortPhone // country code, then number
 )
 
-// AccountListSort orders AccountList. Ties are always broken by ID ascending.
+// AccountListSort orders AccountList. Ties are always broken by ID ascending. With
+// AccountSortEmail and AccountSortPhone, accounts without one come last in either
+// direction, by ID ascending.
 type AccountListSort struct {
 	Field AccountSortField
 	Desc  bool
