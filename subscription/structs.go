@@ -13,37 +13,24 @@ const (
 )
 
 const (
-	SubStateActive       = "active"
-	SubStateGrace        = "grace"
-	SubStateBillingRetry = "billing_retry"
-	SubStatePaused       = "paused"
-	SubStateExpired      = "expired"
-	SubStateRevoked      = "revoked"
+	SubStateActive = "active"
+	SubStateGrace  = "grace"
+	SubStateEnded  = "ended"
 )
 
 const (
-	RecordStateNormal   = "normal"
-	RecordStateExtended = "extended"
-	RecordStateReplaced = "replaced"
-	RecordStateRefunded = "refunded"
-	RecordStateRevoked  = "revoked"
+	RecordStateNormal      = "normal"
+	RecordStateExtended    = "extended"
+	RecordStateReplaced    = "replaced"
+	RecordStateRefunded    = "refunded"
+	RecordStateRevoked     = "revoked"
+	RecordStateTransferred = "transferred"
 )
-
-type Subscription struct {
-	SubscriptionID   string
-	Provider         string
-	ExternalID       string
-	AccountID        string
-	State            string
-	BundleRef        string
-	StripeCustomerID string
-
-	CreatedAt time.Time
-}
 
 type SubscriptionRecord struct {
 	ID             string
 	SubscriptionID string
+	Provider       string
 	AccountID      string
 	PlanID         string
 

@@ -24,7 +24,6 @@ type Instance interface {
 	GetCredentialInfo(provider, credential string) (*CredentialInfo, error)
 	RefreshAccount(accountID string)
 
-	ListAccountSubscriptions(accountID string, page, num int) ([]*Subscription, int, error)
 	ListSubscriptionRecords(accountID string, activeOnly bool, from, to time.Time, page, num int) ([]*SubscriptionRecord, int, error)
 
 	GetStripeCheckoutUrl(accountID string, planIDs []string, trialDays int, successUrl, cancelUrl string) (string, error)
