@@ -409,7 +409,7 @@ type Instance interface {
 	// GroupList returns the page of groups in this service's namespace that match filter,
 	// in sort order, and how many match in all regardless of page.
 	// The zero filter, sort and page return every group, oldest first.
-	// For a group's members, use AccountList with AccountListFilter.Groups.
+	// For a group's members, use AccountList with AccountListFilter.GroupFilter.Groups.
 	GroupList(filter GroupListFilter, sort GroupListSort, page Page) (groups []*Group, total int, err error)
 
 	// AccountJoinGroup adds the given accounts to the group.

@@ -12,14 +12,21 @@ type Page struct {
 // values within one list are ORed. Zero values do not filter. At most 1000 values
 // per list, none of them empty.
 type AccountListFilter struct {
-	IDs           []string // unknown or malformed IDs are ignored
-	Groups        []string // group names; member of any
-	ExcludeGroups []string // group names; member of none
+	IDs         []string // unknown or malformed IDs are ignored
+	ExcludeIDs  []string // unknown or malformed IDs are ignored
+	GroupFilter AccountGroupFilter
 	// Keyword is a case-insensitive substring of the username, email, phone number,
 	// or the WeChat nickname, Google name, Google email or Apple email bound under
 	// the service.
 	Keyword    string
 	MfaEnabled *bool // nil = no filter
+}
+
+// AccountGroupFilter restricts AccountList by group membership.
+type AccountGroupFilter struct {
+	Groups            []string // group names; member of any
+	ExcludeGroups     []string // group names; member of none
+	ServiceAdminGroup *bool    // true = in Groups, false = in ExcludeGroups, nil = neither
 }
 
 // AccountSortField is what AccountList sorts by.
