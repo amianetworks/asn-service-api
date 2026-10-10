@@ -10,6 +10,13 @@ const (
 	ProviderAppStore   = "AppStore"
 	ProviderGooglePlay = "GooglePlay"
 	ProviderStripe     = "Stripe"
+	ProviderInternal   = "Internal"
+)
+
+const (
+	CycleOnce    = "once"
+	CycleMonthly = "monthly"
+	CycleYearly  = "yearly"
 )
 
 const (
@@ -38,6 +45,7 @@ type SubscriptionRecord struct {
 	EndTime       time.Time
 	ActualEndTime time.Time
 	State         string
+	Meta          string
 
 	PaymentID    string
 	Amount       int64

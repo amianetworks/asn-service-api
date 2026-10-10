@@ -426,7 +426,9 @@ Register platforms during `ASNServiceController.Start()`, and call every `Add*()
 - `RedeemCredential` — the client reports a purchase or restore credential (Apple signed transaction, Google purchase token, Stripe checkout session ID); the purchase is verified with the store and stored under the account. `needMigrate` must be true to move a purchase owned by another account.
 - `GetCredentialInfo` — read-only precheck of a credential: store state, current owner, plan, and expiry.
 - `RefreshAccount` — asynchronously re-query the stores for one account.
-- `ListAccountSubscriptions` / `ListSubscriptionRecords` — paged queries; records carry one billing period each, with payment and refund amounts.
+- `CreateSubscription` — grant an `Internal` subscription that involves no store. `planID` and `meta` are service-defined and kept on every record. `cycle` is `once` (one record from `startTime` to `endTime`), `monthly` (30 days per record) or `yearly` (365 days per record), renewed until `endTime`; a zero `endTime` means it never ends. Returns the subscription ID.
+- `Revoke` — end a subscription by the `SubscriptionID` on its records. `Internal` records end immediately; Google and Stripe are canceled with a prorated refund (a failed Stripe refund is logged and treated as no refund); Apple is not supported. It returns once the store has accepted; records are updated in the background and the account is then notified. Revoking an ended subscription does nothing.
+- `ListSubscriptionRecords` — paged query; each record is one billing period (one grant for `Internal`) with payment and refund amounts and its `Meta`. With `activeOnly`, a zero `ActualEndTime` counts as never ending.
 - `GetStripeCheckoutUrl` / `GetStripeBillingPortalUrl` / `GetStripeProductInfo` — Stripe-only; after checkout, pass the returned session ID to `RedeemCredential`.
 
 ---
