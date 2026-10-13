@@ -1,8 +1,0 @@
-// Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
-
-package stripe
-
-// Config for Stripe provider.
-type Config struct {
-	APIKey string // Stripe secret key, e.g. "sk_live_…"
-}

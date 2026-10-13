@@ -29,7 +29,7 @@ Issues not yet resolved in the current API design. These must be decided before 
 8. [Ops Commands](#8-ops-commands)
 9. [Cross-Service Data Sharing](#9-cross-service-data-sharing)
 10. [IAM](#10-iam)
-11. [Subscription](#11-subscription)
+11. [Databases](#11-databases)
 12. [Implementation Checklist](#12-implementation-checklist)
 
 ---
@@ -59,7 +59,6 @@ The framework owns all topology (networks, nodes, groups); services observe and 
 | `snapi` | `/servicenode` | Service-node-side interfaces and structs |
 | `commonapi` | `/common` | Shared enums, structs, DB/log abstractions |
 | `iam` | `/iam` | IAM interface |
-| `subscription` | `/subscription` | Subscription / IAP interface |
 | `log` | `/log` | Structured logger interface |
 
 ---
@@ -89,7 +88,6 @@ graph LR
 | `ASNServiceNode` | Framework | `ASNService` |
 | `ASNService` | Service | Framework |
 | `iam.Instance` | Framework | `ASNServiceController` via `GetIAM()` |
-| `subscription.Instance` | Framework | `ASNServiceController` via `GetSubscription(...)` |
 
 Both `ASNServiceController` and `ASNService` expose a `StaticResource` sub-interface callable **before** `Init()`.
 
@@ -411,25 +409,18 @@ Accesses are granted at the group level. `AccountAccessList` returns all effecti
 
 ---
 
-## 11. Subscription
+## 11. Databases
 
-Obtained via `ASNController.GetSubscription(docDBName, docDBSubCollName, docDBSubRecordCollName)`. Full API: `subscription/subscription.go`.
+`InitDocDB` / `InitTSDB` return `commonapi.DocDBHandler` / `commonapi.TSDBHandler`. The API
+does not depend on am.modules: records are `map[string]any`, and time-series points and
+queries are the plain structs `TSPoint` / `TSQuery`.
 
-### Registration Pattern
-
-Register platforms during `ASNServiceController.Start()`, and call every `Add*()` before using any other method. Each `Add*()` only returns an error: the module queries the stores itself (no webhooks), and background failures go to the framework's runtime log.
-
-`GetNotificationChannel()` returns a unified channel that emits the account ID whenever that account's subscriptions or records change.
-
-### Usage
-
-- `RedeemCredential` — the client reports a purchase or restore credential (Apple signed transaction, Google purchase token, Stripe checkout session ID); the purchase is verified with the store and stored under the account. `needMigrate` must be true to move a purchase owned by another account.
-- `GetCredentialInfo` — read-only precheck of a credential: store state, current owner, plan, and expiry.
-- `RefreshAccount` — asynchronously re-query the stores for one account.
-- `CreateSubscription` — grant an `Internal` subscription that involves no store. `planID` and `meta` are service-defined and kept on every record. `cycle` is `once` (one record from `startTime` to `endTime`), `monthly` (30 days per record) or `yearly` (365 days per record), renewed until `endTime`; a zero `endTime` means it never ends. Returns the subscription ID.
-- `Revoke` — end a subscription by the `SubscriptionID` on its records. `Internal` records end immediately; Google and Stripe are canceled with a prorated refund (a failed Stripe refund is logged and treated as no refund); Apple is not supported. It returns once the store has accepted; records are updated in the background and the account is then notified. Revoking an ended subscription does nothing.
-- `ListSubscriptionRecords` — paged query; each record is one billing period (one grant for `Internal`) with payment and refund amounts and its `Meta`. With `activeOnly`, a zero `ActualEndTime` counts as never ending.
-- `GetStripeCheckoutUrl` / `GetStripeBillingPortalUrl` / `GetStripeProductInfo` — Stripe-only; after checkout, pass the returned session ID to `RedeemCredential`.
+A service that wants the typed am.modules API (`docdb.Collection[T]`, `*tsdb.Point`,
+`*tsdb.Query`), or an am.modules module built on it such as subscription, wraps the handlers
+in its own adapter to `docdb.Database` / `tsdb.Database`. Such adapters live in the service,
+never in this repository. In-App Subscription is no longer provided by the framework; a
+service uses the am.modules subscription module directly with the adapted DocDB and its own
+redis client from `InitRedis`.
 
 ---
 

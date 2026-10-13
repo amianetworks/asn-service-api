@@ -9,6 +9,9 @@ type DocCollOptions struct {
 	// if true, it will use the raw format for performance optimization (mongoDB: BSON, fileDB: JSON);
 	// otherwise it will use JSON format for better compatibility
 	UseRawFormat bool
+
+	// if true, indexes will be dropped and rebuilt from Indexes (mongoDB only)
+	RebuildIndex bool
 }
 
 type DocIndexOptions struct {
@@ -17,12 +20,24 @@ type DocIndexOptions struct {
 }
 
 type DocDBHandler interface {
+	// Name returns the actual database name, i.e. the name given to InitDocDB
+	// with the framework's prefix applied, see ASNController.InitDocDB and
+	// ASNServiceNode.InitDocDB.
+	Name() string
+
+	// Destroy releases this database handle.
+	Destroy() error
+
+	// CollectionExists reports whether the collection exists.
+	CollectionExists(name string) (bool, error)
+
 	// FindOrCreateCollection creates or find(if already exist) collection
 	// name: name of collection
 	// options:
 	//
-	//	for mongodb, options.indexes used for create collection indexes
-	//	for filedb, options are nil
+	//	for mongodb, options.Indexes used for create collection indexes, options.RebuildIndex rebuilds them
+	//	for filedb, options.Indexes and options.RebuildIndex are ignored
+	//	for both, options.UseRawFormat selects the stored format, see DocCollOptions
 	//
 	// returns the collection handle corresponding to the collection name
 	FindOrCreateCollection(name string, options *DocCollOptions) (DocCollection, error)
@@ -44,16 +59,17 @@ type DocDBHandler interface {
 type DocCollection interface {
 	// AddRecord adds one record to collection c.
 	// record: json format data, including key-value pairs.
-	AddRecord(record map[string]interface{}) error
+	AddRecord(record map[string]any) error
 
 	// AddRecords adds some records to collection c.
 	// records: arrays of json format data, each data includes key-value pairs.
-	AddRecords(records []map[string]interface{}) error
+	AddRecords(records []map[string]any) error
 
 	// DeleteRecord deletes one record in collection c.
 	// queryJson: condition of key-value pairs in JSON format, determine which record to be deleted.
-	// If the condition matches no record or more than one record, will get an error
-	DeleteRecord(queryJson string) (bool, error)
+	// If the condition matches no record, exist will be false, but no error will be returned.
+	// If the condition matches more than one record, an error will be returned.
+	DeleteRecord(queryJson string) (exist bool, err error)
 
 	// DeleteRecords deletes records in collection c.
 	// queryJson: condition of key-value pairs in JSON format, determine matched records to be deleted.
@@ -62,8 +78,9 @@ type DocCollection interface {
 
 	// FindRecord finds record in collection c.
 	// queryJson: condition of key-value pairs in JSON format, determine to match one record.
-	// If the condition matches no record or more than one record, will get an error.
-	FindRecord(queryJson string, fieldFilter map[string]bool) (map[string]interface{}, bool, error)
+	// If the condition matches no record, exist will be false, but no error will be returned.
+	// If the condition matches more than one record, an error will be returned.
+	FindRecord(queryJson string, fieldFilter map[string]bool) (record map[string]any, exist bool, err error)
 
 	// FindRecords finds records in collection c, records may be processed by sorting and pagination.
 	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
@@ -76,12 +93,13 @@ type DocCollection interface {
 	// when page > -1 && num <= 0, return error.
 	// sorting: sort specifications, can be built by Sorting.Build, includes fields and ascending or descending order on each field.
 	// If soring is an empty string, do not sort.
-	FindRecords(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]interface{}, error)
+	FindRecords(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]any, error)
 
 	// FindRecordWithRegex finds a record in collection c.
 	// queryJson: condition of key-value pairs in JSON format with regular expression style, determine to match one record.
-	// If the condition matches no record or more than one record, will get an error.
-	FindRecordWithRegex(queryJson string, fieldFilter map[string]bool) (map[string]interface{}, bool, error)
+	// If the condition matches no record, exist will be false, but no error will be returned.
+	// If the condition matches more than one record, an error will be returned.
+	FindRecordWithRegex(queryJson string, fieldFilter map[string]bool) (record map[string]any, exist bool, err error)
 
 	// FindRecordsWithRegex finds records in collection c, records may be processed by sorting and pagination.
 	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
@@ -94,13 +112,14 @@ type DocCollection interface {
 	// when page > -1 && num <= 0, return error.
 	// sorting: sort specifications, can be built by Sorting.Build, includes fields and ascending or descending order on each field.
 	// If soring is an empty string, do not sort.
-	FindRecordsWithRegex(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]interface{}, error)
+	FindRecordsWithRegex(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]any, error)
 
 	// UpdateRecord updates one record in collection c.
 	// queryJson: condition of key-value pairs in JSON format, determine to match one record to do data update.
 	// newRecord: json format data, including key-value pairs, replaces the old pairs in the matched record.
-	// If the condition matches no record or more than one record, will get an error.
-	UpdateRecord(queryJson string, newRecord string) (bool, error)
+	// If the condition matches no record, exist will be false, but no error will be returned.
+	// If the condition matches more than one record, an error will be returned.
+	UpdateRecord(queryJson string, newRecord string) (exist bool, err error)
 
 	// UpdateRecords updates records in collection c.
 	// queryJson: condition of key-value pairs in JSON format, determine to match the records to do data update.
@@ -124,5 +143,5 @@ type DocCollection interface {
 	ArrayDelete(queryJson string, newRecord string) error
 
 	// ListAllRecord returns all records of a collection
-	ListAllRecord() ([]map[string]interface{}, error)
+	ListAllRecord() ([]map[string]any, error)
 }

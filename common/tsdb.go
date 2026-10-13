@@ -30,7 +30,57 @@ type TSRetentionPolicy struct {
 	CollName           string // coll name for mongo-tsdb
 }
 
+// TSPoint is a data point to insert into TSDB.
+type TSPoint struct {
+	// Measurement is only necessary when doing a concurrent insertion into multiple
+	// collections/measurements via TSDBHandler.AddDataPoint(s); otherwise it is ignored.
+	Measurement string
+	Tags        map[string]string
+	Fields      map[string]any
+	// Timestamp is the time of the point, it is passed to the database as is.
+	Timestamp time.Time
+	// RPName is the retention policy to insert into, only for influxDBV1.
+	RPName string
+}
+
+// TSQuery is the condition to query data points.
+// The zero value of each field means the field is not set.
+type TSQuery struct {
+	// Field is the field to query; with the *WithRegex methods it can be a regular expression.
+	Field string
+
+	// Start and Stop specify the boundaries of the time range.
+	Start time.Time
+	Stop  time.Time
+	// Step is the maximum time between two slices within the boundaries, only used in prometheus.
+	// It must be a whole number of seconds.
+	Step time.Duration
+
+	// Tags matches the tag values: values of one tag are ORed, different tags are ANDed.
+	// With the *WithRegex methods the values are regular expressions.
+	Tags map[string][]string
+
+	// RPName is the retention policy to query, only for influxDBV1.
+	RPName string
+
+	// Desc outputs the data in descending order, ascending by default.
+	Desc bool
+	// Limit limits the number of data outputs; 0 means no limit.
+	Limit uint64
+	// Page returns the data on page *Page (starts from 0), Limit is the amount of data per page.
+	// nil means no pagination; it requires Limit > 0.
+	Page *int
+}
+
 type TSDBHandler interface {
+	// Name returns the actual database name, i.e. the name given to InitTSDB
+	// with the framework's prefix applied, see ASNController.InitTSDB and
+	// ASNServiceNode.InitTSDB.
+	Name() string
+
+	// Destroy releases this database handle.
+	Destroy() error
+
 	// FindOrCreateCollection creates or find(if already exist) measurement
 	// name: name of measurement
 	// options:
@@ -53,120 +103,24 @@ type TSDBHandler interface {
 
 	DeleteRetentionPolicies(rps []TSRetentionPolicy) error
 
-	NewPoint() TSPoint
+	// GetRetentionPolicies gets the options of retention policy
+	GetRetentionPolicies(name string) ([]TSRetentionPolicy, error)
 
-	AddDataPoint(pt TSPoint, useTimeout bool) error
+	// AddDataPoint adds one data point to the collection named by pt.Measurement.
+	AddDataPoint(pt *TSPoint, useTimeout bool) error
 
-	AddDataPoints(pt []TSPoint, useTimeout bool) error
+	// AddDataPoints adds some data points, each to the collection named by its Measurement.
+	AddDataPoints(pts []*TSPoint, useTimeout bool) error
 }
 
-type TSPoint interface {
-	// SetMeasurement sets the measurement for the data point.
-	// It is only necessary when doing a concurrent insertion into multiple collections/measurement.
-	SetMeasurement(measurement string)
-
-	// ResetMeasurement resets the data point's measurement.
-	ResetMeasurement()
-
-	// AddTag adds a tag to point, will overwrite the value if set the same key repeatedly.
-	// And now, do not limit the number of Tags
-	AddTag(tagName, tagValue string)
-
-	// DeleteTag deletes a tag from tags
-	DeleteTag(tagName string)
-
-	// AddTags adds some tags to a point, will overwrite the value if set the same key repeatedly.
-	// And now, do not limit the number of Tags
-	AddTags(tags map[string]string)
-
-	// DeleteTags deletes some tags
-	DeleteTags(tags []string)
-
-	// AddField adds a field to point, will overwrite the value if set the same key repeatedly.
-	// And now, do not limit the number of Fields
-	AddField(fieldName string, fieldValue interface{})
-
-	// DeleteField deletes a field from fields
-	DeleteField(fieldName string)
-
-	// AddFields adds a field to point, will overwrite the value if set the same key repeatedly.
-	// And now, do not limit the number of Fields
-	AddFields(fields map[string]interface{})
-
-	// DeleteFields deletes some fields
-	DeleteFields(fields []string)
-
-	// SetTime sets timestamp to point.
-	SetTime(t time.Time)
-
-	// ResetTime resets time to init time
-	ResetTime()
-
-	// SetRPName sets rp for the point to insert.
-	SetRPName(name string)
-
-	// ResetRPName resets rp for point
-	ResetRPName()
-}
-
-type TSPivotQueryResult []map[string]interface{}
-
-type TSQuery interface {
-	// AddTag adds a tag to the query, will overwrite the value if set the same key repeatedly.
-	// And now, do not limit the number of Tags
-	AddTag(tagName string, tagValue interface{}) error
-
-	// DeleteTag deletes a tag from tags
-	DeleteTag(tagName string) error
-
-	// AddTags adds some tags to a point, will overwrite the value if set the same key repeatedly.
-	// And now, do not limit the number of Tags
-	AddTags(tagNames []string, tagValues []interface{}) error
-
-	// DeleteTags deletes some tags
-	DeleteTags(tags []string) error
-
-	// SetField adds a field to Query.
-	SetField(fieldName string)
-
-	// SetStart functions can operate the TimeRange structure.
-	SetStart(start time.Time)
-
-	ResetStart()
-
-	SetStop(stop time.Time)
-
-	ResetStop()
-
-	// SetStep sets the query step, will change input to time.Duration.
-	// Now support "1d", "20h", "20m", "20s" when to set step 1 day, 20 hours, 20 minutes, or 20 seconds
-	SetStep(step string) error
-
-	// ResetStep clear the step setting
-	ResetStep()
-
-	SetRPName(name string) error
-
-	ResetRPName() error
-
-	// SetDesc determines whether the data is outputted in ascending or descending,
-	// with ascending order being the default.
-	SetDesc()
-
-	// SetLimit sets the number of data outputs.
-	SetLimit(n uint64)
-
-	// SetPage determines whether the data do pagination.
-	// This option must specify a limit value, which represents the amount of data per page.
-	SetPage(page int) error
-}
+type TSPivotQueryResult []map[string]any
 
 type TSTime int64
-type TSSampleValue interface{}
+type TSSampleValue any
 
 // TSSamplePoint is a sampling point
 // Timestamp is time to insert the point into TSDB, milliseconds from epoch time
-// Value is interface{}, but in prometheus only can be float64
+// Value is any, but in prometheus only can be float64
 type TSSamplePoint struct {
 	Timestamp TSTime // this is milliseconds
 	Value     TSSampleValue
@@ -188,44 +142,41 @@ type TSQueryResult struct {
 }
 
 type TSCollection interface {
-	NewPoint() TSPoint
-	NewQuery() TSQuery
-
 	// AddDataPoint adds one data point to collection c.
-	AddDataPoint(pt TSPoint) error
+	AddDataPoint(pt *TSPoint) error
 
 	// AddDataPoints adds some data points to collection c.
-	AddDataPoints(pts []TSPoint) error
+	AddDataPoints(pts []*TSPoint) error
 
 	// FindDataPointsBySyntax enter the original query syntax for the database.
-	FindDataPointsBySyntax(syntax string) (interface{}, error)
+	FindDataPointsBySyntax(syntax string) (any, error)
 
 	FindInfluxv2PivotDataPoints(syntax string) (TSPivotQueryResult, error)
 
 	// FindDataPoints finds data points in the collection c.
 	// This function does not care how many data points are returned in the process, maybe 0, 1, or more.
-	FindDataPoints(query TSQuery) (TSQueryResult, error)
+	FindDataPoints(query *TSQuery) (TSQueryResult, error)
 
 	FindDataPointsFromJson(queryJson []byte) (TSQueryResult, error)
 
 	// FindDataPointsWithRegex finds data points in the collection c.
 	// This function does not care how many data points are matched in the process, maybe 0, 1, or more.
-	FindDataPointsWithRegex(query TSQuery) (TSQueryResult, error)
+	FindDataPointsWithRegex(query *TSQuery) (TSQueryResult, error)
 
 	FindDataPointsWithRegexFromJson(queryJson []byte) (TSQueryResult, error)
 
 	// FindPivotDataPoints Pivot the query result to row table with the same tags value and time stamps, as query operation in traditional db
-	FindPivotDataPoints(query TSQuery) (TSPivotQueryResult, error)
+	FindPivotDataPoints(query *TSQuery) (TSPivotQueryResult, error)
 
 	FindPivotDataPointsFromJson(queryJson []byte) (TSPivotQueryResult, error)
 
-	FindPivotDataPointsWithRegex(query TSQuery) (TSPivotQueryResult, error)
+	FindPivotDataPointsWithRegex(query *TSQuery) (TSPivotQueryResult, error)
 
 	FindPivotDataPointsWithRegexFromJson(queryJson []byte) (TSPivotQueryResult, error)
 
 	// CountDataPoints return count of data points according to the condition in collection c.
 	// The input argument is the same usage as in the function FindDataPoints
-	CountDataPoints(query TSQuery) (uint64, error)
+	CountDataPoints(query *TSQuery) (uint64, error)
 
 	CountDataPointsFromJson(queryJson []byte) (uint64, error)
 }

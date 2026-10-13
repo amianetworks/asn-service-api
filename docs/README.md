@@ -17,7 +17,6 @@ asn.amiasys.com/asn-service-api/v26
 | `snapi` | `/servicenode` | Service-node-side interfaces and structs |
 | `commonapi` | `/common` | Shared enums, structs, DB/log abstractions |
 | `iam` | `/iam` | IAM interface |
-| `subscription` | `/subscription` | In-App Purchase / Subscription interface |
 | `log` | `/log` | Structured logger interface |
 
 ## What to Implement
@@ -48,7 +47,7 @@ The framework calls this function to instantiate the service node plugin. The fu
 
 The framework passes its own implementations to your code during `Init()`:
 
-- `capi.ASNController` — passed to `ASNServiceController.Init()`; provides topology queries, service lifecycle management, ops dispatch, IAM, and subscriptions.
+- `capi.ASNController` — passed to `ASNServiceController.Init()`; provides topology queries, service lifecycle management, ops dispatch, and IAM.
 - `snapi.ASNServiceNode` — passed to `ASNService.Init()`; provides node information, DB/log handles, and cross-service data access.
 
 Do not implement these interfaces; only consume them.

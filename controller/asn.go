@@ -8,7 +8,6 @@ import (
 	commonapi "asn.amiasys.com/asn-service-api/v26/common"
 	"asn.amiasys.com/asn-service-api/v26/iam"
 	"asn.amiasys.com/asn-service-api/v26/log"
-	"asn.amiasys.com/asn-service-api/v26/subscription"
 )
 
 // ASNController is the framework-provided handle passed to ASNServiceController.Init().
@@ -41,6 +40,9 @@ type ASNController interface {
 	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
 	// InitTSDB returns a connected time-series database handle.
+	// name scopes the DB instance; multiple names yield independent handles.
+	// The framework prefixes it with the service's configured tsdb db_name:
+	// an empty name opens <db_name> itself, any other opens <db_name>_<name>.
 	// Call once per name in Init().
 	InitTSDB(name string) (commonapi.TSDBHandler, error)
 
@@ -56,21 +58,6 @@ type ASNController interface {
 	// GetIAM returns the IAM instance for account, group, and access management.
 	// Call once in Init().
 	GetIAM() (iam.Instance, error)
-
-	// GetSubscription returns the In-App Subscription instance, whose state is
-	// kept in the service's own document database.
-	//
-	// docDBName selects that database exactly as InitDocDB's name does: the
-	// framework prefixes it with the service's configured docdb db_name, so an
-	// empty string means <db_name> itself and any other value <db_name>_<name>.
-	// docDBSubCollName is the collection holding the store subscriptions (an
-	// account may have several); docDBSubRecordCollName is the collection
-	// holding their per-billing-period records. Both are required (an empty name is an error), are
-	// collections inside that database, and must not be used by the service for
-	// anything else.
-	//
-	// Call once in Init().
-	GetSubscription(docDBName, docDBSubCollName, docDBSubRecordCollName string) (subscription.Instance, error)
 
 	// -------------------------------------------------------------------------
 	// License Management
@@ -174,7 +161,10 @@ type ASNController interface {
 	// GetNodesOfNetwork returns all nodes of a network and its links.
 	// If withService is true, only nodes eligible for this service (this service
 	// in their service_names) are returned, whether or not it is loaded yet.
-	// Internal links: both endpoints within the network; the To node is included in the returned nodes slice.
+	// links are all links of the network regardless of withService, so with
+	// withService true an endpoint may be a node that is not in nodes.
+	// Internal links: both endpoints within the network; with withService false the To node
+	// is included in the returned nodes slice.
 	// External links: the To endpoint is outside the network and is not included in nodes.
 	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
 

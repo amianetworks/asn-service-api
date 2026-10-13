@@ -28,10 +28,17 @@ type ASNServiceNode interface {
 
 	// InitDocDB returns a connected document database handle.
 	// name scopes the DB instance; multiple names yield independent handles.
+	// The framework prefixes it with the service name: an empty name opens
+	// <service_name> itself, any other opens <service_name>_<name>.
+	// Returns an error if docdb is not enabled on this node.
 	// Call once per name in Init().
 	InitDocDB(name string) (commonapi.DocDBHandler, error)
 
 	// InitTSDB returns a connected time-series database handle.
+	// name scopes the DB instance; multiple names yield independent handles.
+	// The framework prefixes it with the service name: an empty name opens
+	// <service_name> itself, any other opens <service_name>_<name>.
+	// Returns an error if tsdb is not enabled on this node.
 	// Call once per name in Init().
 	InitTSDB(name string) (commonapi.TSDBHandler, error)
 
