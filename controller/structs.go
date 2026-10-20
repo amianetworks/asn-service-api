@@ -22,12 +22,6 @@ type Network struct {
 	Location *commonapi.Location
 	Networks []*Network
 
-	// CreatorService is the service that created this root network through
-	// CreateRootNetwork; empty for every other network (created by an
-	// operator, a topology file, or the controller's bootstrap). It only
-	// answers "did the calling service create this root" for the methods that
-	// require it. It is not ownership and grants nothing.
-	CreatorService string
 	// DefaultRoot is true for the root network the controller created at its
 	// first start (network.default_root_network). A deployment initialized from
 	// a topology file has none.
@@ -96,8 +90,8 @@ const (
 	ChangeKindNodeServiceRemoved
 	// ChangeKindNodeMoved: the node moved from FromNetworkID to NetworkID.
 	ChangeKindNodeMoved
-	// ChangeKindRootNetworkDeleted: a root network this service created
-	// (NetworkID) was deleted, with every node in it. NodeID is empty.
+	// ChangeKindRootNetworkDeleted: a root network (NetworkID) was deleted,
+	// with every node in it; sent to every service. NodeID is empty.
 	ChangeKindRootNetworkDeleted
 )
 

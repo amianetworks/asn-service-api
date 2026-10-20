@@ -144,7 +144,7 @@ Every `NodeStateChange` has a `Kind`; a consumer branches on it and ignores kind
 | `ChangeKindNodeDeleted` | `NodeID` | The node was deleted. |
 | `ChangeKindNodeServiceRemoved` | `NodeID` | This service left the node's record (before its deb is purged). |
 | `ChangeKindNodeMoved` | `NodeID`, `FromNetworkID`, `NetworkID` | The node moved between networks. |
-| `ChangeKindRootNetworkDeleted` | `NetworkID` | A root network this service created was deleted. |
+| `ChangeKindRootNetworkDeleted` | `NetworkID` | A root network was deleted (sent to every service). |
 
 Changes describe the record, not the host.
 
@@ -301,7 +301,7 @@ All methods goroutine-safe after `Init()`. See `controller/asn.go` for the full 
 
 **Node tasks.** `CreateNode` and `DeleteNode` change the host themselves on a node that can run node tasks: the result carries `TaskID`, or `TaskPending` with `PendingReason`, and `Token` is nil. Any other node gets a token as before; the choice depends only on the node, never on a failure. `UpgradeNode` upgrades `asnsn` and the calling service's deb. Every package task restarts `asnsn` and all services on the node. Services get no task status: the outcome shows as the node's state and `ServiceInfo.Version`.
 
-**Root networks.** A service may create, rename, and delete root networks (for example one per tenant), keep one network-type admin group per root in the ASN namespace, move its nodes between roots, and list networks with a filter. It acts only on roots it created (`Network.CreatorService`, which is not ownership). Deleting a root deletes every node in it, of every service; hosts are not cleaned up.
+**Root networks.** A service may create, rename, and delete root networks (for example one per tenant), keep its own network-type admin group for any root in the ASN namespace, move its nodes between roots, and list networks with a filter. These methods act on any root network, the default root included, except that a service cannot delete the default root. Deleting a root deletes every node in it, of every service; hosts are not cleaned up.
 
 ---
 

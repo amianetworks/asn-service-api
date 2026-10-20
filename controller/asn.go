@@ -174,14 +174,14 @@ type ASNController interface {
 	// External links: the To endpoint is outside the network and is not included in nodes.
 	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
 
-	// MoveNodeToNetwork moves a node into targetNetworkID. Allowed when the
-	// calling service created the target's root network (CreateRootNetwork)
-	// and is on the node. The node keeps its services, session, and tasks; its
-	// network scope follows the new parent at once.
+	// MoveNodeToNetwork moves a node into targetNetworkID, under any root
+	// network. Allowed when the calling service is on the node. The node keeps
+	// its services, session, and tasks; its network scope follows the new
+	// parent at once.
 	//
-	// Errors: AuthPermissionDenied (not the target root's creator, or not on
-	// the node); ResourceAlreadyExists (the node's name is taken in the target
-	// root network tree; rename and retry); RequestNotSupported (the node has
+	// Errors: AuthPermissionDenied (the calling service is not on the node);
+	// ResourceAlreadyExists (the node's name is taken in the target root
+	// network tree; rename and retry); RequestNotSupported (the node has
 	// links, which never cross root networks).
 	MoveNodeToNetwork(nodeID, targetNetworkID string) error
 
@@ -210,60 +210,67 @@ type ASNController interface {
 	// -------------------------------------------------------------------------
 	// Root Networks And Their Admin Groups
 	// A service may create root networks (for example one per tenant) and keep
-	// one network-type admin group for each in the ASN namespace. ASN does not
-	// know what the service uses them for. Every method below acts only on a
-	// root network the calling service created (Network.CreatorService);
-	// any other is refused with AuthPermissionDenied. The service decides
-	// beforehand whether its own user may act. Audited as service:<name>.
+	// its own network-type admin group for any root network in the ASN
+	// namespace. ASN does not know what the service uses them for. Every
+	// method below acts on any root network, the default root included (it
+	// only cannot be deleted by a service); a network that is not a root is
+	// refused with RequestParamInvalid. The service decides beforehand
+	// whether its own user may act. Audited as service:<name>.
 	// -------------------------------------------------------------------------
 
-	// CreateRootNetwork creates a root network and records the calling service
-	// as its creator. Root network names are unique among all root networks
+	// CreateRootNetwork creates a root network. Root network names are unique
+	// among all root networks
 	// (exact match); normalizing names and resolving collisions is the
 	// service's job.
 	//
 	// Errors: ResourceAlreadyExists.
 	CreateRootNetwork(name, description string) (networkID string, err error)
 
-	// RenameRootNetwork renames a root network the calling service created.
-	// Same uniqueness rule as CreateRootNetwork.
+	// RenameRootNetwork renames a root network. Same uniqueness rule as
+	// CreateRootNetwork.
 	//
-	// Errors: AuthPermissionDenied, ResourceAlreadyExists.
+	// Errors: RequestParamInvalid (not a root), ResourceAlreadyExists.
 	RenameRootNetwork(networkID, newName string) error
 
-	// DeleteRootNetwork deletes a root network the calling service created,
-	// with the whole subtree: every network and every node in it, of every
-	// service, their links and node groups, and the root's admin groups. Each
-	// node is told to unregister; every service on a deleted node receives
-	// ChangeKindNodeDeleted. Confirm with the user before calling it, listing
-	// the nodes of other services (GetNodesOfNetwork with withService false).
+	// DeleteRootNetwork deletes a root network with the whole subtree: every
+	// network and every node in it, of every service, their links and node
+	// groups, and the root's admin groups. Each node is told to unregister;
+	// every service on a deleted node receives ChangeKindNodeDeleted, and every
+	// service receives ChangeKindRootNetworkDeleted. Confirm with the user
+	// before calling it, listing the nodes of other services
+	// (GetNodesOfNetwork with withService false). The default root
+	// (Network.DefaultRoot) cannot be deleted by a service.
 	//
 	// Hosts are not cleaned up: asnsn, the service debs, and the node
 	// credential stay on each host, as for every node deletion, and the
 	// host is cleaned up by hand.
 	//
-	// Errors: AuthPermissionDenied.
+	// Errors: RequestParamInvalid (not a root); AuthPermissionDenied (the
+	// default root).
 	DeleteRootNetwork(networkID string) error
 
-	// EnsureNetworkAdminGroup returns the network-type group that grants view
-	// and manage on a root network the calling service created, creating it, or
-	// restoring its access if an operator changed it. namePrefix starts the
-	// group name; the framework completes it. Members of the group administer
+	// EnsureNetworkAdminGroup returns the calling service's network-type group
+	// that grants view and manage on a root network, creating it, or restoring
+	// its access if an operator changed it. Each service keeps its own group
+	// per root: a service that shared another's group would remove the other's
+	// members when it reconciles its own. namePrefix starts the group name;
+	// the framework completes it. Members of the group administer
 	// the root network in ASN as well: its networks and nodes, including IPMI
 	// and node tasks that restart every service on a node.
 	EnsureNetworkAdminGroup(networkID, namePrefix string) (groupName string, err error)
 
-	// NetworkAdminGroupAddMembers adds accounts to the root network's admin
-	// group. Each account also joins every service configured on the
-	// controller.
+	// NetworkAdminGroupAddMembers adds accounts to the calling service's admin
+	// group of the root network. Each account also joins every service
+	// configured on the controller.
 	NetworkAdminGroupAddMembers(networkID string, accountIDs []string) error
 
-	// NetworkAdminGroupRemoveMembers removes accounts from the root network's
-	// admin group. The accounts stay in the services they joined.
+	// NetworkAdminGroupRemoveMembers removes accounts from the calling
+	// service's admin group of the root network. The accounts stay in the
+	// services they joined.
 	NetworkAdminGroupRemoveMembers(networkID string, accountIDs []string) error
 
-	// NetworkAdminGroupListMembers lists the root network's admin group, a page
-	// at a time, and the number of members.
+	// NetworkAdminGroupListMembers lists the calling service's admin group of
+	// the root network, a page at a time, and the number of members.
 	NetworkAdminGroupListMembers(networkID string, page iam.Page) (accounts []*iam.Account, total int, err error)
 
 	// -------------------------------------------------------------------------
@@ -432,13 +439,13 @@ type ASNController interface {
 	//
 	// Refused, with nothing sent:
 	//   - AuthPermissionDenied: the calling service is not on the node;
-	//   - commonapi.ErrorCodeNodeTaskUnsupported: the node cannot run node tasks,
+	//   - asn.node.task_unsupported: the node cannot run node tasks,
 	//     or is above the controller's version window;
-	//   - commonapi.ErrorCodeNodeConnectFailed: the node is not connected;
-	//   - commonapi.ErrorCodeNodeUpToDate: nothing would change;
-	//   - commonapi.ErrorCodeNodeUpgradeBlocked: other services on the node must
+	//   - asn.node.connect_failed: the node is not connected;
+	//   - asn.node.up_to_date: nothing would change;
+	//   - asn.node.upgrade_blocked: other services on the node must
 	//     move to a new line with it; an ASN operator upgrades the whole node;
-	//   - commonapi.ErrorCodeNodeTaskInProgress: a node task is in flight;
+	//   - asn.node.task_in_progress: a node task is in flight;
 	//   - ResourceLimitReached: the controller's concurrency limit.
 	UpgradeNode(req UpgradeNodeRequest) error
 
