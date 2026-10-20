@@ -21,6 +21,25 @@ type Network struct {
 	Tiers    []string
 	Location *commonapi.Location
 	Networks []*Network
+
+	// CreatorService is the service that created this root network through
+	// CreateRootNetwork; empty for every other network (created by an
+	// operator, a topology file, or the controller's bootstrap). It only
+	// answers "did the calling service create this root" for the methods that
+	// require it. It is not ownership and grants nothing.
+	CreatorService string
+	// DefaultRoot is true for the root network the controller created at its
+	// first start (network.default_root_network). A deployment initialized from
+	// a topology file has none.
+	DefaultRoot bool
+}
+
+// NetworkFilter restricts ListNetworks. Conditions are ANDed; zero values do
+// not filter.
+type NetworkFilter struct {
+	IDs      []string // these networks only; unknown IDs are ignored
+	RootOnly bool     // root networks only
+	ParentID string   // direct children of this network only
 }
 
 // Node represents a service node within a network.
@@ -58,22 +77,56 @@ type ServiceInfo struct {
 	ConfigOps    []ConfigOp
 }
 
+// ChangeKind is what a NodeStateChange reports. A consumer branches on it and
+// ignores kinds it does not know; the fields a kind does not list are zero.
+type ChangeKind int
+
+const (
+	// ChangeKindState: the node's connectivity or this service's state on it
+	// (NodeState, FrameworkError, ServiceState, ServiceError). The only kind in
+	// the initial snapshot.
+	ChangeKindState ChangeKind = iota
+	// ChangeKindNodeDeleted: the node was deleted, by an operator or a service.
+	// The host is not cleaned up by the deletion.
+	ChangeKindNodeDeleted
+	// ChangeKindNodeServiceRemoved: this service was removed from the node's
+	// record, by an operator or by this service itself. Sent when the record
+	// changes, before the host's package is purged and while the node is
+	// offline too.
+	ChangeKindNodeServiceRemoved
+	// ChangeKindNodeMoved: the node moved from FromNetworkID to NetworkID.
+	ChangeKindNodeMoved
+	// ChangeKindRootNetworkDeleted: a root network this service created
+	// (NetworkID) was deleted, with every node in it. NodeID is empty.
+	ChangeKindRootNetworkDeleted
+)
+
 // NodeStateChange is delivered on the channel returned by SubscribeNodeStateChanges().
-// It is a snapshot of the node's two orthogonal axes at the time of the event:
-// connectivity (NodeState) and service operational state (ServiceState). Every
-// field carries its true current value regardless of which axis triggered the
-// event.
-// FrameworkError is non-nil on framework-level failures (e.g. node disconnection).
-// ServiceError is non-nil when the service itself reported an error during the transition.
+//
+// For ChangeKindState it is a snapshot of the node's two orthogonal axes at
+// the time of the event: connectivity (NodeState) and service operational
+// state (ServiceState). Every field carries its true current value regardless
+// of which axis triggered the event. FrameworkError is non-nil on
+// framework-level failures (e.g. node disconnection). ServiceError is non-nil
+// when the service itself reported an error during the transition.
+//
+// The other kinds report a change of the record; see ChangeKind.
 type NodeStateChange struct {
 	Timestamp time.Time
-	NodeID    string
+	Kind      ChangeKind
+	NodeID    string // empty for ChangeKindRootNetworkDeleted
 
+	// ChangeKindState
 	NodeState      commonapi.NodeState
 	FrameworkError error
 
 	ServiceState commonapi.ServiceState
 	ServiceError error
+
+	// ChangeKindNodeMoved: FromNetworkID -> NetworkID.
+	// ChangeKindRootNetworkDeleted: NetworkID.
+	NetworkID     string
+	FromNetworkID string
 }
 
 // OpsResponse is one node's response to a SendServiceOps or config op dispatch call.
@@ -173,14 +226,34 @@ type CreateNodeRequest struct {
 	TokenTTLSeconds int64
 }
 
-// CreateNodeResult is returned by CreateNode.
+// PendingReason is why a node task that changes the host is queued instead
+// of sent at once.
+type PendingReason string
+
+const (
+	PendingReasonOffline     PendingReason = "offline"     // the node is not connected
+	PendingReasonMaintenance PendingReason = "maintenance" // the node is in Maintenance; an install waits until it is admitted normally
+	PendingReasonBusy        PendingReason = "busy"        // another task runs on the node, or the controller's task limit is reached
+)
+
+// CreateNodeResult is returned by CreateNode. It carries exactly one of a
+// task (TaskID, or TaskPending with PendingReason) and a Token, or none of
+// them when the calling service's deb is already installed at the version
+// the controller serves.
 type CreateNodeResult struct {
 	NodeID string
 	// Created is true when a new node was created, false when AllowExisting
 	// matched an existing node.
 	Created bool
-	// Token is the node's install token (ScriptKindInstall).
+	// Token is the node's install token (ScriptKindInstall); nil when the node
+	// can run node tasks.
 	Token *ScriptToken
+	// TaskID is the node task that installs the calling service's deb, when it
+	// was sent at once.
+	TaskID string
+	// TaskPending is true when that task is queued; PendingReason says why.
+	TaskPending   bool
+	PendingReason PendingReason
 }
 
 // GetInstallTokenRequest asks for a fresh install token for an existing node.
@@ -218,8 +291,22 @@ type DeleteNodeResult struct {
 	// NodeDeleted is true when the node record was destroyed (LastService and
 	// DeleteEmptyNode were both true).
 	NodeDeleted bool
-	// Token is the uninstall token (ScriptKindUninstall).
+	// Token is the uninstall token (ScriptKindUninstall); nil when the node
+	// can run node tasks and the calling service was not its last.
 	Token *ScriptToken
+	// TaskID is the node task that purges the calling service's deb, when it
+	// was sent at once.
+	TaskID string
+	// TaskPending is true when that task is queued; PendingReason says why.
+	TaskPending   bool
+	PendingReason PendingReason
+}
+
+// UpgradeNodeRequest upgrades a node the calling service is on; see
+// ASNController.UpgradeNode.
+type UpgradeNodeRequest struct {
+	// NodeID is the node. Required.
+	NodeID string
 }
 
 // ScriptKind is what a ScriptToken, and the Script it redeems to, does on the

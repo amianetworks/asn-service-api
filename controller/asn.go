@@ -19,8 +19,9 @@ import (
 //  3. Ops dispatch
 //  4. Config ops dispatch
 //  5. Node topology
-//  6. Node group management
-//  7. Node enrollment
+//  6. Root networks and their admin groups
+//  7. Node group management
+//  8. Node enrollment and node tasks
 type ASNController interface {
 
 	// -------------------------------------------------------------------------
@@ -146,6 +147,11 @@ type ASNController interface {
 	// GetNetworks returns the full network tree. Each Network embeds nested Networks (subnetworks).
 	GetNetworks() ([]*Network, error)
 
+	// ListNetworks returns the networks matching filter, a page at a time, and
+	// the number of matches. The returned networks carry no nested Networks;
+	// use ParentID and filter.ParentID to walk the tree.
+	ListNetworks(filter NetworkFilter, page iam.Page) (networks []*Network, total int, err error)
+
 	// GetNodeByID returns full node details: hardware info, service-defined Metadata,
 	// and ServiceInfo (service state, config source, active config ops).
 	GetNodeByID(nodeID string) (*Node, error)
@@ -168,15 +174,97 @@ type ASNController interface {
 	// External links: the To endpoint is outside the network and is not included in nodes.
 	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
 
-	// SubscribeNodeStateChanges returns a channel for node state changes.
+	// MoveNodeToNetwork moves a node into targetNetworkID. Allowed when the
+	// calling service created the target's root network (CreateRootNetwork)
+	// and is on the node. The node keeps its services, session, and tasks; its
+	// network scope follows the new parent at once.
+	//
+	// Errors: AuthPermissionDenied (not the target root's creator, or not on
+	// the node); ResourceAlreadyExists (the node's name is taken in the target
+	// root network tree; rename and retry); RequestNotSupported (the node has
+	// links, which never cross root networks).
+	MoveNodeToNetwork(nodeID, targetNetworkID string) error
+
+	// SubscribeNodeStateChanges returns a channel for node changes.
 	// One-shot: a second call returns an error.
-	// On subscription, the channel first delivers a NodeStateChange for every node's current state
-	// (initial snapshot), then delivers incremental changes. The channel is never closed during
-	// normal framework operation.
-	// Each NodeStateChange is a full snapshot of the connectivity and service
-	// axes. Credential changes inside the framework (token issue, certificate
-	// binding or revocation) are not service-visible and produce no event.
+	// On subscription, the channel first delivers a ChangeKindState change for
+	// every node of this service (initial snapshot), then delivers incremental
+	// changes of every kind. The channel is never closed during normal
+	// framework operation.
+	//
+	// A consumer must branch on NodeStateChange.Kind and ignore kinds it does
+	// not know: the fields a kind does not list are zero.
+	//
+	// Delivery is best effort: a change that finds the channel full is dropped
+	// (and counted by the framework). Reconcile against GetNodeByID,
+	// GetNodesOfNetwork, and ListNetworks at start and periodically.
+	//
+	// Changes describe the record, not the host: a node deleted, or a service
+	// removed from it, may still have its packages on the host. Node tasks
+	// produce no change of their own; their effect shows as the node's state and
+	// ServiceInfo.Version after the restart. Credential changes inside the
+	// framework (token issue, certificate binding or revocation) are not
+	// service-visible and produce no change.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
+
+	// -------------------------------------------------------------------------
+	// Root Networks And Their Admin Groups
+	// A service may create root networks (for example one per tenant) and keep
+	// one network-type admin group for each in the ASN namespace. ASN does not
+	// know what the service uses them for. Every method below acts only on a
+	// root network the calling service created (Network.CreatorService);
+	// any other is refused with AuthPermissionDenied. The service decides
+	// beforehand whether its own user may act. Audited as service:<name>.
+	// -------------------------------------------------------------------------
+
+	// CreateRootNetwork creates a root network and records the calling service
+	// as its creator. Root network names are unique among all root networks
+	// (exact match); normalizing names and resolving collisions is the
+	// service's job.
+	//
+	// Errors: ResourceAlreadyExists.
+	CreateRootNetwork(name, description string) (networkID string, err error)
+
+	// RenameRootNetwork renames a root network the calling service created.
+	// Same uniqueness rule as CreateRootNetwork.
+	//
+	// Errors: AuthPermissionDenied, ResourceAlreadyExists.
+	RenameRootNetwork(networkID, newName string) error
+
+	// DeleteRootNetwork deletes a root network the calling service created,
+	// with the whole subtree: every network and every node in it, of every
+	// service, their links and node groups, and the root's admin groups. Each
+	// node is told to unregister; every service on a deleted node receives
+	// ChangeKindNodeDeleted. Confirm with the user before calling it, listing
+	// the nodes of other services (GetNodesOfNetwork with withService false).
+	//
+	// Hosts are not cleaned up: asnsn, the service debs, and the node
+	// credential stay on each host, as for every node deletion, and the
+	// host is cleaned up by hand.
+	//
+	// Errors: AuthPermissionDenied.
+	DeleteRootNetwork(networkID string) error
+
+	// EnsureNetworkAdminGroup returns the network-type group that grants view
+	// and manage on a root network the calling service created, creating it, or
+	// restoring its access if an operator changed it. namePrefix starts the
+	// group name; the framework completes it. Members of the group administer
+	// the root network in ASN as well: its networks and nodes, including IPMI
+	// and node tasks that restart every service on a node.
+	EnsureNetworkAdminGroup(networkID, namePrefix string) (groupName string, err error)
+
+	// NetworkAdminGroupAddMembers adds accounts to the root network's admin
+	// group. Each account also joins every service configured on the
+	// controller.
+	NetworkAdminGroupAddMembers(networkID string, accountIDs []string) error
+
+	// NetworkAdminGroupRemoveMembers removes accounts from the root network's
+	// admin group. The accounts stay in the services they joined.
+	NetworkAdminGroupRemoveMembers(networkID string, accountIDs []string) error
+
+	// NetworkAdminGroupListMembers lists the root network's admin group, a page
+	// at a time, and the number of members.
+	NetworkAdminGroupListMembers(networkID string, page iam.Page) (accounts []*iam.Account, total int, err error)
 
 	// -------------------------------------------------------------------------
 	// Node Group Management
@@ -209,13 +297,24 @@ type ASNController interface {
 	RemoveNodesFromNodeGroup(nodeGroupID string, nodeIDs []string) error
 
 	// -------------------------------------------------------------------------
-	// Node Enrollment
+	// Node Enrollment And Node Tasks
 	// CreateNode, GetInstallToken and DeleteNode each perform their whole
 	// controller-side effect at call time (the node is created, the service is
-	// added, the service is removed, the node is destroyed) and return a
-	// ScriptToken for the host-side work still to be done. RedeemScriptToken
-	// turns any ScriptToken, whatever call issued it, into the script bytes; it
-	// makes no service-visible change.
+	// added, the service is removed, the node is destroyed). The host-side work
+	// still to be done is either a node task the framework runs on the host
+	// itself, or a ScriptToken for a host that cannot run node tasks. Which of
+	// the two is decided only by whether the node registered the task
+	// capability; a refused or failed task never turns into a token.
+	// RedeemScriptToken turns any ScriptToken, whatever call issued it, into
+	// the script bytes; it makes no service-visible change.
+	//
+	// A node task that changes packages restarts asnsn, and so every service
+	// on the node, which sees the node go offline and come back. On a node in
+	// Maintenance, or in Maintenance when the task runs, the other services
+	// on the node stay stopped until the node leaves Maintenance. A task's
+	// outcome shows as the node's state and ServiceInfo.Version after the
+	// restart; services get no task status. A queued task is sent when the node
+	// can take it; an ASN operator sees every task's result.
 	//
 	// Typical flow: the service issues a token and hands it to the operator or
 	// the device; the device presents it back to the service, which redeems it
@@ -258,16 +357,25 @@ type ASNController interface {
 	// If a node with NodeName already exists in that tree:
 	//   - without AllowExisting the call fails and nothing changes;
 	//   - with AllowExisting the calling service is added to the existing node's
-	//     service_names (a no-op if it is already there) and an install token for
-	//     that node is returned. An online node is told to load the .so and
-	//     Init() the service at once, which succeeds only if the deb is already
-	//     on the host; an offline node loads it at its next registration. Either
-	//     way, running the install script puts the deb in place, after which
-	//     asnsn restarts, re-registers and loads the service. UpdateInfo controls
+	//     service_names (a no-op if it is already there). UpdateInfo controls
 	//     whether the request's Type and Label overwrite the existing node's
 	//     attributes.
 	//
-	// The returned token is ScriptKindInstall.
+	// The host half:
+	//   - a node that can run node tasks gets an install task for the calling
+	//     service's deb (TaskID, or TaskPending with PendingReason); Token is
+	//     nil, which is normal. The service is recorded without loading it;
+	//     the asnsn the task restarts loads it. The task restarts every service
+	//     on the node. A result with no task and no token means the deb is
+	//     already installed at the version the controller serves; the service
+	//     is loaded at once. Repeating CreateNode with AllowExisting for a deb
+	//     that is missing or older queues a new install;
+	//   - any other node gets an install token (ScriptKindInstall). An online
+	//     node is told to load the .so and Init() the service at once, which
+	//     succeeds only if the deb is already on the host; an offline node
+	//     loads it at its next registration. Running the install script puts
+	//     the deb in place, after which asnsn restarts, re-registers and loads
+	//     the service.
 	CreateNode(req CreateNodeRequest) (*CreateNodeResult, error)
 
 	// GetInstallToken returns a fresh install token for an EXISTING node the
@@ -282,8 +390,8 @@ type ASNController interface {
 	// join one.
 	GetInstallToken(req GetInstallTokenRequest) (*ScriptToken, error)
 
-	// DeleteNode removes the calling service from the node and returns an
-	// uninstall token for cleaning up the host. Access-sensitive; audited.
+	// DeleteNode removes the calling service from the node and starts the
+	// host cleanup. Access-sensitive; audited.
 	//
 	// All controller-side removal happens here, not at redemption:
 	//   - The calling service is torn down (Stop() + Finish() + unload of the .so
@@ -296,12 +404,43 @@ type ASNController interface {
 	//     config included); false keeps it, serviceless, and it comes back only
 	//     through CreateNode with AllowExisting.
 	//
-	// The returned token is ScriptKindUninstall. It stays redeemable even when
-	// the node was destroyed. Install tokens the calling service issued for the
-	// node earlier no longer redeem, since the service is no longer on the node.
-	// The service may discard the uninstall token if the host does not need
-	// cleaning up; the removal above has already taken effect either way.
+	// The host half:
+	//   - when other services remain on a node that can run node tasks, an
+	//     uninstall task purges the calling service's deb (TaskID, or
+	//     TaskPending with PendingReason); Token is nil, which is normal. The
+	//     task restarts every service on the node; on a node in Maintenance the
+	//     other services stay stopped until it leaves Maintenance. The removal
+	//     is fire-and-forget for the calling service: it is off the node when
+	//     the call returns and sees neither the task nor its outcome; an ASN
+	//     operator sees and retries a failed purge;
+	//   - otherwise (the calling service was the node's last, or the node
+	//     cannot run node tasks) the result carries an uninstall token
+	//     (ScriptKindUninstall). It stays redeemable even when the node was
+	//     destroyed. The service may discard it if the host does not need
+	//     cleaning up; the removal above has already taken effect either way.
+	//
+	// Install tokens the calling service issued for the node earlier no longer
+	// redeem, since the service is no longer on the node.
 	DeleteNode(req DeleteNodeRequest) (*DeleteNodeResult, error)
+
+	// UpgradeNode upgrades asnsn and the calling service's deb on the node to
+	// the versions this controller serves, from the configured APT sources,
+	// and returns once the node task is sent. The node restarts asnsn, which
+	// restarts every service on it, and registers again on the new versions.
+	// A node below the controller's version window leaves Maintenance on
+	// success.
+	//
+	// Refused, with nothing sent:
+	//   - AuthPermissionDenied: the calling service is not on the node;
+	//   - commonapi.ErrorCodeNodeTaskUnsupported: the node cannot run node tasks,
+	//     or is above the controller's version window;
+	//   - commonapi.ErrorCodeNodeConnectFailed: the node is not connected;
+	//   - commonapi.ErrorCodeNodeUpToDate: nothing would change;
+	//   - commonapi.ErrorCodeNodeUpgradeBlocked: other services on the node must
+	//     move to a new line with it; an ASN operator upgrades the whole node;
+	//   - commonapi.ErrorCodeNodeTaskInProgress: a node task is in flight;
+	//   - ResourceLimitReached: the controller's concurrency limit.
+	UpgradeNode(req UpgradeNodeRequest) error
 
 	// RedeemScriptToken renders the script a token stands for. It is the single
 	// redemption point for every token, whichever call issued it; the script's

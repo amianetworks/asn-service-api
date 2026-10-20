@@ -142,7 +142,32 @@ type Account struct {
 	ServiceAdmin bool
 	Groups       []string
 
+	// ManagedNetworks are the ASN networks this account may act on, from every
+	// network-type group in the ASN namespace it belongs to (whoever created
+	// the group), computed live on every account returned; never copy or cache
+	// them. Every service receives the same value. A service grants by them as
+	// follows:
+	//   - only on resources it places under ASN networks; a resource under no
+	//     network (service configuration, license, global policy) is refused to
+	//     an account that is not ServiceAdmin;
+	//   - a scope on a network covers its whole subtree;
+	//   - each service decides which Operations it honors (for example manage
+	//     only);
+	//   - ServiceAdmin keeps its full access and does not extend to other
+	//     services.
+	ManagedNetworks []NetworkScope
+
 	Devices map[string]*Device
+}
+
+// NetworkScope is one network an account may act on; see
+// Account.ManagedNetworks.
+type NetworkScope struct {
+	NetworkID  string
+	Operations []string // "view", "manage"
+	// WithSubnetworks is true when the scope covers the network's subtree,
+	// which is always the case today.
+	WithSubnetworks bool
 }
 
 type AccountPasskey struct {
