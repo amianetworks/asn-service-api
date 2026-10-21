@@ -154,7 +154,12 @@ type Account struct {
 	//   - each service decides which Operations it honors (for example manage
 	//     only);
 	//   - ServiceAdmin keeps its full access and does not extend to other
-	//     services.
+	//     services;
+	//   - manage on a root network itself (RootID == NetworkID) comes only
+	//     from that root's admin group; any other group holding a root grants
+	//     view only, on everything it holds, and no network-type group spans
+	//     two roots;
+	//   - a network that no longer exists is left out.
 	ManagedNetworks []NetworkScope
 
 	Devices map[string]*Device
@@ -163,7 +168,10 @@ type Account struct {
 // NetworkScope is one network an account may act on; see
 // Account.ManagedNetworks.
 type NetworkScope struct {
-	NetworkID  string
+	NetworkID string
+	// RootID is the root network NetworkID is under; it equals NetworkID
+	// when the scope is on the root itself.
+	RootID     string
 	Operations []string // "view", "manage"
 	// WithSubnetworks is true when the scope covers the network's subtree,
 	// which is always the case today.

@@ -19,7 +19,7 @@ import (
 //  3. Ops dispatch
 //  4. Config ops dispatch
 //  5. Node topology
-//  6. Root networks and their admin groups
+//  6. Root networks and their admin group
 //  7. Node group management
 //  8. Node enrollment and node tasks
 type ASNController interface {
@@ -209,16 +209,22 @@ type ASNController interface {
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	// -------------------------------------------------------------------------
-	// Root Networks And Their Admin Groups
-	// A service may create root networks (for example one per tenant) and keep
-	// its own network-type admin group for any root network in the ASN
-	// namespace. ASN does not know what the service uses them for. Every
-	// method below acts on any root network, the default root included,
-	// except that a service can neither delete nor rename the default root
-	// (AuthPermissionDenied); an unknown network is refused with
-	// asn.network.not_found and a network that is not a root with
-	// RequestParamInvalid. The service decides beforehand whether its own user
-	// may act. Audited as service:<name>.
+	// Root Networks And Their Admin Group
+	// A service may create root networks (for example one per tenant). Each
+	// root network has exactly one admin group: the controller creates it with
+	// the root and deletes it with the root, and it grants view and manage on
+	// the root and nothing else. Manage on a root itself comes only from its
+	// admin group, so the group's members are the root's complete list of
+	// administrators. Any service may change the members of any root's admin
+	// group; the group is shared by every service and by ASN operators, so a
+	// service adds and removes members one change at a time and never
+	// replaces the list with one it keeps. ASN does not know what the service
+	// uses a root for. Every method below acts on any root network, the
+	// default root included, except that a service can neither delete nor
+	// rename the default root (AuthPermissionDenied); an unknown network is
+	// refused with asn.network.not_found and a network that is not a root
+	// with RequestParamInvalid. The service decides beforehand whether its
+	// own user may act. Audited as service:<name>.
 	//
 	// The default root (Network.DefaultRoot) is the root whose name the
 	// controller configuration names. A root created with that name while no
@@ -242,6 +248,9 @@ type ASNController interface {
 	// ResourceAlreadyExists during a retry adopt the root of that name
 	// (ListNetworks with RootOnly).
 	//
+	// The root's admin group is created with it, empty; if the group cannot
+	// be created, the root is not created either.
+	//
 	// Errors: ResourceAlreadyExists.
 	CreateRootNetwork(name, description string) (networkID string, err error)
 
@@ -254,9 +263,11 @@ type ASNController interface {
 
 	// DeleteRootNetwork deletes a root network with the whole subtree: every
 	// network and every node in it, of every service, their links and node
-	// groups, and the root's admin groups. Each node is told to unregister;
-	// every service on a deleted node receives ChangeKindNodeDeleted, and every
-	// service receives ChangeKindRootNetworkDeleted. Confirm with the user
+	// groups, and the root's admin group; other network-type groups lose the
+	// deleted networks, and one left with none is deleted. Each node is told
+	// to unregister; every service on a deleted node receives
+	// ChangeKindNodeDeleted, and every service receives
+	// ChangeKindRootNetworkDeleted. Confirm with the user
 	// before calling it, listing the nodes of other services
 	// (GetNodesOfNetwork with withService false). The default root
 	// (Network.DefaultRoot) cannot be deleted by a service.
@@ -269,46 +280,37 @@ type ASNController interface {
 	// root); AuthPermissionDenied (the default root).
 	DeleteRootNetwork(networkID string) error
 
-	// EnsureNetworkAdminGroup returns the calling service's network-type group
-	// that grants view and manage on a root network, creating it, or restoring
-	// its access if an operator changed it. Each service keeps its own group
-	// per root: a service that shared another's group would remove the other's
-	// members when it reconciles its own. namePrefix starts the group name;
-	// the framework completes it. Members of the group administer
-	// the networks and nodes under the root network in ASN as well, including
-	// IPMI and node tasks that restart every service on a node; the root
-	// itself is changed only by an ASN operator.
+	// RootAdminGroupAddMembers adds accounts to the root network's admin
+	// group. Only accounts already in the calling service's IAM namespace are
+	// accepted (created by the service, signed up through it, or joined by
+	// being a member of any network-type group). Each account also joins
+	// every service configured on the controller that has an IAM namespace,
+	// and stays in them after it leaves the group. Members administer the
+	// networks and nodes under the root in ASN as well, including IPMI and
+	// node tasks that restart every service on a node; the root itself is
+	// changed only by an ASN operator.
 	//
-	// Errors: asn.network.not_found; RequestParamInvalid (not a
-	// root); RequestRequiredFieldMissing (empty namePrefix).
-	EnsureNetworkAdminGroup(networkID, namePrefix string) (groupName string, err error)
+	// Errors: asn.network.not_found; RequestParamInvalid (not a root, or a
+	// malformed account ID); AuthPermissionDenied (accounts outside the
+	// calling service's namespace, named in the error); GroupNotFound (the
+	// controller lost the root's admin group, which is a controller defect).
+	RootAdminGroupAddMembers(networkID string, accountIDs []string) error
 
-	// NetworkAdminGroupAddMembers adds accounts to the calling service's admin
-	// group of the root network. Only accounts already in the calling
-	// service's IAM namespace are accepted (created by the service, signed up
-	// through it, or joined by being a member of any network-type group).
-	// Each account also joins every service configured on the controller that
-	// has an IAM namespace.
+	// RootAdminGroupRemoveMembers removes accounts from the root network's
+	// admin group, whoever added them. The accounts stay in the services they
+	// joined.
 	//
-	// Errors: asn.network.not_found; RequestParamInvalid (not a
-	// root, or a malformed account ID); GroupNotFound (before
-	// EnsureNetworkAdminGroup); AuthPermissionDenied (accounts outside the
-	// calling service's namespace, named in the error).
-	NetworkAdminGroupAddMembers(networkID string, accountIDs []string) error
+	// Errors: as RootAdminGroupAddMembers, without AuthPermissionDenied.
+	RootAdminGroupRemoveMembers(networkID string, accountIDs []string) error
 
-	// NetworkAdminGroupRemoveMembers removes accounts from the calling
-	// service's admin group of the root network. The accounts stay in the
-	// services they joined.
+	// RootAdminGroupListMembers lists the members of the root network's admin
+	// group, a page at a time, and the number of members. A member outside
+	// the calling service's namespace is listed from its ASN record, so a
+	// page always matches total.
 	//
-	// Errors: as NetworkAdminGroupAddMembers, without AuthPermissionDenied.
-	NetworkAdminGroupRemoveMembers(networkID string, accountIDs []string) error
-
-	// NetworkAdminGroupListMembers lists the calling service's admin group of
-	// the root network, a page at a time, and the number of members.
-	//
-	// Errors: asn.network.not_found; RequestParamInvalid (not a
-	// root); GroupNotFound (before EnsureNetworkAdminGroup).
-	NetworkAdminGroupListMembers(networkID string, page iam.Page) (accounts []*iam.Account, total int, err error)
+	// Errors: asn.network.not_found; RequestParamInvalid (not a root);
+	// GroupNotFound (as RootAdminGroupAddMembers).
+	RootAdminGroupListMembers(networkID string, page iam.Page) (accounts []*iam.Account, total int, err error)
 
 	// -------------------------------------------------------------------------
 	// Node Group Management

@@ -22,9 +22,12 @@ type Network struct {
 	Location *commonapi.Location
 	Networks []*Network
 
-	// DefaultRoot is true for the root network the controller created at its
-	// first start (network.default_root_network). A deployment initialized from
-	// a topology file has none.
+	// DefaultRoot is true for the root network the controller configuration
+	// names (network.default_root_network), however the root was created. A
+	// root created with that name while no root is marked becomes the default
+	// root at once; a root renamed to it, at the controller's next start. A
+	// controller whose configuration names no existing root has none. A
+	// service can neither delete nor rename the default root.
 	DefaultRoot bool
 }
 
