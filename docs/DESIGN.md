@@ -301,7 +301,7 @@ All methods goroutine-safe after `Init()`. See `controller/asn.go` for the full 
 
 **Node tasks.** `CreateNode` and `DeleteNode` change the host themselves on a node that can run node tasks: the result carries `TaskID`, or `TaskPending` with `PendingReason`, and `Token` is nil. Any other node gets a token as before; the choice depends only on the node, never on a failure. `UpgradeNode` upgrades `asnsn` and the calling service's deb. Every package task restarts `asnsn` and all services on the node. Services get no task status: the outcome shows as the node's state and `ServiceInfo.Version`.
 
-**Root networks.** A service may create, rename, and delete root networks (for example one per tenant), keep its own network-type admin group for any root in the ASN namespace, move its nodes between roots, and list networks with a filter. These methods act on any root network, the default root included, except that a service cannot delete the default root. Deleting a root deletes every node in it, of every service; hosts are not cleaned up.
+**Root networks.** A service may create, rename, and delete root networks (for example one per tenant), keep its own network-type admin group for any root in the ASN namespace, move its nodes between roots, and list networks with a filter. These methods act on any root network, the default root included, except that a service can neither delete nor rename the default root. Deleting a root deletes every node in it, of every service; hosts are not cleaned up. A root given the configured default-root name may become the default root; check `Network.DefaultRoot` after creating one.
 
 ---
 
@@ -423,7 +423,7 @@ Accesses are granted at the group level. `AccountAccessList` returns all effecti
 
 ### Network Scope
 
-`Account.ManagedNetworks` lists the ASN networks an account may act on, from every network-type group it belongs to, computed live (never copied or cached). Every service receives the same value and grants by it only on resources it places under ASN networks; a scope covers the subtree; each service decides which operations it honors; `ServiceAdmin` keeps its full access and does not extend to other services. A service maintains the groups of the root networks it created through `EnsureNetworkAdminGroup` and `NetworkAdminGroup*Members`.
+`Account.ManagedNetworks` lists the ASN networks an account may act on, from every network-type group it belongs to, computed live (never copied or cached). Every service receives the same value and grants by it only on resources it places under ASN networks; a scope covers the subtree; each service decides which operations it honors; `ServiceAdmin` keeps its full access and does not extend to other services. Any service may keep its own network admin group on any root network, through `EnsureNetworkAdminGroup` and `NetworkAdminGroup*Members`; members must already be in the calling service's namespace.
 
 ---
 
