@@ -56,6 +56,16 @@ type Node struct {
 	Managed bool
 	Info    *commonapi.NodeInfo
 
+	// AutoUpgrade is the node's auto-upgrade switch; see
+	// ASNController.SetNodeAutoUpgrade. It belongs to the node, not to the
+	// calling service.
+	AutoUpgrade bool
+	// AutoUpgradeHeld is true when the last automatic upgrade for the versions
+	// the controller serves now did not bring the node to them. The node is
+	// not tried again until those versions change or the switch is turned off
+	// and on again.
+	AutoUpgradeHeld bool
+
 	// ServiceInfo is nil if this service is not in the node's service_names (not
 	// eligible). An eligible node whose plugin is not loaded yet has ServiceInfo
 	// with State ServiceStateUnavailable.
@@ -72,7 +82,77 @@ type ServiceInfo struct {
 	UsedConfig   string
 	ConfigSource commonapi.ServiceSource
 	ConfigOps    []ConfigOp
+
+	// PendingTask is the calling service's queued change on the node that is
+	// not sent yet (an install of its deb), with PendingReason; nil when none.
+	PendingTask *NodeTask
+	// RunningTask is the node task in flight on the node when it restarts
+	// asnsn; nil otherwise.
+	RunningTask *NodeTask
+	// LastRequest is the calling service's own last request on the node that
+	// ended, with or without a task; nil when none since the service joined
+	// the node. Only the calling service's requests overwrite it: a request is
+	// over when LastRequest.RequestID equals its id.
+	LastRequest *NodeTask
+	// LastTask is the last node task on the node that ended and restarted
+	// asnsn, of any actor (the calling service's own included); nil when none
+	// since the service joined the node.
+	LastTask *NodeTask
 }
+
+// NodeTaskKind is what a node task did to the calling service on the node.
+type NodeTaskKind string
+
+const (
+	NodeTaskKindInstall NodeTaskKind = "install" // installed the calling service's deb
+	NodeTaskKindUpgrade NodeTaskKind = "upgrade" // upgraded asnsn and the calling service's deb
+	NodeTaskKindRestart NodeTaskKind = "restart" // another change that restarts asnsn and every service on the node
+)
+
+// NodeTaskStatus is how a node task, or a request that ended without one,
+// ended for the calling service. Failure causes are not told apart; an ASN
+// operator sees the cause.
+type NodeTaskStatus int
+
+const (
+	NodeTaskStatusUnspecified NodeTaskStatus = iota // not ended
+	NodeTaskStatusOK                                // the task succeeded and asnsn came back
+	NodeTaskStatusFailed
+)
+
+// NodeTask is the calling service's view of one node task, or of one of its
+// requests that has not been sent yet. Another actor's task carries no
+// RequestID and names no actor, service, or package.
+type NodeTask struct {
+	// RequestID is the calling service's request (CreateNodeResult.RequestID,
+	// the requestID UpgradeNode returns); empty when another actor caused the
+	// task.
+	RequestID string
+	// TaskID is the node task; empty while the request is queued, or when it
+	// ended without a task.
+	TaskID string
+	Kind   NodeTaskKind
+	// PendingReason is set in ServiceInfo.PendingTask only.
+	PendingReason PendingReason
+	// Status is set in ServiceInfo.LastRequest and LastTask only.
+	Status NodeTaskStatus
+	// RequestedAt is when the calling service's request was made, or, for
+	// another actor's task, when that task was sent.
+	RequestedAt time.Time
+	// EndedAt is set in ServiceInfo.LastRequest and LastTask only.
+	EndedAt time.Time
+}
+
+// NodeTaskSlot names the ServiceInfo slot a ChangeKindNodeTask reports.
+type NodeTaskSlot int
+
+const (
+	NodeTaskSlotUnspecified NodeTaskSlot = iota
+	NodeTaskSlotPending                  // ServiceInfo.PendingTask
+	NodeTaskSlotRunning                  // ServiceInfo.RunningTask
+	NodeTaskSlotLastRequest              // ServiceInfo.LastRequest
+	NodeTaskSlotLastTask                 // ServiceInfo.LastTask
+)
 
 // ChangeKind is what a NodeStateChange reports. A consumer branches on it and
 // ignores kinds it does not know; the fields a kind does not list are zero.
@@ -96,6 +176,15 @@ const (
 	// ChangeKindRootNetworkDeleted: a root network (NetworkID) was deleted,
 	// with every node in it; sent to every service. NodeID is empty.
 	ChangeKindRootNetworkDeleted
+	// ChangeKindNodeTask: one of this service's task slots on the node
+	// (TaskSlot) was filled or cleared; Task is the slot's new value, nil when
+	// cleared. A task that ends sends one change per slot, in the order
+	// RunningTask cleared, LastTask filled, LastRequest filled.
+	ChangeKindNodeTask
+	// ChangeKindNodeAutoUpgrade: the node's auto-upgrade switch changed
+	// (AutoUpgrade), by an ASN operator or any service on the node; sent to
+	// every service on the node. It names no actor.
+	ChangeKindNodeAutoUpgrade
 )
 
 // NodeStateChange is delivered on the channel returned by SubscribeNodeStateChanges().
@@ -124,6 +213,13 @@ type NodeStateChange struct {
 	// ChangeKindRootNetworkDeleted: NetworkID.
 	NetworkID     string
 	FromNetworkID string
+
+	// ChangeKindNodeTask
+	TaskSlot NodeTaskSlot
+	Task     *NodeTask
+
+	// ChangeKindNodeAutoUpgrade
+	AutoUpgrade bool
 }
 
 // OpsResponse is one node's response to a SendServiceOps or config op dispatch call.
@@ -251,15 +347,11 @@ type CreateNodeResult struct {
 	// TaskPending is true when that task is queued; PendingReason says why.
 	TaskPending   bool
 	PendingReason PendingReason
-}
-
-// GetInstallTokenRequest asks for a fresh install token for an existing node.
-type GetInstallTokenRequest struct {
-	// NodeID is the existing node; the calling service must be on it. Required.
-	NodeID string
-	// TokenTTLSeconds is the lifetime of the returned token; see
-	// ScriptToken.ExpiresAt.
-	TokenTTLSeconds int64
+	// RequestID identifies the install in ServiceInfo.PendingTask,
+	// RunningTask and LastRequest, from queue to result; set whenever there is
+	// a task, sent or queued. A call that joins the calling service's queued
+	// install returns that install's id.
+	RequestID string
 }
 
 // DeleteNodeRequest removes the calling service from a node; see
@@ -299,13 +391,6 @@ type DeleteNodeResult struct {
 	PendingReason PendingReason
 }
 
-// UpgradeNodeRequest upgrades a node the calling service is on; see
-// ASNController.UpgradeNode.
-type UpgradeNodeRequest struct {
-	// NodeID is the node. Required.
-	NodeID string
-}
-
 // ScriptKind is what a ScriptToken, and the Script it redeems to, does on the
 // host.
 type ScriptKind int
@@ -333,16 +418,11 @@ type ScriptToken struct {
 	NodeID string
 	Kind   ScriptKind
 	// ExpiresAt is the Unix time (seconds) after which the token no longer
-	// redeems. It is issue time plus the request's TokenTTLSeconds, capped by the
-	// controller's configured token lifetime (servicenode.enrollment.token_ttl),
-	// which is also used when TokenTTLSeconds is zero.
+	// redeems. It is issue time plus the requested lifetime (TokenTTLSeconds,
+	// or GetInstallToken's tokenTTLSeconds), capped by the controller's
+	// configured token lifetime (servicenode.enrollment.token_ttl), which is
+	// also used when the requested lifetime is zero.
 	ExpiresAt int64
-}
-
-// RedeemScriptTokenRequest redeems a ScriptToken for its script.
-type RedeemScriptTokenRequest struct {
-	// Token is ScriptToken.Token as presented by the host. Required.
-	Token string
 }
 
 // Script is a rendered host script, returned by RedeemScriptToken. The service

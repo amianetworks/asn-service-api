@@ -198,14 +198,18 @@ type ASNController interface {
 	//
 	// Delivery is best effort: a change that finds the channel full is dropped
 	// (and counted by the framework). Reconcile against GetNodeByID,
-	// GetNodesOfNetwork, and ListNetworks at start and periodically.
+	// GetNodesOfNetwork, and ListNetworks at start and periodically. The task
+	// slots in ServiceInfo and Node.AutoUpgrade are not in the initial
+	// snapshot; read them with GetNodesOfNetwork or GetNodeByID when
+	// subscribing.
 	//
 	// Changes describe the record, not the host: a node deleted, or a service
-	// removed from it, may still have its packages on the host. Node tasks
-	// produce no change of their own; their effect shows as the node's state and
-	// ServiceInfo.Version after the restart. Credential changes inside the
-	// framework (token issue, certificate binding or revocation) are not
-	// service-visible and produce no change.
+	// removed from it, may still have its packages on the host. A node task
+	// that restarts asnsn changes the calling service's task slots
+	// (ChangeKindNodeTask); a change of the auto-upgrade switch is
+	// ChangeKindNodeAutoUpgrade. Credential changes inside the framework (token
+	// issue, certificate binding or revocation) are not service-visible and
+	// produce no change.
 	SubscribeNodeStateChanges() (<-chan *NodeStateChange, error)
 
 	// -------------------------------------------------------------------------
@@ -244,7 +248,7 @@ type ASNController interface {
 	// The service keeps its own mapping from its tenant to the root network
 	// ID. To survive a crash between this call and recording the ID, record
 	// the intended name first, use a name that carries the service's own
-	// tenant identifier (for example "swan-<spaceID>"), and on
+	// tenant identifier (for example "<service>-<tenantID>"), and on
 	// ResourceAlreadyExists during a retry adopt the root of that name
 	// (ListNetworks with RootOnly).
 	//
@@ -357,17 +361,30 @@ type ASNController interface {
 	// A node task that changes packages restarts asnsn, and so every service
 	// on the node, which sees the node go offline and come back. On a node in
 	// Maintenance, or in Maintenance when the task runs, the other services
-	// on the node stay stopped until the node leaves Maintenance. A task's
-	// outcome shows as the node's state and ServiceInfo.Version after the
-	// restart; services get no task status. A queued task is sent when the node
-	// can take it; an ASN operator sees every task's result.
+	// on the node stay stopped until the node leaves Maintenance. A queued task
+	// is sent when the node can take it.
+	//
+	// Task status: CreateNode and UpgradeNode return a RequestID, which the
+	// calling service follows through ServiceInfo.PendingTask (queued),
+	// RunningTask (sent) and LastRequest (ended); the request is over when
+	// LastRequest.RequestID equals it. Status is OK or Failed only; the cause
+	// is for an ASN operator. Another actor's task that restarts the node
+	// shows in RunningTask and LastTask without a RequestID, as Kind upgrade or
+	// install when it changed the calling service's deb and Kind restart
+	// otherwise; it names no actor, service, or package. A Failed task without
+	// a RequestID on a node in Maintenance leaves the calling service stopped
+	// until an ASN operator acts; there is no call of the service's to repeat.
+	// Whether the service then loads at the new version shows, as before, in
+	// ServiceInfo.Version and State.
 	//
 	// Typical flow: the service issues a token and hands it to the operator or
 	// the device; the device presents it back to the service, which redeems it
 	// with RedeemScriptToken and serves the returned script bytes itself.
 	//
 	// These methods act only for the calling service: none takes a service name,
-	// and every script covers asnsn plus the calling service's deb only. Install
+	// and every script covers asnsn plus the calling service's deb only. The
+	// one exception is SetNodeAutoUpgrade, a node setting whose upgrades move
+	// every service on the node. Install
 	// specs (deb coordinates, apt repos, asnsn versions) come from the
 	// controller's asn.conf.
 	//
@@ -409,11 +426,14 @@ type ASNController interface {
 	//
 	// The host half:
 	//   - a node that can run node tasks gets an install task for the calling
-	//     service's deb (TaskID, or TaskPending with PendingReason); Token is
-	//     nil, which is normal. The service is recorded without loading it;
-	//     the asnsn the task restarts loads it. The task restarts every service
-	//     on the node. A result with no task and no token means the deb is
-	//     already installed at the version the controller serves; the service
+	//     service's deb (TaskID, or TaskPending with PendingReason, and a
+	//     RequestID to follow it); Token is nil, which is normal. The service is
+	//     recorded without loading it; the asnsn the task restarts loads it.
+	//     The task restarts every service on the node; on a node with
+	//     auto-upgrade on that is behind the controller, an automatic upgrade
+	//     and a second restart follow. A result with no task and no token
+	//     means the deb is already installed at the version the controller
+	//     serves, or the call withdrew this service's queued uninstall; the service
 	//     is loaded at once. Repeating CreateNode with AllowExisting for a deb
 	//     that is missing or older queues a new install;
 	//   - any other node gets an install token (ScriptKindInstall). An online
@@ -433,8 +453,9 @@ type ASNController interface {
 	// It changes nothing on the node itself; its only effect is issuing the
 	// token. Tokens issued earlier stay valid until they expire. A node the
 	// calling service is not on is refused; use CreateNode with AllowExisting to
-	// join one.
-	GetInstallToken(req GetInstallTokenRequest) (*ScriptToken, error)
+	// join one. tokenTTLSeconds is the token's lifetime; see
+	// ScriptToken.ExpiresAt.
+	GetInstallToken(nodeID string, tokenTTLSeconds int64) (*ScriptToken, error)
 
 	// DeleteNode removes the calling service from the node and starts the
 	// host cleanup. Access-sensitive; audited.
@@ -471,7 +492,8 @@ type ASNController interface {
 
 	// UpgradeNode upgrades asnsn and the calling service's deb on the node to
 	// the versions this controller serves, from the configured APT sources,
-	// and returns once the node task is sent. The node restarts asnsn, which
+	// and returns once the node task is sent, with the requestID to follow in
+	// ServiceInfo.RunningTask and LastRequest. The node restarts asnsn, which
 	// restarts every service on it, and registers again on the new versions.
 	// A node below the controller's version window leaves Maintenance on
 	// success.
@@ -485,13 +507,39 @@ type ASNController interface {
 	//   - asn.node.upgrade_blocked: other services on the node must
 	//     move to a new line with it; an ASN operator upgrades the whole node;
 	//   - asn.node.task_in_progress: a node task is in flight;
-	//   - ResourceLimitReached: the controller's concurrency limit.
-	UpgradeNode(req UpgradeNodeRequest) error
+	//   - ResourceLimitReached: the controller's concurrency limit, which
+	//     automatic and fleet upgrades share; repeat the call.
+	UpgradeNode(nodeID string) (requestID string, err error)
+
+	// SetNodeAutoUpgrade turns automatic upgrade of the node on or off. With it
+	// on, whenever the node is admitted normally and asnsn or any service deb on
+	// it is older than this controller serves on the same line, the controller
+	// upgrades the whole node: asnsn restarts, and so does every service on the
+	// node, including other services'. Upgrades start as soon as the controller
+	// restarts with newer builds, a few nodes at a time, and also right after an
+	// install on a node that is behind (a second restart). One attempt is made
+	// per target version set; after a failure the node is held
+	// (Node.AutoUpgradeHeld) until the target changes or the switch is turned
+	// off and on again. Setting the value the node already has changes nothing.
+	// Nodes on an older line are never upgraded automatically.
+	//
+	// The setting belongs to the node, not to the calling service: an ASN
+	// operator and every service on the node can change it, and every service
+	// on the node is told (ChangeKindNodeAutoUpgrade). The upgrade shows in
+	// ServiceInfo as another actor's upgrade, without RequestID, also for the
+	// service that turned the switch on.
+	//
+	// Refused:
+	//   - AuthPermissionDenied: the calling service is not on the node;
+	//   - asn.node.task_unsupported: turning it on for a node that cannot run
+	//     node tasks.
+	SetNodeAutoUpgrade(nodeID string, enabled bool) error
 
 	// RedeemScriptToken renders the script a token stands for. It is the single
 	// redemption point for every token, whichever call issued it; the script's
-	// kind follows the token's Kind. The token must have been issued to the
-	// calling service and must not be expired.
+	// kind follows the token's Kind. token is ScriptToken.Token as presented by
+	// the host; it must have been issued to the calling service and must not be
+	// expired.
 	//
 	// Redemption makes no service-visible change: it never creates, modifies or
 	// deletes a node, never changes its service_names, state or config, and never
@@ -518,5 +566,5 @@ type ASNController interface {
 	// checks that the host belongs to this node and aborts otherwise.
 	//
 	// Both scripts are idempotent and safe to re-run.
-	RedeemScriptToken(req RedeemScriptTokenRequest) (*Script, error)
+	RedeemScriptToken(token string) (*Script, error)
 }

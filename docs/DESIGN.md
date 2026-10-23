@@ -145,8 +145,10 @@ Every `NodeStateChange` has a `Kind`; a consumer branches on it and ignores kind
 | `ChangeKindNodeServiceRemoved` | `NodeID` | This service left the node's record (before its deb is purged). |
 | `ChangeKindNodeMoved` | `NodeID`, `FromNetworkID`, `NetworkID` | The node moved between networks. |
 | `ChangeKindRootNetworkDeleted` | `NetworkID` | A root network was deleted (sent to every service). |
+| `ChangeKindNodeTask` | `NodeID`, `TaskSlot`, `Task` | One of this service's task slots on the node was filled or cleared (`Task` nil). |
+| `ChangeKindNodeAutoUpgrade` | `NodeID`, `AutoUpgrade` | The node's auto-upgrade switch changed (sent to every service on the node; no actor). |
 
-Changes describe the record, not the host.
+Changes describe the record, not the host. The task slots and `Node.AutoUpgrade` are not in the snapshot; read them when subscribing.
 
 ---
 
@@ -299,7 +301,11 @@ Finish()                     once; after Stop
 
 All methods goroutine-safe after `Init()`. See `controller/asn.go` for the full API.
 
-**Node tasks.** `CreateNode` and `DeleteNode` change the host themselves on a node that can run node tasks: the result carries `TaskID`, or `TaskPending` with `PendingReason`, and `Token` is nil. Any other node gets a token as before; the choice depends only on the node, never on a failure. `UpgradeNode` upgrades `asnsn` and the calling service's deb. Every package task restarts `asnsn` and all services on the node. Services get no task status: the outcome shows as the node's state and `ServiceInfo.Version`.
+**Node tasks.** `CreateNode` and `DeleteNode` change the host themselves on a node that can run node tasks: the result carries `TaskID`, or `TaskPending` with `PendingReason`, and `Token` is nil. Any other node gets a token as before; the choice depends only on the node, never on a failure. `UpgradeNode` upgrades `asnsn` and the calling service's deb. Every package task restarts `asnsn` and all services on the node.
+
+**Task status.** `CreateNode` and `UpgradeNode` return a `RequestID`. The service follows it through `ServiceInfo.PendingTask` (queued), `RunningTask` (sent) and `LastRequest` (ended); the request is over when `LastRequest.RequestID` equals it. `LastTask` holds the last task of any actor that restarted the node; another actor's task carries no `RequestID` and shows as `upgrade`, `install`, or `restart`, naming no actor, service, or package. Status is `OK` or `Failed`; the cause is for an ASN operator.
+
+**Auto-upgrade.** `SetNodeAutoUpgrade` sets a node-wide switch that any service on the node, or an ASN operator, may change. With it on, the controller upgrades the whole node to the builds it serves on the same line, one attempt per target version set (`Node.AutoUpgradeHeld` after a failure); every service on the node restarts. Nodes on an older line are never upgraded automatically.
 
 **Root networks.** A service may create, rename, and delete root networks (for example one per tenant), change the members of any root's admin group (one per root, created and deleted with the root by ASN, and shared by every service and by ASN operators), move its nodes between roots, and list networks with a filter. These methods act on any root network, the default root included, except that a service can neither delete nor rename the default root. Deleting a root deletes every node in it, of every service; hosts are not cleaned up. A root given the configured default-root name may become the default root; check `Network.DefaultRoot` after creating one.
 
@@ -474,6 +480,8 @@ redis client from `InitRedis`.
 
 - [ ] `SubscribeNodeStateChanges()`: called at most once; every change handled by `Kind`, unknown kinds ignored; state reconciled at start and periodically
 - [ ] `CreateNode` / `DeleteNode`: a nil `Token` with a `TaskID` or `TaskPending` is handled, and a result with none of them means done
+- [ ] `CreateNode` / `UpgradeNode`: a request is followed by `RequestID` until `ServiceInfo.LastRequest` carries it; no own timeout
+- [ ] `SetNodeAutoUpgrade`: called on a user's decision, not re-asserted periodically; the user is told that every service on the node restarts
 - [ ] `ManagedNetworks`: honored only on network-placed resources
 - [ ] `ManagedNetworks`: a scope on a root is recognized by `RootID == NetworkID`; scopes are grouped by `RootID`
 - [ ] Root admin group: members added and removed one at a time, never reconciled against a list the service keeps
