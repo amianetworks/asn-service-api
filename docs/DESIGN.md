@@ -305,7 +305,7 @@ All methods goroutine-safe after `Init()`. See `controller/asn.go` for the full 
 
 **Task status.** `CreateNode` and `UpgradeNode` return a `RequestID`. The service follows it through `ServiceInfo.PendingTask` (queued), `RunningTask` (sent) and `LastRequest` (ended); the request is over when `LastRequest.RequestID` equals it. `LastTask` holds the last task of any actor that restarted the node; another actor's task carries no `RequestID` and shows as `upgrade`, `install`, or `restart`, naming no actor, service, or package. Status is `OK` or `Failed`; the cause is for an ASN operator.
 
-**Auto-upgrade.** `SetNodeAutoUpgrade` sets a node-wide switch that any service on the node, or an ASN operator, may change. With it on, the controller upgrades the whole node to the builds it serves on the same line, one attempt per target version set (`Node.AutoUpgradeHeld` after a failure); every service on the node restarts. Nodes on an older line are never upgraded automatically.
+**Auto-upgrade.** `SetNodeAutoUpgrade` sets a node-wide switch that any service on the node, or an ASN operator, may change. With it on, the controller upgrades the whole node to the builds it serves, as long as the node is inside the controller's version window, one attempt per target version set (`Node.AutoUpgradeHeld` after a failure); every service on the node restarts. A node outside the window (in Maintenance) is never upgraded automatically.
 
 **Root networks.** A service may create, rename, and delete root networks (for example one per tenant), change the members of any root's admin group (one per root, created and deleted with the root by ASN, and shared by every service and by ASN operators), move its nodes between roots, and list networks with a filter. These methods act on any root network, the default root included, except that a service can neither delete nor rename the default root. Deleting a root deletes every node in it, of every service; hosts are not cleaned up. A root given the configured default-root name may become the default root; check `Network.DefaultRoot` after creating one.
 
@@ -438,6 +438,18 @@ Accesses are granted at the group level. `AccountAccessList` returns all effecti
 `InitDocDB` / `InitTSDB` return `commonapi.DocDBHandler` / `commonapi.TSDBHandler`. The API
 does not depend on am.modules: records are `map[string]any`, and time-series points and
 queries are the plain structs `TSPoint` / `TSQuery`.
+
+Doc records are selected with `commonapi.DocQuery`, built with `DocEq`, `DocIn`, `DocGt`,
+`DocRegex`, `DocAnd` and the other `Doc*` functions. It is plain data, field for field the
+query of am.modules, which validates it when a collection runs it; the framework copies it
+without looking at the operators, so an operator am.modules adds needs no change here
+beyond its constant and builder. The zero query is an error: `DocAll()` selects every
+record, and `DocAllOf(conds...)` every record when `conds` is empty. A regular expression is
+case-sensitive unless its options hold `i`. Sorting strings are built with `DocSorting`.
+
+Times in records are stored as RFC 3339 strings, which do not compare in time order, so a
+record to be selected or sorted by time also keeps it as a number, e.g. Unix microseconds,
+and the query compares that number.
 
 A service that wants the typed am.modules API (`docdb.Collection[T]`, `*tsdb.Point`,
 `*tsdb.Query`), or an am.modules module built on it such as subscription, wraps the handlers

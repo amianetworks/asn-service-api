@@ -512,16 +512,17 @@ type ASNController interface {
 	UpgradeNode(nodeID string) (requestID string, err error)
 
 	// SetNodeAutoUpgrade turns automatic upgrade of the node on or off. With it
-	// on, whenever the node is admitted normally and asnsn or any service deb on
-	// it is older than this controller serves on the same line, the controller
-	// upgrades the whole node: asnsn restarts, and so does every service on the
-	// node, including other services'. Upgrades start as soon as the controller
+	// on, whenever the node is admitted normally (inside the controller's version
+	// window, whatever its line) and asnsn or any service deb on it is older than
+	// this controller serves, the controller upgrades the whole node: asnsn
+	// restarts, and so does every service on the node, including other services'. Upgrades start as soon as the controller
 	// restarts with newer builds, a few nodes at a time, and also right after an
 	// install on a node that is behind (a second restart). One attempt is made
 	// per target version set; after a failure the node is held
 	// (Node.AutoUpgradeHeld) until the target changes or the switch is turned
 	// off and on again. Setting the value the node already has changes nothing.
-	// Nodes on an older line are never upgraded automatically.
+	// Only nodes inside the controller's version window are upgraded
+	// automatically; a node in Maintenance never is.
 	//
 	// The setting belongs to the node, not to the calling service: an ASN
 	// operator and every service on the node can change it, and every service

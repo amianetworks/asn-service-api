@@ -3,11 +3,18 @@
 package commonapi
 
 type DocCollOptions struct {
-	// Optional when creating mongoDB collection, otherwise ignored.
-	Indexes map[string]DocIndexOptions // key = "column1;column2;..."
+	// Indexes of the collection, key = "column1;column2;...". MongoDB creates
+	// them; FileDB enforces the unique ones, on the records written from then
+	// on, so that records it already holds are not rejected.
+	Indexes map[string]DocIndexOptions
 
-	// if true, it will use the raw format for performance optimization (mongoDB: BSON, fileDB: JSON);
-	// otherwise it will use JSON format for better compatibility
+	// UseRawFormat stores the records in the MongoDB format (BSON) rather than
+	// as JSON. It is another stored form, not an optimization: field names are
+	// lowercased, times are BSON dates and binary values (a UUID among them)
+	// BSON binaries, so a query on a UUID or time field never matches such a
+	// record, and a record read back holds driver types and its _id. A
+	// collection must be opened with the same value every time, and FileDB
+	// does not support it. Use the JSON format for new collections.
 	UseRawFormat bool
 
 	// if true, indexes will be dropped and rebuilt from Indexes (mongoDB only)
@@ -36,9 +43,10 @@ type DocDBHandler interface {
 	// options:
 	//
 	//	for mongodb, options.Indexes used for create collection indexes, options.RebuildIndex rebuilds them
-	//	for filedb, options.Indexes and options.RebuildIndex are ignored
+	//	for filedb, the unique indexes of options.Indexes are enforced, options.RebuildIndex is ignored
 	//	for both, options.UseRawFormat selects the stored format, see DocCollOptions
 	//
+	// A collection opened again takes no options, or the same ones.
 	// returns the collection handle corresponding to the collection name
 	FindOrCreateCollection(name string, options *DocCollOptions) (DocCollection, error)
 
@@ -48,14 +56,17 @@ type DocDBHandler interface {
 
 	// ListCollections list all collections / measurement names in one database
 	ListCollections() ([]string, error)
-
-	// CreateFile creates a file
-	CreateFile(fileName, metadata string, file []byte) error
-
-	// FindFiles returns files based on queries
-	FindFiles(queryString string) ([]string, [][]byte, error)
 }
 
+// DocCollection is a collection of records.
+//
+// A query selects records, see DocQuery. A query that is not valid, the zero
+// DocQuery or an empty DocAnd() among them, is an error: to act on every
+// record, pass DocAll().
+//
+// A write that would give two records the same key of a unique index is an
+// error, and so is DeleteRecord, FindRecord or UpdateRecord with a query that
+// matches more than one record.
 type DocCollection interface {
 	// AddRecord adds one record to collection c.
 	// record: json format data, including key-value pairs.
@@ -66,81 +77,68 @@ type DocCollection interface {
 	AddRecords(records []map[string]any) error
 
 	// DeleteRecord deletes one record in collection c.
-	// queryJson: condition of key-value pairs in JSON format, determine which record to be deleted.
+	// q: condition that determines which record to be deleted.
 	// If the condition matches no record, exist will be false, but no error will be returned.
 	// If the condition matches more than one record, an error will be returned.
-	DeleteRecord(queryJson string) (exist bool, err error)
+	DeleteRecord(q DocQuery) (exist bool, err error)
 
 	// DeleteRecords deletes records in collection c.
-	// queryJson: condition of key-value pairs in JSON format, determine matched records to be deleted.
+	// q: condition that determines matched records to be deleted, DocAll() to delete all records.
 	// This function does not care how many records are deleted in the process, maybe 0, 1, or more.
-	DeleteRecords(queryJson string) error
+	DeleteRecords(q DocQuery) error
 
 	// FindRecord finds record in collection c.
-	// queryJson: condition of key-value pairs in JSON format, determine to match one record.
+	// q: condition that determines to match one record.
 	// If the condition matches no record, exist will be false, but no error will be returned.
 	// If the condition matches more than one record, an error will be returned.
-	FindRecord(queryJson string, fieldFilter map[string]bool) (record map[string]any, exist bool, err error)
+	FindRecord(q DocQuery, fieldFilter map[string]bool) (record map[string]any, exist bool, err error)
 
 	// FindRecords finds records in collection c, records may be processed by sorting and pagination.
 	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
-	// queryJson: condition of key-value pairs in JSON format, determine to match the records.
+	// q: condition that determines to match the records.
 	// page: starts from 0, which page of records to return.
 	// num: starts from 1, when no pagination it means limits; or when pagination it means how many records in each page.
 	// When page <= -1 && num <= 0, no pagination or limits;
 	// when page <= -1 && num > 0, only limits; no pagination;
 	// when page > -1 && num > 0, do pagination;
 	// when page > -1 && num <= 0, return error.
-	// sorting: sort specifications, can be built by Sorting.Build, includes fields and ascending or descending order on each field.
-	// If soring is an empty string, do not sort.
-	FindRecords(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]any, error)
+	// sorting: sort specifications, built by DocSorting.Build, includes fields and ascending or descending order on each field.
+	// If sorting is an empty string, do not sort. Records sort as MongoDB sorts documents; records that sort equal,
+	// or that are limited without sorting, come in the order they were added, so that pages do not overlap.
+	// fieldFilter: the fields to include (true) or to exclude (false), as a MongoDB projection: nested paths
+	// with ".", no mixing of fields to include and to exclude except _id, no path that is a prefix of another.
+	FindRecords(q DocQuery, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]any, error)
 
-	// FindRecordWithRegex finds a record in collection c.
-	// queryJson: condition of key-value pairs in JSON format with regular expression style, determine to match one record.
-	// If the condition matches no record, exist will be false, but no error will be returned.
-	// If the condition matches more than one record, an error will be returned.
-	FindRecordWithRegex(queryJson string, fieldFilter map[string]bool) (record map[string]any, exist bool, err error)
-
-	// FindRecordsWithRegex finds records in collection c, records may be processed by sorting and pagination.
-	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
-	// queryJson: condition of key-value pairs in JSON format with regular expression style, determine to match the records.
-	// page: starts from 0, which page of records to return.
-	// num: starts from 1, when no pagination it means limits; or when pagination it means how many records in each page.
-	// When page <= -1 && num <= 0, no pagination or limits;
-	// when page <= -1 && num > 0, only limits; no pagination;
-	// when page > -1 && num > 0, do pagination;
-	// when page > -1 && num <= 0, return error.
-	// sorting: sort specifications, can be built by Sorting.Build, includes fields and ascending or descending order on each field.
-	// If soring is an empty string, do not sort.
-	FindRecordsWithRegex(queryJson string, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]any, error)
+	// CountRecords returns the number of records q matches, DocAll() to count every record.
+	CountRecords(q DocQuery) (int, error)
 
 	// UpdateRecord updates one record in collection c.
-	// queryJson: condition of key-value pairs in JSON format, determine to match one record to do data update.
+	// q: condition that determines to match one record to do data update.
 	// newRecord: json format data, including key-value pairs, replaces the old pairs in the matched record.
 	// If the condition matches no record, exist will be false, but no error will be returned.
 	// If the condition matches more than one record, an error will be returned.
-	UpdateRecord(queryJson string, newRecord string) (exist bool, err error)
+	UpdateRecord(q DocQuery, newRecord string) (exist bool, err error)
 
 	// UpdateRecords updates records in collection c.
-	// queryJson: condition of key-value pairs in JSON format, determine to match the records to do data update.
+	// q: condition that determines to match the records to do data update.
 	// newRecord: json format data, including key-value pairs, replaces the old pairs in all the matched records.
 	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
-	UpdateRecords(queryJson string, newRecord string) error
+	UpdateRecords(q DocQuery, newRecord string) error
 
 	// ArrayAppend appends elements in a field whose value type is an array.
-	// If the field type is not array, will get an error.
-	// queryJson: condition of key-value pairs in JSON format, determine to match the records to append data.
+	// If the field type is not array, will get an error; a null or missing field is an empty array.
+	// q: condition that determines to match the records to append data.
 	// newRecord: json format data, including key-value pairs, values can be a single item, or items of an array,
 	//            will be appended in each of the matched records, not replaced.
 	// ignoreDuplicate: true will ignore duplicated data, otherwise will accept the duplicated data.
-	ArrayAppend(queryJson string, newRecord string, ignoreDuplicate bool) error
+	ArrayAppend(q DocQuery, newRecord string, ignoreDuplicate bool) error
 
 	// ArrayDelete deletes the specified values from a field whose type is an array.
-	// If the field type is not array, will get an error.
-	// queryJson: condition of key-value pairs in JSON format, determine to match the records to delete data.
+	// If the field type is not array, will get an error; a null or missing field is left as it is.
+	// q: condition that determines to match the records to delete data.
 	// newRecord: json format data, including key-value pairs, values can be a single item, or items of an array,
 	//            will be deleted from each of the matched records.
-	ArrayDelete(queryJson string, newRecord string) error
+	ArrayDelete(q DocQuery, newRecord string) error
 
 	// ListAllRecord returns all records of a collection
 	ListAllRecord() ([]map[string]any, error)
