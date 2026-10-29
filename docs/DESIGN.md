@@ -445,7 +445,10 @@ query of am.modules, which validates it when a collection runs it; the framework
 without looking at the operators, so an operator am.modules adds needs no change here
 beyond its constant and builder. The zero query is an error: `DocAll()` selects every
 record, and `DocAllOf(conds...)` every record when `conds` is empty. A regular expression is
-case-sensitive unless its options hold `i`. Sorting strings are built with `DocSorting`.
+case-sensitive unless its options hold `i`. `FindRecords` takes options to sort, page and
+project the records (`DocAsc`, `DocDesc`, `DocSkip`, `DocLimit`, `DocPage`, `DocFields`,
+`DocOmit`), the same as the find options of am.modules, which validates them; `FindRecord`
+takes `DocFields` and `DocOmit` only. The framework reads them with `DocResolveFindOptions`.
 
 Times in records are stored as RFC 3339 strings, which do not compare in time order, so a
 record to be selected or sorted by time also keeps it as a number, e.g. Unix microseconds,

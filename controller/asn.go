@@ -15,13 +15,14 @@ import (
 //
 // Functional areas:
 //  1. Resource initialization (Init* / Get* — one-shot, call in Init())
-//  2. Service lifecycle management
-//  3. Ops dispatch
-//  4. Config ops dispatch
-//  5. Node topology
-//  6. Root networks and their admin group
-//  7. Node group management
-//  8. Node enrollment and node tasks
+//  2. Available services
+//  3. Service lifecycle management
+//  4. Ops dispatch
+//  5. Config ops dispatch
+//  6. Node topology
+//  7. Root networks and their admin group
+//  8. Node group management
+//  9. Node enrollment and node tasks
 type ASNController interface {
 
 	// -------------------------------------------------------------------------
@@ -73,6 +74,15 @@ type ASNController interface {
 
 	// GetCurrentLicenseInfo returns the current machine's license snapshot.
 	GetCurrentLicenseInfo() *LicenseInfo
+
+	// -------------------------------------------------------------------------
+	// Available Services
+	// -------------------------------------------------------------------------
+
+	// ListAvailableServices returns every service loaded on this controller,
+	// the calling service included and the framework's own excluded, with the
+	// name and the service controller's Version(), sorted by name.
+	ListAvailableServices() ([]*AvailableService, error)
 
 	// -------------------------------------------------------------------------
 	// Service Lifecycle Management

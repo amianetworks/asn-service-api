@@ -8,6 +8,13 @@ import (
 	commonapi "asn.amiasys.com/asn-service-api/v26/common"
 )
 
+// AvailableService is a service loaded on the controller, as listed by
+// ASNController.ListAvailableServices.
+type AvailableService struct {
+	Name    string
+	Version commonapi.Version // the service controller's StaticResource.Version()
+}
+
 // Network represents a network in the topology tree.
 // Networks may be nested: each Network embeds a slice of child Networks,
 // linked to their parent via ParentID.

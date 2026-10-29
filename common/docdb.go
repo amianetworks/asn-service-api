@@ -89,25 +89,18 @@ type DocCollection interface {
 
 	// FindRecord finds record in collection c.
 	// q: condition that determines to match one record.
+	// opts: DocFields or DocOmit to project the record; other options are an error.
 	// If the condition matches no record, exist will be false, but no error will be returned.
 	// If the condition matches more than one record, an error will be returned.
-	FindRecord(q DocQuery, fieldFilter map[string]bool) (record map[string]any, exist bool, err error)
+	FindRecord(q DocQuery, opts ...DocFindOption) (record map[string]any, exist bool, err error)
 
-	// FindRecords finds records in collection c, records may be processed by sorting and pagination.
+	// FindRecords finds records in collection c.
 	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
 	// q: condition that determines to match the records.
-	// page: starts from 0, which page of records to return.
-	// num: starts from 1, when no pagination it means limits; or when pagination it means how many records in each page.
-	// When page <= -1 && num <= 0, no pagination or limits;
-	// when page <= -1 && num > 0, only limits; no pagination;
-	// when page > -1 && num > 0, do pagination;
-	// when page > -1 && num <= 0, return error.
-	// sorting: sort specifications, built by DocSorting.Build, includes fields and ascending or descending order on each field.
-	// If sorting is an empty string, do not sort. Records sort as MongoDB sorts documents; records that sort equal,
-	// or that are limited without sorting, come in the order they were added, so that pages do not overlap.
-	// fieldFilter: the fields to include (true) or to exclude (false), as a MongoDB projection: nested paths
-	// with ".", no mixing of fields to include and to exclude except _id, no path that is a prefix of another.
-	FindRecords(q DocQuery, page, num int, sorting string, fieldFilter map[string]bool) ([]map[string]any, error)
+	// opts: DocAsc and DocDesc to sort, DocSkip, DocLimit and DocPage to page, DocFields and DocOmit to project;
+	// none returns every matched record, in the order they were added. See DocFindOptions.
+	// A bad option, such as an empty or repeated sort field or a non-positive limit, is an error.
+	FindRecords(q DocQuery, opts ...DocFindOption) ([]map[string]any, error)
 
 	// CountRecords returns the number of records q matches, DocAll() to count every record.
 	CountRecords(q DocQuery) (int, error)

@@ -2,7 +2,10 @@
 
 package commonapi
 
-import "encoding/json"
+import (
+	"fmt"
+	"math"
+)
 
 // DocOp is the operator of a DocQuery.
 type DocOp string
@@ -164,27 +167,108 @@ func toAnys[T any](values []T) []any {
 	return res
 }
 
-// DocSorting is the sort specification of DocCollection.FindRecords, the same
-// as the framework's database takes.
-type DocSorting struct {
-	Fields []string `json:"fields"` // the fields to sort by, in order
-	Asc    []bool   `json:"asc"`    // ascending (true) or descending (false), for each field
+// DocFindOptions are the sorting, paging and projection of
+// DocCollection.FindRecords, field for field the find options of the
+// framework's database, which validates them; this package checks only the
+// values given to DocLimit and DocPage. They are built with the DocFindOption
+// functions below, and the framework reads them with DocResolveFindOptions.
+type DocFindOptions struct {
+	// Sort is the fields to sort by, in order. Records sort as MongoDB sorts
+	// documents; records that sort equal, or that are skipped or limited
+	// without sorting, come in the order they were added, so that pages do not
+	// overlap.
+	Sort []DocSortField
+
+	// Skip is the number of records to skip, Limit the most to return after
+	// them, 0 for no limit.
+	Skip  int
+	Limit int
+
+	// Fields are the fields to include (true) or to exclude (false), as a
+	// MongoDB projection: nested paths with ".", no mixing of fields to include
+	// and to exclude except _id, no path that is a prefix of another.
+	Fields map[string]bool
+
+	err error // of an option given a bad value, see DocResolveFindOptions
 }
 
-// Ascending sorts by field in ascending order, after the fields added before.
-func (s *DocSorting) Ascending(field string) {
-	s.Fields = append(s.Fields, field)
-	s.Asc = append(s.Asc, true)
+// DocSortField is a field to sort by.
+type DocSortField struct {
+	Field string
+	Desc  bool
 }
 
-// Descending sorts by field in descending order, after the fields added before.
-func (s *DocSorting) Descending(field string) {
-	s.Fields = append(s.Fields, field)
-	s.Asc = append(s.Asc, false)
+// DocFindOption sets an option of DocCollection.FindRecords and FindRecord.
+type DocFindOption func(*DocFindOptions)
+
+// DocAsc sorts by field in ascending order, after the fields given before.
+func DocAsc(field string) DocFindOption {
+	return func(o *DocFindOptions) { o.Sort = append(o.Sort, DocSortField{Field: field}) }
 }
 
-// Build returns the specification as the sorting string of DocCollection.FindRecords.
-func (s *DocSorting) Build() (string, error) {
-	b, err := json.Marshal(s)
-	return string(b), err
+// DocDesc sorts by field in descending order, after the fields given before.
+func DocDesc(field string) DocFindOption {
+	return func(o *DocFindOptions) { o.Sort = append(o.Sort, DocSortField{Field: field, Desc: true}) }
+}
+
+// DocSkip skips the first n records.
+func DocSkip(n int) DocFindOption {
+	return func(o *DocFindOptions) { o.Skip = n }
+}
+
+// DocLimit returns at most n records, n > 0.
+func DocLimit(n int) DocFindOption {
+	return func(o *DocFindOptions) {
+		if n <= 0 {
+			o.err = fmt.Errorf("limit %d is not positive", n)
+		}
+		o.Limit = n
+	}
+}
+
+// DocPage returns page (from 0) of the records, size (> 0) to a page: it
+// skips page * size records and limits to size.
+func DocPage(page, size int) DocFindOption {
+	return func(o *DocFindOptions) {
+		if page < 0 || size <= 0 {
+			o.err = fmt.Errorf("page %d of size %d is not valid", page, size)
+			return
+		}
+		// a page past MaxInt records is past them all
+		o.Skip = math.MaxInt
+		if page <= math.MaxInt/size {
+			o.Skip = page * size
+		}
+		o.Limit = size
+	}
+}
+
+// DocFields returns only the fields given, and _id unless omitted.
+func DocFields(fields ...string) DocFindOption {
+	return func(o *DocFindOptions) { o.project(fields, true) }
+}
+
+// DocOmit returns all but the fields given.
+func DocOmit(fields ...string) DocFindOption {
+	return func(o *DocFindOptions) { o.project(fields, false) }
+}
+
+func (o *DocFindOptions) project(fields []string, include bool) {
+	if o.Fields == nil {
+		o.Fields = make(map[string]bool, len(fields))
+	}
+	for _, f := range fields {
+		o.Fields[f] = include
+	}
+}
+
+// DocResolveFindOptions applies opts in order and returns the options they
+// set, or the error of an option given a bad value. The framework calls it to
+// hand the options to its database.
+func DocResolveFindOptions(opts ...DocFindOption) (DocFindOptions, error) {
+	var o DocFindOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o, o.err
 }

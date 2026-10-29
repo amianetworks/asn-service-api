@@ -3,6 +3,7 @@
 package commonapi
 
 import (
+	"math"
 	"reflect"
 	"testing"
 )
@@ -31,16 +32,34 @@ func TestDocQueryBuilders(t *testing.T) {
 	}
 }
 
-// The sorting string is the one the framework's database parses.
-func TestDocSortingBuild(t *testing.T) {
-	s := &DocSorting{}
-	s.Descending("Seq")
-	s.Ascending("ID")
-	got, err := s.Build()
+func TestDocResolveFindOptions(t *testing.T) {
+	o, err := DocResolveFindOptions(DocDesc("Seq"), DocAsc("ID"), DocPage(2, 20), DocFields("ID", "Temp"), DocOmit("_id"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := `{"fields":["Seq","ID"],"asc":[false,true]}`; got != want {
-		t.Errorf("got %s, want %s", got, want)
+	want := DocFindOptions{
+		Sort:   []DocSortField{{Field: "Seq", Desc: true}, {Field: "ID"}},
+		Skip:   40,
+		Limit:  20,
+		Fields: map[string]bool{"ID": true, "Temp": true, "_id": false},
+	}
+	if !reflect.DeepEqual(o, want) {
+		t.Errorf("got %+v, want %+v", o, want)
+	}
+
+	if o, err := DocResolveFindOptions(); err != nil || !reflect.DeepEqual(o, DocFindOptions{}) {
+		t.Errorf("none: got %+v, %v", o, err)
+	}
+	if o, _ := DocResolveFindOptions(DocPage(math.MaxInt, 2)); o.Skip != math.MaxInt {
+		t.Errorf("page past MaxInt: skip %d, want MaxInt", o.Skip)
+	}
+	for name, opt := range map[string]DocFindOption{
+		"zero limit":    DocLimit(0),
+		"negative page": DocPage(-1, 10),
+		"zero size":     DocPage(0, 0),
+	} {
+		if _, err := DocResolveFindOptions(opt); err == nil {
+			t.Errorf("%s: no error", name)
+		}
 	}
 }
