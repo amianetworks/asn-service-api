@@ -136,15 +136,15 @@ First-time registration always lands in `Offline`. Subsequent heartbeats drive t
 
 **`SubscribeNodeStateChanges`** — one-shot; a second call errors. Delivers an initial snapshot of the service's nodes, then incremental changes. The channel is never closed during normal operation. Delivery is best effort: a change that finds the channel full is dropped, so a service reconciles at start and periodically.
 
-Every `NodeStateChange` has a `Kind`; a consumer branches on it and ignores kinds it does not know.
+Every `NodeStateChange` has a `Kind`; a consumer branches on it and ignores kinds it does not know. Every kind also sets `NetworkID` and `RootNetworkID`, the node's network and its root (for `ChangeKindRootNetworkDeleted`, both the deleted root).
 
 | Kind | Fields | Meaning |
 |---|---|---|
 | `ChangeKindState` | `NodeState`, `FrameworkError`, `ServiceState`, `ServiceError` | Connectivity or this service's state changed (the only kind in the snapshot). |
-| `ChangeKindNodeDeleted` | `NodeID` | The node was deleted. |
+| `ChangeKindNodeDeleted` | `NodeID` | The node was deleted; `NetworkID` / `RootNetworkID` are where it was. |
 | `ChangeKindNodeServiceRemoved` | `NodeID` | This service left the node's record (before its deb is purged). |
-| `ChangeKindNodeMoved` | `NodeID`, `FromNetworkID`, `NetworkID` | The node moved between networks. |
-| `ChangeKindRootNetworkDeleted` | `NetworkID` | A root network was deleted (sent to every service). |
+| `ChangeKindNodeMoved` | `NodeID`, `FromNetworkID`, `FromRootNetworkID` | The node moved between networks; `NetworkID` / `RootNetworkID` are after the move, `FromNetworkID` / `FromRootNetworkID` before (roots equal within a root). |
+| `ChangeKindRootNetworkDeleted` | — | A root network (`NetworkID`, `RootNetworkID`) was deleted (sent to every service). |
 | `ChangeKindNodeTask` | `NodeID`, `TaskSlot`, `Task` | One of this service's task slots on the node was filled or cleared (`Task` nil). |
 | `ChangeKindNodeAutoUpgrade` | `NodeID`, `AutoUpgrade` | The node's auto-upgrade switch changed (sent to every service on the node; no actor). |
 

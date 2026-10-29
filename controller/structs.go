@@ -19,9 +19,12 @@ type AvailableService struct {
 // Networks may be nested: each Network embeds a slice of child Networks,
 // linked to their parent via ParentID.
 type Network struct {
-	ID          string
-	Name        string
-	ParentID    string
+	ID       string
+	Name     string
+	ParentID string
+	// RootID is the root of the tree the network is in; equal to ID for a
+	// root network.
+	RootID      string
 	Description string
 	// Tiers is the subset of the location hierarchy that applies to this network.
 	// Values are drawn from commonapi.LocationTiers.
@@ -54,8 +57,11 @@ type Node struct {
 	RegisteredAt time.Time
 	State        commonapi.NodeState // runtime connectivity
 	NetworkID    string
-	NodeGroupID  string // empty if the node is not in a group
-	Description  string
+	// RootNetworkID is the root of the tree NetworkID is in; equal to
+	// NetworkID when the node sits directly under a root.
+	RootNetworkID string
+	NodeGroupID   string // empty if the node is not in a group
+	Description   string
 	// Metadata is an opaque string set by the service via UpdateNodeMetadata().
 	Metadata string
 	Location *commonapi.Location
@@ -162,33 +168,42 @@ const (
 )
 
 // ChangeKind is what a NodeStateChange reports. A consumer branches on it and
-// ignores kinds it does not know; the fields a kind does not list are zero.
+// ignores kinds it does not know; the fields a kind does not list are zero,
+// except NetworkID and RootNetworkID, which every kind sets.
 type ChangeKind int
 
 const (
-	// ChangeKindState: the node's connectivity or this service's state on it
+	// ChangeKindState the node's connectivity or this service's state on it
 	// (NodeState, FrameworkError, ServiceState, ServiceError). The only kind in
 	// the initial snapshot.
 	ChangeKindState ChangeKind = iota
-	// ChangeKindNodeDeleted: the node was deleted, by an operator or a service.
+
+	// ChangeKindNodeDeleted the node was deleted, by an operator or a service.
 	// The host is not cleaned up by the deletion.
 	ChangeKindNodeDeleted
-	// ChangeKindNodeServiceRemoved: this service was removed from the node's
+
+	// ChangeKindNodeServiceRemoved this service was removed from the node's
 	// record, by an operator or by this service itself. Sent when the record
 	// changes, before the host's package is purged and while the node is
 	// offline too.
 	ChangeKindNodeServiceRemoved
-	// ChangeKindNodeMoved: the node moved from FromNetworkID to NetworkID.
+
+	// ChangeKindNodeMoved the node moved from FromNetworkID to NetworkID, and
+	// from root FromRootNetworkID to RootNetworkID (equal for a move within a
+	// root).
 	ChangeKindNodeMoved
-	// ChangeKindRootNetworkDeleted: a root network (NetworkID) was deleted,
+
+	// ChangeKindRootNetworkDeleted a root network (NetworkID, RootNetworkID) was deleted,
 	// with every node in it; sent to every service. NodeID is empty.
 	ChangeKindRootNetworkDeleted
-	// ChangeKindNodeTask: one of this service's task slots on the node
+
+	// ChangeKindNodeTask one of this service's task slots on the node
 	// (TaskSlot) was filled or cleared; Task is the slot's new value, nil when
 	// cleared. A task that ends sends one change per slot, in the order
 	// RunningTask cleared, LastTask filled, LastRequest filled.
 	ChangeKindNodeTask
-	// ChangeKindNodeAutoUpgrade: the node's auto-upgrade switch changed
+
+	// ChangeKindNodeAutoUpgrade the node's auto-upgrade switch changed
 	// (AutoUpgrade), by an ASN operator or any service on the node; sent to
 	// every service on the node. It names no actor.
 	ChangeKindNodeAutoUpgrade
@@ -208,6 +223,12 @@ type NodeStateChange struct {
 	Timestamp time.Time
 	Kind      ChangeKind
 	NodeID    string // empty for ChangeKindRootNetworkDeleted
+	// NetworkID and RootNetworkID are the node's network and its root, set on
+	// every kind: after the move for ChangeKindNodeMoved, where the node was
+	// for ChangeKindNodeDeleted, and both the deleted root for
+	// ChangeKindRootNetworkDeleted.
+	NetworkID     string
+	RootNetworkID string
 
 	// ChangeKindState
 	NodeState      commonapi.NodeState
@@ -216,10 +237,10 @@ type NodeStateChange struct {
 	ServiceState commonapi.ServiceState
 	ServiceError error
 
-	// ChangeKindNodeMoved: FromNetworkID -> NetworkID.
-	// ChangeKindRootNetworkDeleted: NetworkID.
-	NetworkID     string
-	FromNetworkID string
+	// ChangeKindNodeMoved: FromNetworkID -> NetworkID,
+	// FromRootNetworkID -> RootNetworkID.
+	FromNetworkID     string
+	FromRootNetworkID string
 
 	// ChangeKindNodeTask
 	TaskSlot NodeTaskSlot
