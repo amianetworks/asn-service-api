@@ -291,7 +291,8 @@ Start(config)                after Init; sequential; repeatable
   ├─ AddConfigOps()          after Init; concurrent       ⚠ see Open Item #1
   ├─ UpdateConfigOp()        after Init; concurrent       ⚠ see Open Item #1
   ├─ DeleteConfigOps()       after Init; concurrent       ⚠ see Open Item #1
-  └─ GetMetrics()            after Init; concurrent
+  ├─ GetMetricsTemplate()    after Start; concurrent; bounded to 3 s
+  └─ GetMetrics()            after Start; concurrent; bounded to 3 s
 
 Stop()                       idempotent
 Finish()                     once; after Stop
@@ -474,7 +475,8 @@ redis client from `InitRedis`.
 - [ ] `Start()`: returns promptly; fully supersedes prior config
 - [ ] `HandleMessageFromNode()`: guards shared state (concurrent)
 - [ ] Config op callbacks: guard shared state (concurrent)
-- [ ] `GetMetrics()`: returns from pre-computed snapshots
+- [ ] `GetMetricsTemplate()`: per network; passes `ValidateMetricsTemplate` in unit tests
+- [ ] `GetMetrics()`: returns from pre-computed snapshots in base units, declared keys only; passes `ValidateMetrics` in unit tests
 - [ ] `Stop()`: idempotent, returns promptly
 - [ ] `Finish()`: releases all resources; no goroutines remain
 

@@ -59,10 +59,27 @@ type ASNServiceController interface {
 	// No direct response channel exists; to reply, initiate a SendServiceOpsToNode() call.
 	HandleMessageFromNode(nodeID, messageType string, payload []byte) error
 
-	// GetMetrics returns display-only metrics scoped to the given network.
-	// Concurrent; must return promptly. Values must be JSON-serializable.
-	// Maintain snapshots in background goroutines; do not compute on the call path.
-	GetMetrics(networkID string) (map[string]string, error)
+	// GetMetricsTemplate returns how the service's metrics for networkID are
+	// displayed (see MetricsTemplate). The network exists and the caller may
+	// view it. Called after Start; concurrent; the framework bounds each call
+	// to 3 s. The result may change over time and takes effect on the next
+	// fetch; a released key keeps its type and unit. nil with a nil error is
+	// an empty template. The framework does not retain the value past the
+	// call. Check templates with ValidateMetricsTemplate in unit tests.
+	GetMetricsTemplate(networkID string) (*MetricsTemplate, error)
+
+	// GetMetrics returns the service's metrics for networkID, shaped by
+	// GetMetricsTemplate(networkID). The network exists and the caller may
+	// view it. A network-scope field covers the network and all its
+	// subnetworks (GetNodesOfNetwork with includeSubnetwork true); a
+	// service-scope field does not follow the network. Values are encoded
+	// with encoding/json in base units: nil maps, slices and pointers mean
+	// "no data"; NaN and ±Inf are errors; do not tag declared numeric fields
+	// omitempty (0 would read as no data). Called after Start; concurrent;
+	// the framework bounds each call to 3 s. Maintain figures in background
+	// goroutines; do not compute on the call path. Check data with
+	// ValidateMetrics in unit tests.
+	GetMetrics(networkID string) (map[string]any, error)
 
 	// OnLicenseChanged notifies the service that the license content or status changed.
 	OnLicenseChanged(license *LicenseInfo) error

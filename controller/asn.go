@@ -174,15 +174,18 @@ type ASNController interface {
 	// Used on the next StartService() call targeting this node.
 	SetConfigOfNode(nodeID, config string) error
 
-	// GetNodesOfNetwork returns all nodes of a network and its links.
-	// If withService is true, only nodes eligible for this service (this service
-	// in their service_names) are returned, whether or not it is loaded yet.
-	// links are all links of the network regardless of withService, so with
-	// withService true an endpoint may be a node that is not in nodes.
-	// Internal links: both endpoints within the network; with withService false the To node
-	// is included in the returned nodes slice.
-	// External links: the To endpoint is outside the network and is not included in nodes.
-	GetNodesOfNetwork(networkID string, withService bool) (nodes []*Node, links []*Link, err error)
+	// GetNodesOfNetwork returns the nodes of networkID, and of every network
+	// below it when includeSubnetwork is true. If withService is true, only
+	// nodes eligible for this service (this service in their service_names)
+	// are returned, whether or not it is loaded yet; withService does not
+	// filter links. Links are those with at least one endpoint in the covered
+	// networks, oriented so From is in them: internal when To is too, external
+	// otherwise. With withService true an endpoint may be a node that is not
+	// in nodes.
+	//
+	// Errors: asn.network.not_found; shared.system.internal when a node's
+	// lock is not acquired within lock.waiting_time (nodes are never skipped).
+	GetNodesOfNetwork(networkID string, withService, includeSubnetwork bool) (nodes []*Node, links []*Link, err error)
 
 	// MoveNodeToNetwork moves a node into targetNetworkID, under any root
 	// network. Allowed when the calling service is on the node. The node keeps
@@ -283,7 +286,8 @@ type ASNController interface {
 	// ChangeKindNodeDeleted, and every service receives
 	// ChangeKindRootNetworkDeleted. Confirm with the user
 	// before calling it, listing the nodes of other services
-	// (GetNodesOfNetwork with withService false). The default root
+	// (GetNodesOfNetwork with withService false and includeSubnetwork true,
+	// which covers the whole subtree). The default root
 	// (Network.DefaultRoot) cannot be deleted by a service.
 	//
 	// Hosts are not cleaned up: asnsn, the service debs, and the node
