@@ -3,8 +3,10 @@
 package snapi
 
 import (
-	commonapi "asn.amiasys.com/asn-service-api/v26/common"
-	"asn.amiasys.com/asn-service-api/v26/log"
+	"time"
+
+	commonapi "asn.amiasys.com/asn-service-api/v27/common"
+	"asn.amiasys.com/asn-service-api/v27/log"
 )
 
 // ASNServiceNode is the framework-provided handle passed to ASNService.Init().
@@ -130,4 +132,21 @@ type ASNServiceNode interface {
 	// Opening a second subscription before the first channel closes is undefined behavior.
 	// Returns ErrServiceNotFound or ErrKeyNotFound on failure.
 	SubscribeServiceSharedData(serviceName string, keys []string) (values map[string]<-chan any, err error)
+
+	// WriteAudit records an operation of the service on this node.
+	// event.NodeID must be empty: ASN sets this node, and the record's root
+	// is the node's. Queued on the node and sent to the controller; a full
+	// queue fails with shared.system.unavailable.
+	WriteAudit(event commonapi.AuditEvent) error
+
+	// HostMetrics returns this node's latest framework host sample (nil
+	// before the first) and the samples of the last hour, oldest first, from
+	// memory. Fields are those of the controller's asn.host item.
+	HostMetrics() (latest *HostSample, lastHour []HostSample)
+}
+
+// HostSample is one framework host sample of this node.
+type HostSample struct {
+	Time   time.Time
+	Fields map[string]float64
 }

@@ -1,4 +1,4 @@
-module asn.amiasys.com/asn-service-api/v26
+module asn.amiasys.com/asn-service-api/v27
 
 go 1.26.0
 

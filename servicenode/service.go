@@ -3,7 +3,7 @@
 package snapi
 
 import (
-	commonapi "asn.amiasys.com/asn-service-api/v26/common"
+	commonapi "asn.amiasys.com/asn-service-api/v27/common"
 )
 
 // StaticResource groups pre-init metadata that must be available before Init().

@@ -9,6 +9,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 )
 
 // sampleTemplate uses every type and every widget once.
@@ -151,7 +152,7 @@ func TestValidateMetricsAccepts(t *testing.T) {
 		"since": int64(1761800000000), "err": "", "state": "up", "top": noTop,
 		"flow": map[string]any{"up": []flowPoint{{T: 1761800000000, V: 1200}}},
 	}
-	tree, err := ValidateMetrics(sampleTemplate(), data)
+	tree, err := ValidateMetrics(sampleTemplate(), "", data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +163,7 @@ func TestValidateMetricsAccepts(t *testing.T) {
 		t.Errorf("total = %#v", tree["total"])
 	}
 
-	empty, err := ValidateMetrics(sampleTemplate(), nil)
+	empty, err := ValidateMetrics(sampleTemplate(), "", nil)
 	if err != nil || len(empty) != 0 {
 		t.Errorf("nil map: %v %v", empty, err)
 	}
@@ -192,7 +193,7 @@ func TestValidateMetricsRejects(t *testing.T) {
 		{"first of several", map[string]any{"z": 1, "a": 1}, "a"},
 	}
 	for _, c := range cases {
-		_, err := ValidateMetrics(sampleTemplate(), c.data)
+		_, err := ValidateMetrics(sampleTemplate(), "", c.data)
 		var ve *MetricsValidationError
 		if !errors.As(err, &ve) || ve.Path != c.path {
 			t.Errorf("%s: got %v, want path %q", c.name, err, c.path)
@@ -200,7 +201,7 @@ func TestValidateMetricsRejects(t *testing.T) {
 	}
 
 	for _, f := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
-		_, err := ValidateMetrics(sampleTemplate(), map[string]any{"cpu": f})
+		_, err := ValidateMetrics(sampleTemplate(), "", map[string]any{"cpu": f})
 		var ve *MetricsValidationError
 		if !errors.As(err, &ve) || ve.Path != "" {
 			t.Errorf("%v: got %v, want an encode error without path", f, err)
@@ -208,13 +209,53 @@ func TestValidateMetricsRejects(t *testing.T) {
 	}
 
 	big := map[string]any{"err": strings.Repeat("x", MetricsMaxDataBytes)}
-	if _, err := ValidateMetrics(sampleTemplate(), big); err == nil || !strings.Contains(err.Error(), "exceeds") {
+	if _, err := ValidateMetrics(sampleTemplate(), "", big); err == nil || !strings.Contains(err.Error(), "exceeds") {
 		t.Errorf("oversized data: %v", err)
 	}
 
 	bad := sampleTemplate()
 	bad.Fields["total"].Unit = ""
-	if _, err := ValidateMetrics(bad, map[string]any{}); err == nil {
+	if _, err := ValidateMetrics(bad, "", map[string]any{}); err == nil {
 		t.Error("invalid template accepted")
+	}
+}
+
+func TestMetricsWindows(t *testing.T) {
+	for w, want := range map[string]time.Duration{"5m": 5 * time.Minute, "1h": time.Hour, "24h": 24 * time.Hour, "7d": 7 * 24 * time.Hour, "31d": MetricsMaxWindow} {
+		if d, err := MetricsWindow(w); err != nil || d != want {
+			t.Errorf("%s: %v %v", w, d, err)
+		}
+	}
+	for _, w := range []string{"", "m", "0m", "05m", "1s", "-1h", "32d", "1.5h", "107000d", "4294967295m", "4294967295d"} {
+		if _, err := MetricsWindow(w); err == nil {
+			t.Errorf("%q accepted", w)
+		}
+	}
+	tpl := sampleTemplate()
+	tpl.Windows, tpl.DefaultWindow = []string{"1h", "24h"}, "24h"
+	if err := ValidateMetricsTemplate(tpl); err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range []string{"", "1h", "24h"} {
+		if _, err := ValidateMetrics(tpl, w, nil); err != nil {
+			t.Errorf("window %q: %v", w, err)
+		}
+	}
+	if _, err := ValidateMetrics(tpl, "7d", nil); err == nil {
+		t.Error("undeclared window accepted")
+	}
+	for _, c := range []struct {
+		ws []string
+		d  string
+	}{{[]string{"1h", "1h"}, "1h"}, {[]string{"1h"}, "2h"}, {nil, "1h"}, {[]string{"1h"}, ""},
+		{[]string{"1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m"}, "1m"}} {
+		bad := sampleTemplate()
+		bad.Windows, bad.DefaultWindow = c.ws, c.d
+		if ValidateMetricsTemplate(bad) == nil {
+			t.Errorf("windows %v default %q accepted", c.ws, c.d)
+		}
+	}
+	if _, err := ValidateMetrics(sampleTemplate(), "1h", nil); err == nil {
+		t.Error("window accepted by a template without windows")
 	}
 }

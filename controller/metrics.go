@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Service metrics templates.
@@ -135,6 +136,100 @@ type MetricsTemplate struct {
 
 	// Dict maps language (MetricsLangZhCN, MetricsLangEnUS) to key to text.
 	Dict map[string]map[string]string `json:"dict,omitempty" yaml:"dict,omitempty"`
+
+	// Windows are the windows the data call serves (see MetricsWindow), at
+	// most MetricsMaxWindows, distinct; none serves only the empty window.
+	// Scalars are read at, or aggregated over, the window; series cover it.
+	Windows []string `json:"windows,omitempty" yaml:"windows,omitempty"`
+
+	// DefaultWindow is one of Windows, the window of a data call naming
+	// none; empty when there are no Windows.
+	DefaultWindow string `json:"defaultWindow,omitempty" yaml:"defaultWindow,omitempty"`
+}
+
+// MetricsTarget is what a template and its data cover: a network with every
+// network below it, or one node. Exactly one is set.
+type MetricsTarget struct {
+	NetworkID string
+	NodeID    string
+}
+
+// MetricsProviderASN is the provider name of ASN's own metrics.
+const MetricsProviderASN = "asn"
+
+// MetricsMaxWindows bounds MetricsTemplate.Windows; MetricsMaxWindow bounds a
+// window's length.
+const (
+	MetricsMaxWindows = 8
+	MetricsMaxWindow  = 31 * 24 * time.Hour
+)
+
+// MetricsWindow parses a window: a positive whole number of minutes, hours
+// or days ("5m", "1h", "24h", "7d"), at most MetricsMaxWindow.
+func MetricsWindow(w string) (time.Duration, error) {
+	if len(w) < 2 {
+		return 0, metricsErr("windows", "window %q is not <n>m, <n>h or <n>d", w)
+	}
+	n, err := strconv.ParseUint(w[:len(w)-1], 10, 32)
+	if err != nil || n == 0 || w[0] == '0' {
+		return 0, metricsErr("windows", "window %q is not <n>m, <n>h or <n>d", w)
+	}
+	var unit time.Duration
+	switch w[len(w)-1] {
+	case 'm':
+		unit = time.Minute
+	case 'h':
+		unit = time.Hour
+	case 'd':
+		unit = 24 * time.Hour
+	default:
+		return 0, metricsErr("windows", "window %q is not <n>m, <n>h or <n>d", w)
+	}
+	if n > uint64(MetricsMaxWindow/unit) {
+		return 0, metricsErr("windows", "window %q exceeds 31 days", w)
+	}
+	d := time.Duration(n) * unit
+	if d > MetricsMaxWindow {
+		return 0, metricsErr("windows", "window %q exceeds 31 days", w)
+	}
+	return d, nil
+}
+
+// MetricsDataWindow returns the window a data call serves for window: the
+// default for "", the window itself when t lists it; an error otherwise.
+func MetricsDataWindow(t *MetricsTemplate, window string) (string, error) {
+	if window == "" {
+		return t.DefaultWindow, nil
+	}
+	for _, w := range t.Windows {
+		if w == window {
+			return w, nil
+		}
+	}
+	return "", metricsErr("window", "window %q is not served", window)
+}
+
+func validateWindows(t *MetricsTemplate) error {
+	if len(t.Windows) > MetricsMaxWindows {
+		return metricsErr("windows", "more than %d windows", MetricsMaxWindows)
+	}
+	seen := map[string]bool{}
+	for _, w := range t.Windows {
+		if _, err := MetricsWindow(w); err != nil {
+			return err
+		}
+		if seen[w] {
+			return metricsErr("windows", "window %q is listed twice", w)
+		}
+		seen[w] = true
+	}
+	switch {
+	case len(t.Windows) == 0 && t.DefaultWindow != "":
+		return metricsErr("defaultWindow", "a default window without windows")
+	case len(t.Windows) > 0 && !seen[t.DefaultWindow]:
+		return metricsErr("defaultWindow", "the default window is not one of the windows")
+	}
+	return nil
 }
 
 // MetricsField declares one key of the data. Which attributes apply depends
@@ -266,6 +361,9 @@ func ValidateMetricsTemplate(t *MetricsTemplate) error {
 		return metricsErr("", "template exceeds %d bytes", MetricsMaxTemplateBytes)
 	}
 
+	if err = validateWindows(t); err != nil {
+		return err
+	}
 	v := &templateValidator{t: t, keys: map[string]string{}}
 	if t.Title != "" {
 		v.ref("title", t.Title)
@@ -728,14 +826,18 @@ func sortedKeys[V any](m map[string]V) []string {
 }
 
 // ValidateMetrics checks the data a service returned from GetMetrics against
-// t. It first validates t, then encodes data with encoding/json (NaN and ±Inf
+// t for window (empty: the default; a window t does not serve fails). It
+// first validates t, then encodes data with encoding/json (NaN and ±Inf
 // fail here, without a path) and decodes it with exact numbers (json.Number).
 // A null value at any key means the key is absent and is removed; a nil data
 // map is an empty result. Every key must be declared, every value must match
 // its field's type, enum values must be options, and the size limits must
 // hold. It returns the normalized tree.
-func ValidateMetrics(t *MetricsTemplate, data map[string]any) (map[string]any, error) {
+func ValidateMetrics(t *MetricsTemplate, window string, data map[string]any) (map[string]any, error) {
 	if err := ValidateMetricsTemplate(t); err != nil {
+		return nil, err
+	}
+	if _, err := MetricsDataWindow(t, window); err != nil {
 		return nil, err
 	}
 	encoded, err := json.Marshal(data)

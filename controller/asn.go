@@ -5,9 +5,9 @@ package capi
 import (
 	"github.com/redis/go-redis/v9"
 
-	commonapi "asn.amiasys.com/asn-service-api/v26/common"
-	"asn.amiasys.com/asn-service-api/v26/iam"
-	"asn.amiasys.com/asn-service-api/v26/log"
+	commonapi "asn.amiasys.com/asn-service-api/v27/common"
+	"asn.amiasys.com/asn-service-api/v27/iam"
+	"asn.amiasys.com/asn-service-api/v27/log"
 )
 
 // ASNController is the framework-provided handle passed to ASNServiceController.Init().
@@ -23,7 +23,23 @@ import (
 //  7. Root networks and their admin group
 //  8. Node group management
 //  9. Node enrollment and node tasks
+//  10. Labels, audit, events, collected data, node attributes and risk
+//     (the embedded interfaces)
+//  11. Service catalogs and metrics of any provider
+//
+// Acting for another service: the methods of areas 3, 4, 5, the node and
+// node group configuration of area 6 and node group management take
+// serviceName, the service acted for; empty is the calling service. Only a
+// super service (service[].super in asn.conf) names another, else
+// asn.service.not_super; an unknown or unloaded one is
+// shared.service.not_found. The call is audited with Service the service
+// acted for and Caller the calling service.
 type ASNController interface {
+	LabelsAPI
+	AuditAPI
+	EventsAPI
+	CollectionAPI
+	NodeAPI
 
 	// -------------------------------------------------------------------------
 	// Resource Initialization
@@ -79,10 +95,39 @@ type ASNController interface {
 	// Available Services
 	// -------------------------------------------------------------------------
 
-	// ListAvailableServices returns every service loaded on this controller,
-	// the calling service included and the framework's own excluded, with the
-	// name and the service controller's Version(), sorted by name.
+	// ListAvailableServices returns the services loaded on this controller
+	// with their name, the service controller's Version() and Super, sorted
+	// by name, the framework's own excluded: every one for a super service,
+	// the calling service alone for any other.
 	ListAvailableServices() ([]*AvailableService, error)
+
+	// GetServiceCatalog returns the catalog of a loaded service, "asn"
+	// included; nil when the service declares none.
+	//
+	// Errors: shared.service.not_found.
+	GetServiceCatalog(serviceName string) (*ServiceCatalog, error)
+
+	// -------------------------------------------------------------------------
+	// Metrics Of Any Provider
+	// A provider is a loaded service or MetricsProviderASN. At a network
+	// target any service reads any network; at a node target a service reads
+	// the nodes it is on, a super service any node. The provider's template
+	// and data are validated as for ASN Web; each provider call is bounded to
+	// 3 s.
+	//
+	// Errors: shared.service.not_found; asn.network.not_found;
+	// asn.node.not_found; asn.service.not_super (a node the caller is not
+	// on); shared.request.param_invalid (not exactly one of the target's
+	// IDs, a window the template does not serve);
+	// asn.service.metrics_invalid; asn.service.metrics_unavailable.
+	// -------------------------------------------------------------------------
+
+	// GetServiceMetricsTemplate returns a provider's template for target.
+	GetServiceMetricsTemplate(provider string, target MetricsTarget) (*MetricsTemplate, error)
+
+	// GetServiceMetrics returns a provider's data for target and window
+	// (empty: the template's default), checked against its template.
+	GetServiceMetrics(provider string, target MetricsTarget, window string) (map[string]any, error)
 
 	// -------------------------------------------------------------------------
 	// Service Lifecycle Management
@@ -90,13 +135,13 @@ type ASNController interface {
 
 	// StartService triggers Start(config) on the service running on each matched node.
 	// serviceScope and serviceScopeList determine the target set; see ServiceScope constants.
-	StartService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
+	StartService(serviceName string, serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
 	// StopService triggers Stop() on the service running on each matched node.
-	StopService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
+	StopService(serviceName string, serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
 	// ResetService triggers Stop() followed by Start() on each matched node.
-	ResetService(serviceScope commonapi.ServiceScope, serviceScopeList []string) error
+	ResetService(serviceName string, serviceScope commonapi.ServiceScope, serviceScopeList []string) error
 
 	// -------------------------------------------------------------------------
 	// Ops Dispatch
@@ -116,14 +161,14 @@ type ASNController interface {
 	//	    if res.FrameworkError != nil { ... }
 	//	}
 	SendServiceOps(
-		serviceScope commonapi.ServiceScope, serviceScopeList []string,
+		serviceName string, serviceScope commonapi.ServiceScope, serviceScopeList []string,
 		opCmd, opParams string,
 	) (resChan <-chan *OpsResponse, paramErr error)
 
 	// SendServiceOpsToNode dispatches an operation to a single node and blocks until it responds or times out.
 	// If paramErr != nil, nodeID is invalid; res is nil.
 	// Check res.FrameworkError before using res.ServiceResponse / res.ServiceError.
-	SendServiceOpsToNode(nodeID string, opCmd, opParams string) (res *OpsResponse, paramErr error)
+	SendServiceOpsToNode(serviceName, nodeID string, opCmd, opParams string) (res *OpsResponse, paramErr error)
 
 	// -------------------------------------------------------------------------
 	// Config Ops Dispatch
@@ -134,21 +179,21 @@ type ASNController interface {
 	// If paramErr != nil, scope or scopeID is invalid; resChan is nil.
 	// Otherwise, returns immediately; each OpsResponse reflects the result of ASNService.AddConfigOps on that node.
 	// resChan is closed after all nodes have responded or timed out.
-	AddConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configParams []string) (resChan <-chan *OpsResponse, paramErr error)
+	AddConfigOps(serviceName string, serviceScope commonapi.ServiceScope, scopeID string, configParams []string) (resChan <-chan *OpsResponse, paramErr error)
 
 	// UpdateConfigOp updates a single config op identified by configOpID, persists the change,
 	// and fans out to affected nodes.
 	// If paramErr != nil, scope or scopeID is invalid; resChan is nil.
-	UpdateConfigOp(serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) (resChan <-chan *OpsResponse, paramErr error)
+	UpdateConfigOp(serviceName string, serviceScope commonapi.ServiceScope, scopeID, configOpID, configParam string) (resChan <-chan *OpsResponse, paramErr error)
 
 	// DeleteConfigOps removes config ops by ID for the given scope, persists, and fans out to affected nodes.
 	// If paramErr != nil, scope or scopeID is invalid; resChan is nil.
-	DeleteConfigOps(serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) (resChan <-chan *OpsResponse, paramErr error)
+	DeleteConfigOps(serviceName string, serviceScope commonapi.ServiceScope, scopeID string, configOpIDs []string) (resChan <-chan *OpsResponse, paramErr error)
 
 	// ListConfigOps returns config ops directly attached to the given scope.
 	// Does not traverse the group-to-node inheritance hierarchy.
 	// Synchronous; does not fan out to nodes.
-	ListConfigOps(serviceScope commonapi.ServiceScope, scopeID string) ([]ConfigOp, error)
+	ListConfigOps(serviceName string, serviceScope commonapi.ServiceScope, scopeID string) ([]ConfigOp, error)
 
 	// -------------------------------------------------------------------------
 	// Node Topology
@@ -172,7 +217,7 @@ type ASNController interface {
 
 	// SetConfigOfNode persists the service config (YAML, UTF-8) for the node.
 	// Used on the next StartService() call targeting this node.
-	SetConfigOfNode(nodeID, config string) error
+	SetConfigOfNode(serviceName, nodeID, config string) error
 
 	// GetNodesOfNetwork returns the nodes of networkID, and of every network
 	// below it when includeSubnetwork is true. If withService is true, only
@@ -336,29 +381,29 @@ type ASNController interface {
 	// -------------------------------------------------------------------------
 
 	// CreateNodeGroup creates a node group scoped to this service within the given network.
-	CreateNodeGroup(networkID, name, description, metadata string) error
+	CreateNodeGroup(serviceName, networkID, name, description, metadata string) error
 
 	// ListNodeGroups returns all node groups for this service in the given network.
-	ListNodeGroups(networkID string) ([]*NodeGroup, error)
+	ListNodeGroups(serviceName, networkID string) ([]*NodeGroup, error)
 
 	// GetNodeGroupByID returns group details including service-defined Metadata and active ConfigOps.
-	GetNodeGroupByID(nodeGroupID string) (*NodeGroup, error)
+	GetNodeGroupByID(serviceName, nodeGroupID string) (*NodeGroup, error)
 
 	// UpdateNodeGroupMetadata persists service-defined metadata on the group.
-	UpdateNodeGroupMetadata(nodeGroupID, metadata string) error
+	UpdateNodeGroupMetadata(serviceName, nodeGroupID, metadata string) error
 
 	// DeleteNodeGroup removes the node group. Member nodes are not affected.
-	DeleteNodeGroup(nodeGroupID string) error
+	DeleteNodeGroup(serviceName, nodeGroupID string) error
 
 	// SetConfigOfNodeGroup persists service config for the group.
 	// Member nodes inherit this config unless they have a node-level config override.
-	SetConfigOfNodeGroup(nodeGroupID, config string) error
+	SetConfigOfNodeGroup(serviceName, nodeGroupID, config string) error
 
 	// AddNodesToNodeGroup adds the specified nodes to the group.
-	AddNodesToNodeGroup(nodeGroupID string, nodeIDs []string) error
+	AddNodesToNodeGroup(serviceName, nodeGroupID string, nodeIDs []string) error
 
 	// RemoveNodesFromNodeGroup removes the specified nodes from the group.
-	RemoveNodesFromNodeGroup(nodeGroupID string, nodeIDs []string) error
+	RemoveNodesFromNodeGroup(serviceName, nodeGroupID string, nodeIDs []string) error
 
 	// -------------------------------------------------------------------------
 	// Node Enrollment And Node Tasks

@@ -5,7 +5,7 @@ package capi
 import (
 	"time"
 
-	commonapi "asn.amiasys.com/asn-service-api/v26/common"
+	commonapi "asn.amiasys.com/asn-service-api/v27/common"
 )
 
 // AvailableService is a service loaded on the controller, as listed by
@@ -13,6 +13,9 @@ import (
 type AvailableService struct {
 	Name    string
 	Version commonapi.Version // the service controller's StaticResource.Version()
+	// Super is whether the service is marked super in asn.conf: it
+	// configures other services and ASN through this API.
+	Super bool
 }
 
 // Network represents a network in the topology tree.
@@ -65,6 +68,8 @@ type Node struct {
 	// Metadata is an opaque string set by the service via UpdateNodeMetadata().
 	Metadata string
 	Location *commonapi.Location
+	// Labels are every label the node carries, root and platform.
+	Labels []*Label
 
 	Managed bool
 	Info    *commonapi.NodeInfo
@@ -207,6 +212,10 @@ const (
 	// (AutoUpgrade), by an ASN operator or any service on the node; sent to
 	// every service on the node. It names no actor.
 	ChangeKindNodeAutoUpgrade
+
+	// ChangeKindNodeLabels a label the node carries was attached, detached
+	// or deleted (not renamed); Labels is the node's set after it.
+	ChangeKindNodeLabels
 )
 
 // NodeStateChange is delivered on the channel returned by SubscribeNodeStateChanges().
@@ -248,6 +257,9 @@ type NodeStateChange struct {
 
 	// ChangeKindNodeAutoUpgrade
 	AutoUpgrade bool
+
+	// ChangeKindNodeLabels
+	Labels []*Label
 }
 
 // OpsResponse is one node's response to a SendServiceOps or config op dispatch call.

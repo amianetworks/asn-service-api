@@ -1,6 +1,6 @@
 # Copyright 2026 Amiasys Corporation and/or its affiliates. All rights reserved.
 
-PACKAGE := asn-service-api/v26
+PACKAGE := asn-service-api/v27
 .PHONY: code-inspect check-tag
 
 code-inspect:

@@ -6,7 +6,7 @@ For the full API contract, see [DESIGN.md](DESIGN.md).
 ## Module
 
 ```
-asn.amiasys.com/asn-service-api/v26
+asn.amiasys.com/asn-service-api/v27
 ```
 
 ## Package Layout
@@ -79,6 +79,24 @@ make check-tag TAG=v26.11.0
 ```
 
 It rejects anything but `vX.Y.0` and a tag that already exists.
+
+## Moving from v26 to v27
+
+- Import path `asn.amiasys.com/asn-service-api/v27`.
+- `StaticResource.CLICommands(cli CLIContext)`: `cli.ApplyOps` is the former
+  function argument.
+- `StaticResource.Catalog()`: nil declares no catalog.
+- `GetMetricsTemplate(target)` and `GetMetrics(target, window)`: an empty
+  template for a node target and a template without windows suffice.
+- `OnDataDemand(demands)`: return nil when no item is declared on demand.
+- `serviceName` (`""` for the caller) is the first argument of the
+  cross-service methods.
+- The time-series handler: `Find`, `Count`, `CountBy`, `Scan`, `FindAfter`
+  and `Aggregate` on `TSQuery` / `TSAggregation`; retention is set per
+  collection in `TSCollOptions`. Existing data is migrated by the service.
+- New capabilities on `ASNController`: labels, audit, events, host metrics,
+  logs, node attributes and risk, catalogs and metrics of other providers
+  (see DESIGN.md §5.2).
 
 ## Getting started
 

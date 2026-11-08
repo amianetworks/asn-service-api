@@ -5,7 +5,7 @@ package snapi
 import (
 	"errors"
 
-	commonapi "asn.amiasys.com/asn-service-api/v26/common"
+	commonapi "asn.amiasys.com/asn-service-api/v27/common"
 )
 
 var (
