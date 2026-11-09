@@ -150,8 +150,12 @@ type EventRule struct {
 type EventRuleFilter struct {
 	Service string // namespace; the caller when empty
 	RootID  string // a root, or commonapi.PlatformScope; required
-	Keyword string
+	Keyword string // the name contains it, case-insensitive
 	Enable  *bool
+	Items   []string // rules on these data items
+	Scope   string   // EventScopeRoot, EventScopeAllRoots or EventScopePlatform
+	Devices string   // EventDevicesAll, EventDevicesLabel or EventDevicesNodes
+	NodeID  string   // rules whose devices include the node: all, its labels, or listed
 }
 
 // Incident is an incident of a rule.
@@ -185,15 +189,20 @@ type IncidentFilter struct {
 	Levels            []string
 	State             string
 	Start, Stop       time.Time // when they started
+	NodeIDs           []string  // incidents of these nodes
+	Items             []string  // incidents of rules on these data items
+	Keyword           string    // the rule name contains it, case-insensitive
 }
 
 // Notify rule fields.
 const (
 	NotifyLevelGE = "ge" // LevelOp: at or above Level
+	NotifyLevelLE = "le" // at or below Level
 	NotifyLevelEQ = "eq" // exactly Level
 
-	NotifyOnOpen  = "open"
-	NotifyOnClose = "close"
+	NotifyOnOpen     = "open"     // SendOn: an incident opens
+	NotifyOnClose    = "closed"   // an incident closes
+	NotifyOnRecorded = "recorded" // a record-only incident is written
 )
 
 // NotifyRule mails the incidents it selects to contact groups.
@@ -224,6 +233,45 @@ type ContactGroup struct {
 	To, Cc     map[string]string
 	CreateTime time.Time
 	UpdateTime time.Time
+}
+
+// DeliveryFilter selects the sends of notify rules of a namespace and root.
+type DeliveryFilter struct {
+	Service     string // namespace; the caller when empty
+	RootID      string // a root or commonapi.PlatformScope; required
+	RuleID      string // one notify rule; empty: all
+	Start, Stop time.Time
+}
+
+// Delivery statuses.
+const (
+	DeliverySent            = "sent"
+	DeliveryFailed          = "failed"
+	DeliveryDropped         = "dropped"
+	DeliveryKindUnavailable = "kind_unavailable" // mail is not configured
+)
+
+// DeliveryMail is one mail of a send.
+type DeliveryMail struct {
+	Addresses []string
+	Status    string
+	ErrorCode string // why it was not sent
+	Reason    string
+	Time      time.Time
+}
+
+// Dispatch is one send of a notify rule.
+type Dispatch struct {
+	ID          string
+	RuleID      string
+	RuleName    string // as it was when it sent
+	Service     string
+	RootID      string
+	IncidentIDs []string
+	Omitted     int    // incidents past the limit of one mail, counted but not listed
+	Error       string // why the send failed before any mail
+	Time        time.Time
+	Mails       []DeliveryMail
 }
 
 // EventsAPI writes points and manages rules, incidents, notify rules and
@@ -285,6 +333,9 @@ type EventsAPI interface {
 	UpdateNotifyRule(rule NotifyRule) (*NotifyRule, error)
 	DeleteNotifyRule(ruleID string) error
 	SetNotifyRuleEnable(ruleID string, enable bool) error
+	// ListDeliveries lists the sends of the notify rules filter selects,
+	// newest first, in the namespaces ListNotifyRules reads.
+	ListDeliveries(filter DeliveryFilter, page iam.Page) (dispatches []*Dispatch, total int, err error)
 
 	// ListContactGroups lists the contact groups of a namespace (the caller
 	// when empty) and root (required).

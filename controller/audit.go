@@ -3,6 +3,7 @@
 package capi
 
 import (
+	"io"
 	"time"
 
 	commonapi "asn.amiasys.com/asn-service-api/v27/common"
@@ -104,6 +105,35 @@ type AuditObjectType struct {
 	Names map[string]string
 }
 
+// Saved audit filter scopes.
+const (
+	AuditFilterScopeService  = "service"  // the calling service's own
+	AuditFilterScopeRoot     = "root"     // a root's, shared with ASN Web
+	AuditFilterScopePlatform = "platform" // the platform's, super only
+)
+
+// Audit time range presets of a saved filter.
+const (
+	AuditPresetLastHour    = "last_1_hour"
+	AuditPresetLast24Hours = "last_24_hours"
+	AuditPresetLast7Days   = "last_7_days"
+	AuditPresetLast30Days  = "last_30_days"
+)
+
+// SavedAuditFilter is a named filter. Filter holds no RootIDs, NetworkID or
+// NodeIDs: the view it is applied in gives them. The range is Preset, or
+// Filter.Start and Filter.Stop when Preset is empty.
+type SavedAuditFilter struct {
+	ID      string
+	Scope   string
+	RootID  string // AuditFilterScopeRoot
+	Name    string
+	Filter  AuditFilter
+	Preset  string
+	Created time.Time
+	Updated time.Time
+}
+
 // AuditAPI writes and reads operation audit.
 type AuditAPI interface {
 	// WriteAudit records an operation of the calling service. rootID is the
@@ -130,4 +160,21 @@ type AuditAPI interface {
 	// buckets of bucket and the top alarm subjects, at most top. Bounds as
 	// ListAuditRecords.
 	SummarizeAudit(filter AuditFilter, bucket time.Duration, top int) (*AuditSummary, error)
+
+	// ExportAuditRecords writes the records filter selects to w as "csv" or
+	// "jsonl", oldest first, and returns how many it wrote. Bounds as
+	// ListAuditRecords; a refusal is returned before anything is written.
+	ExportAuditRecords(filter AuditFilter, format string, w io.Writer) (rows int, err error)
+
+	// ListAuditFilters lists the saved filters of a scope, newest first:
+	// the caller's own, a root's (rootID), or the platform's (super).
+	ListAuditFilters(scope, rootID string) ([]*SavedAuditFilter, error)
+	// SaveAuditFilter creates a filter (ID empty) or replaces one. A service
+	// that is not super writes root filters of roots where it is on a node.
+	//
+	// Errors: shared.request.param_invalid (a root, network or node in the
+	// filter; an unknown preset); asn.service.not_super.
+	SaveAuditFilter(filter SavedAuditFilter) (*SavedAuditFilter, error)
+	// DeleteAuditFilter deletes a saved filter of a scope.
+	DeleteAuditFilter(scope, rootID, filterID string) error
 }

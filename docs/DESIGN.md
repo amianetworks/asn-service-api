@@ -310,7 +310,7 @@ All methods goroutine-safe after `Init()`. See `controller/asn.go` for the full 
 
 **Auto-upgrade.** `SetNodeAutoUpgrade` sets a node-wide switch that any service on the node, or an ASN operator, may change. With it on, the controller upgrades the whole node to the builds it serves, as long as the node is inside the controller's version window, one attempt per target version set (`Node.AutoUpgradeHeld` after a failure); every service on the node restarts. A node outside the window (in Maintenance) is never upgraded automatically.
 
-**Capabilities.** `ASNController` embeds `LabelsAPI` (`controller/labels.go`), `AuditAPI` (`controller/audit.go`), `EventsAPI` (`controller/events.go`), `CollectionAPI` (`controller/collection.go`) and `NodeAPI` (`controller/node.go`). A service writes its own namespace: its audit records, event points of the items its catalog declares, its event rules, notify rules and contact groups. It reads its own namespace and the framework's (`asn`) where the data is about its own nodes: `asn` rules bound to it, `asn` incidents of its nodes, host metrics, logs, log and sFlow switches and risk of its nodes. A service marked super in the framework's configuration reads and writes every namespace and node. Lists are paged by `iam.Page` with `Limit` 1–500 and `Offset` a multiple of it.
+**Capabilities.** `ASNController` embeds `LabelsAPI` (`controller/labels.go`), `AuditAPI` (`controller/audit.go`), `EventsAPI` (`controller/events.go`), `CollectionAPI` (`controller/collection.go`) and `NodeAPI` (`controller/node.go`). A service writes its own namespace: its audit records, event points of the items its catalog declares, its event rules, notify rules and contact groups. It reads its own namespace and the framework's (`asn`) where the data is about its own nodes: `asn` rules bound to it, `asn` incidents of its nodes, host metrics, logs, log, sFlow and capture switches and risk of its nodes. Rule and incident lists take conditions (data items, keyword, scope, devices, nodes); `ListDeliveries` reads the sends of its notify rules; saved audit filters are its own (scope `service`), a root's (roots where it is on a node) or the platform's (super), and `ExportAuditRecords` writes what `ListAuditRecords` reads as CSV or JSON lines. A service marked super in the framework's configuration reads and writes every namespace and node. Lists are paged by `iam.Page` with `Limit` 1–500 and `Offset` a multiple of it.
 
 **Catalog.** `StaticResource().Catalog()` declares the service's display, grouping, configuration schema, data items, audit catalog and default rules (`controller/catalog.go`). Event points are checked against the declared items. Default rules are installed disabled, once per root of the service's nodes, and cannot be deleted. An item declared on demand is produced only while enabled rules read it: the framework calls `OnDataDemand` with the full set after `Start` and on every change.
 
@@ -350,6 +350,27 @@ Finish()                      once; after Stop
 ### 6.2 ASNServiceNode
 
 All methods goroutine-safe after `Init()`. See `servicenode/asn.go` for the full API.
+
+### 6.3 Packet capture and interface counters
+
+A service that needs packets declares `PacketCapture` in its catalog. The capture runs
+per node while an operator enables it (`CollectionAPI.SetNodeCapture`) and a service
+installed on the node declares the need. It is bounded by windows, not by the line
+rate: one window of `Window` every `Interval` (200 ms every second by default), at most
+`MaxPackets` packet headers (30000) of `SnapLen` bytes (128) per window and interface,
+sampled evenly in the kernel. `SubscribeCapture` delivers one `CaptureWindow` per window
+and interface; every subscriber gets the same read-only window, and a subscriber whose
+channel is full loses that window rather than slowing the capture. Counts scale by the
+window's `SampleRate`; `NICPackets` and `NICBytes` are exact. The `dcube` backend
+captures at XDP, before XDP programs drop, keeping the first `MaxPackets` packets of a
+window (`SampleRate` 1) and ending the window when it has them.
+
+The filter is a subset of the pcap syntax: `[not] [proto] tcp|udp|icmp|icmp6`,
+`[src|dst] host <ip>`, `[src|dst] net <cidr>`, `[src|dst] port <n>`, `vlan <id>`, `ip`,
+`ip6`, joined with `and`, `or`, `not` and parentheses.
+
+`SubscribeNetCounters` reads the node's interface counters (`/proc/net/dev`) at an
+interval of 1 s to 1 h.
 
 ---
 
@@ -467,6 +488,14 @@ case-sensitive unless its options hold `i`. `FindRecords` takes options to sort,
 project the records (`DocAsc`, `DocDesc`, `DocSkip`, `DocLimit`, `DocPage`, `DocFields`,
 `DocOmit`), the same as the find options of am.modules, which validates them; `FindRecord`
 takes `DocFields` and `DocOmit` only. The framework reads them with `DocResolveFindOptions`.
+
+Records are changed with a `commonapi.DocUpdate`, built with `DocSet`, `DocUnset`, `DocInc`,
+`DocPush`, `DocAddToSet`, `DocPull` and `DocPullWhere` and combined with `DocUpdates` (or the
+`Set`/`Unset`/`Inc` methods); like `DocQuery` it is plain data, field for field the update of
+am.modules, and is applied to each record as a whole. `UpdateRecord`, `ReplaceRecord` and
+`DeleteRecord` act on the one record a query matches; `UpsertRecord` updates it or adds a
+record when there is none, and `ReplaceOrAddRecord` replaces or adds. Give the fields of an
+upsert's query a unique index.
 
 Times in records are stored as RFC 3339 strings, which do not compare in time order, so a
 record to be selected or sorted by time also keeps it as a number, e.g. Unix microseconds,

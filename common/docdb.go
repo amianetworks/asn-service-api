@@ -3,21 +3,13 @@
 package commonapi
 
 type DocCollOptions struct {
-	// Indexes of the collection, key = "column1;column2;...". MongoDB creates
-	// them; FileDB enforces the unique ones, on the records written from then
-	// on, so that records it already holds are not rejected.
+	// Indexes of the collection, key = "column1;column2;...", added to those
+	// it has: an index of the same fields as one it has must have the same
+	// options. A unique index the records already break is
+	// shared.resource.already_exists.
 	Indexes map[string]DocIndexOptions
 
-	// UseRawFormat stores the records in the MongoDB format (BSON) rather than
-	// as JSON. It is another stored form, not an optimization: field names are
-	// lowercased, times are BSON dates and binary values (a UUID among them)
-	// BSON binaries, so a query on a UUID or time field never matches such a
-	// record, and a record read back holds driver types and its _id. A
-	// collection must be opened with the same value every time, and FileDB
-	// does not support it. Use the JSON format for new collections.
-	UseRawFormat bool
-
-	// if true, indexes will be dropped and rebuilt from Indexes (mongoDB only)
+	// RebuildIndex drops the indexes and builds them again from Indexes.
 	RebuildIndex bool
 }
 
@@ -42,9 +34,7 @@ type DocDBHandler interface {
 	// name: name of collection
 	// options:
 	//
-	//	for mongodb, options.Indexes used for create collection indexes, options.RebuildIndex rebuilds them
-	//	for filedb, the unique indexes of options.Indexes are enforced, options.RebuildIndex is ignored
-	//	for both, options.UseRawFormat selects the stored format, see DocCollOptions
+	//	options.Indexes are the collection's indexes, options.RebuildIndex rebuilds them
 	//
 	// A collection opened again takes no options, or the same ones.
 	// returns the collection handle corresponding to the collection name
@@ -105,34 +95,37 @@ type DocCollection interface {
 	// CountRecords returns the number of records q matches, DocAll() to count every record.
 	CountRecords(q DocQuery) (int, error)
 
-	// UpdateRecord updates one record in collection c.
-	// q: condition that determines to match one record to do data update.
-	// newRecord: json format data, including key-value pairs, replaces the old pairs in the matched record.
+	// UpdateRecord applies u to the one record q matches, as a whole: all its
+	// changes are made, or none of them. A record that no longer matches q
+	// when it is written is not updated, so that q may hold a condition, such
+	// as DocGt("seats", 0) with DocInc("seats", -1).
 	// If the condition matches no record, exist will be false, but no error will be returned.
-	// If the condition matches more than one record, an error will be returned.
-	UpdateRecord(q DocQuery, newRecord string) (exist bool, err error)
+	// If the condition matches more than one record, an error will be returned, and no record updated.
+	UpdateRecord(q DocQuery, u DocUpdate) (exist bool, err error)
 
-	// UpdateRecords updates records in collection c.
-	// q: condition that determines to match the records to do data update.
-	// newRecord: json format data, including key-value pairs, replaces the old pairs in all the matched records.
-	// This function does not care how many records are matched in the process, maybe 0, 1, or more.
-	UpdateRecords(q DocQuery, newRecord string) error
+	// UpdateRecords applies u to each record q matches, DocAll() for every
+	// record. An error may leave some updated.
+	UpdateRecords(q DocQuery, u DocUpdate) error
 
-	// ArrayAppend appends elements in a field whose value type is an array.
-	// If the field type is not array, will get an error; a null or missing field is an empty array.
-	// q: condition that determines to match the records to append data.
-	// newRecord: json format data, including key-value pairs, values can be a single item, or items of an array,
-	//            will be appended in each of the matched records, not replaced.
-	// ignoreDuplicate: true will ignore duplicated data, otherwise will accept the duplicated data.
-	ArrayAppend(q DocQuery, newRecord string, ignoreDuplicate bool) error
+	// ReplaceRecord replaces the one record q matches with record: the fields
+	// record does not have are removed.
+	// If the condition matches no record, exist will be false, but no error will be returned.
+	// If the condition matches more than one record, an error will be returned, and no record replaced.
+	ReplaceRecord(q DocQuery, record map[string]any) (exist bool, err error)
 
-	// ArrayDelete deletes the specified values from a field whose type is an array.
-	// If the field type is not array, will get an error; a null or missing field is left as it is.
-	// q: condition that determines to match the records to delete data.
-	// newRecord: json format data, including key-value pairs, values can be a single item, or items of an array,
-	//            will be deleted from each of the matched records.
-	ArrayDelete(q DocQuery, newRecord string) error
+	// UpsertRecord applies u to the one record q matches, or, when q matches
+	// none, adds record as it is, without applying u: one or the other,
+	// never both. inserted tells which.
+	//
+	// record must match q, or the next upsert would not find it; this is
+	// checked. Two upserts at once may both find no record and both add one,
+	// unless a unique index of the fields of q rejects the second, which is
+	// then retried as an update. So give the fields of q a unique index.
+	// If the condition matches more than one record, an error will be returned, and no record changed.
+	UpsertRecord(q DocQuery, u DocUpdate, record map[string]any) (inserted bool, err error)
 
-	// ListAllRecord returns all records of a collection
-	ListAllRecord() ([]map[string]any, error)
+	// ReplaceOrAddRecord replaces the one record q matches with record, as
+	// ReplaceRecord does, or adds record when q matches none. record and q
+	// are as for UpsertRecord.
+	ReplaceOrAddRecord(q DocQuery, record map[string]any) (inserted bool, err error)
 }

@@ -97,6 +97,16 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
 - New capabilities on `ASNController`: labels, audit, events, host metrics,
   logs, node attributes and risk, catalogs and metrics of other providers
   (see DESIGN.md §5.2).
+- The document handler follows the am.modules v27 `docdb` API: updates are
+  `DocUpdate` values (`DocSet`, `DocUnset`, `DocInc`, `DocPush`,
+  `DocAddToSet`, `DocPull`, `DocPullWhere`, combined with `DocUpdates`), and
+  collections add `ReplaceRecord`, `UpsertRecord` and `ReplaceOrAddRecord`.
+  The v26 JSON-string `UpdateRecord`/`UpdateRecords`, `ArrayAppend`,
+  `ArrayDelete`, `ListAllRecord` (use `FindRecords(DocAll())`) and
+  `DocCollOptions.UseRawFormat` are gone.
+
+v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
+Target v27.1.0.
 
 ## Getting started
 

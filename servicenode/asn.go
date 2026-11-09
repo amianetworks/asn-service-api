@@ -3,6 +3,7 @@
 package snapi
 
 import (
+	"net/netip"
 	"time"
 
 	commonapi "asn.amiasys.com/asn-service-api/v27/common"
@@ -143,6 +144,77 @@ type ASNServiceNode interface {
 	// before the first) and the samples of the last hour, oldest first, from
 	// memory. Fields are those of the controller's asn.host item.
 	HostMetrics() (latest *HostSample, lastHour []HostSample)
+
+	// SubscribeCapture returns a channel of this node's capture windows, one
+	// per window and interface, and a function that ends the subscription.
+	// Every subscriber gets the same read-only window: do not modify it. A
+	// window that finds the channel full is lost to this subscriber
+	// (counted in CaptureState), never delayed. It succeeds while capture is
+	// inactive and delivers once it runs. Once the node's settings arrive, the
+	// subscriptions of a service that does not declare PacketCapture end and
+	// their channels close.
+	//
+	// Errors: asn.capture.not_declared (the catalog does not declare
+	// PacketCapture); shared.request.param_invalid (buffer < 1).
+	SubscribeCapture(buffer int) (<-chan *CaptureWindow, func(), error)
+	// CaptureState is the state of this node's capture.
+	CaptureState() CaptureState
+
+	// SubscribeNetCounters returns a channel of this node's interface
+	// counters read every interval (1 s - 1 h), and a function that ends the
+	// subscription. A reading that finds the channel full is dropped.
+	SubscribeNetCounters(interval time.Duration, buffer int) (<-chan []NetCounters, func(), error)
+}
+
+// PacketMeta is one captured packet: value fields only, so a window holds
+// its packets in one slice.
+type PacketMeta struct {
+	TimeUnixNano     int64
+	Length           uint32 // on the wire
+	VLAN             uint16 // 0: none
+	EtherType        uint16
+	SrcMAC, DstMAC   [6]byte
+	SrcIP, DstIP     netip.Addr // invalid when not IP
+	Protocol         uint8      // IP protocol
+	SrcPort, DstPort uint16     // TCP and UDP
+	TCPFlags         uint8
+	Ingress          bool
+	HeaderOff        uint32 // the packet's bytes are Headers[HeaderOff : HeaderOff+HeaderLen]
+	HeaderLen        uint32
+}
+
+// CaptureWindow is one window of one interface. SampleRate N means one
+// packet in N was kept, so counts scale by N; NICPackets and NICBytes are
+// exact, from the interface counters over the window.
+type CaptureWindow struct {
+	Interface  string
+	Start      time.Time
+	Window     time.Duration
+	SampleRate uint32
+	NICPackets uint64
+	NICBytes   uint64
+	Packets    []PacketMeta
+	Headers    []byte
+	Lost       uint64 // packets lost in the kernel or the ring in this window
+}
+
+// CaptureState is the state of a node's capture.
+type CaptureState struct {
+	Active  bool
+	Backend string
+	Error   string // the last start error; empty while running
+	Windows uint64 // windows delivered to the calling service
+	Lost    uint64 // windows the calling service lost to a full channel
+}
+
+// NetCounters is one reading of an interface's counters.
+type NetCounters struct {
+	Time                 time.Time
+	Interface            string
+	RxBytes, TxBytes     uint64
+	RxPackets, TxPackets uint64
+	RxErrors, TxErrors   uint64
+	RxDrops, TxDrops     uint64
 }
 
 // HostSample is one framework host sample of this node.

@@ -112,6 +112,32 @@ type SFlowSettings struct {
 	Port   int // UDP; 6343 when 0
 }
 
+// Capture backends.
+const (
+	CaptureBackendAFPacket = "afpacket" // a packet socket: what the host receives and sends
+	CaptureBackendDCube    = "dcube"    // the dcube packetcapture cube at XDP: before XDP programs drop
+)
+
+// CaptureSettings is a node's packet capture: a window of Window every
+// Interval, at most MaxPackets headers of SnapLen bytes per window and
+// interface, sampled evenly over the window. Zero values take the defaults
+// (afpacket, 1 s, 200 ms, 30000, 128). It runs only while Enable is set and a
+// service installed on the node declares PacketCapture in its catalog.
+type CaptureSettings struct {
+	Enable      bool
+	Backend     string
+	Interfaces  []string
+	Interval    time.Duration // 1 s - 1 h
+	Window      time.Duration // 10 ms - Interval
+	MaxPackets  int           // 1 - 100000
+	SnapLen     int           // 0 - 256
+	Filter      string        // a subset of the pcap filter syntax: docs/DESIGN.md §6.3
+	IngressOnly bool          // dcube: the ingress cube only
+
+	Active    bool     // read only: enabled and demanded
+	Demanders []string // read only: the services on the node that declare the need
+}
+
 // CollectionAPI reads framework collected data and sets the collection of
 // nodes. Errors common to the methods: asn.node.not_found;
 // asn.service.not_super (a node the caller is not on);
@@ -140,4 +166,9 @@ type CollectionAPI interface {
 	// GetNodeSFlow and SetNodeSFlow read and set a node's sFlow collector.
 	GetNodeSFlow(nodeID string) (*SFlowSettings, error)
 	SetNodeSFlow(nodeID string, s SFlowSettings) error
+
+	// GetNodeCapture and SetNodeCapture read and set a node's packet
+	// capture; Active and Demanders are ignored on set.
+	GetNodeCapture(nodeID string) (*CaptureSettings, error)
+	SetNodeCapture(nodeID string, c CaptureSettings) error
 }
