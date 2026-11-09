@@ -55,6 +55,6 @@ type AuditEvent struct {
 	ObjectPart  string
 	NodeID      string // the node the record concerns; empty: none
 	Message     string
-	Tags        map[string]string // the service's own; Service, Caller, RootID, NodeID refused
+	Tags        map[string]string // the service's own; keys of capi.AuditReservedTagKeys refused
 	Fields      map[string]string
 }

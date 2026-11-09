@@ -31,6 +31,16 @@ type AuditFilter struct {
 	ObjectIDs    []string
 	Origins      []string // "local", or node IDs the records were reported from
 
+	// DeviceID selects the records of one device (AuditEvent.DeviceID).
+	DeviceID string
+
+	// Tags select by a service's own dimensions: a key matches any of its
+	// values, and every key must match; a key with no values sets no
+	// condition. Tags need Service, and every key must be one that service
+	// declares in AuditCatalog.TagKeys; Service, Caller, RootID and NodeID
+	// are refused here (they have their own fields).
+	Tags map[string][]string
+
 	Start time.Time // [Start, Stop), both required, at most 92 days
 	Stop  time.Time
 }
@@ -75,16 +85,35 @@ type AuditSummary struct {
 	TopAlarmSubjects    []AuditSubjectCount
 	ByService           map[string]AuditCount
 	ByCaller            map[string]AuditCount
-	Trend               []AuditTrendBucket
+	// ByTag counts, when the filter sets Service, the records of each value
+	// of each key that service declares in AuditCatalog.TagKeys; records
+	// without the key are not counted under it. Empty without Service.
+	ByTag map[string]map[string]AuditCount
+	Trend []AuditTrendBucket
 }
 
-// AuditCatalog names a service's audit records for display. Writes are not
-// checked against it.
+// AuditCatalog names a service's audit records for display and declares the
+// tag keys its records are queried by. Writes are not checked against it.
 type AuditCatalog struct {
 	EventTypes  []AuditEventType
 	Operations  []AuditOperation
 	ObjectTypes []AuditObjectType
+
+	// TagKeys are keys of AuditEvent.Tags the service's records are
+	// filtered (AuditFilter.Tags) and summed up (AuditSummary.ByTag) by: at
+	// most AuditTagKeysMax, each an upper-case letter followed by letters,
+	// digits and '_', none of AuditReservedTagKeys. They are not indexed.
+	TagKeys []string
 }
+
+// AuditTagKeysMax bounds AuditCatalog.TagKeys.
+const AuditTagKeysMax = 8
+
+// AuditReservedTagKeys cannot be declared in AuditCatalog.TagKeys: ASN's own
+// audit tags and the audit store's record keys (am.modules v27.0.5 audit).
+var AuditReservedTagKeys = []string{"Service", "Caller", "RootID", "NodeID",
+	"SubjectType", "SubjectID", "DeviceID", "SubjectIP", "Operation", "ObjectType",
+	"ObjectID", "ObjectPart", "EventType", "Result", "RiskLevel", "Scope", "Partition"}
 
 // AuditEventType names an event type; it may not start with "asn.".
 type AuditEventType struct {
@@ -121,7 +150,8 @@ const (
 )
 
 // SavedAuditFilter is a named filter. Filter holds no RootIDs, NetworkID or
-// NodeIDs: the view it is applied in gives them. The range is Preset, or
+// NodeIDs: the view it is applied in gives them. Its DeviceID and Tags are
+// kept, Tags checked as in a query when saved. The range is Preset, or
 // Filter.Start and Filter.Stop when Preset is empty.
 type SavedAuditFilter struct {
 	ID      string
@@ -141,6 +171,10 @@ type AuditAPI interface {
 	// event.NodeID set it is empty or the node's root. Service and Caller
 	// are the calling service. The record is queued.
 	//
+	// A root or node deleted in the last 10 minutes is still accepted, a
+	// deleted node on the root it was in, so that a record of the deletion
+	// written after it keeps its root.
+	//
 	// Errors: shared.request.param_invalid (a reserved tag, an "asn." event
 	// type, a subject, result or level value, a root that is not one, a
 	// root and node mismatch); asn.network.not_found; asn.node.not_found;
@@ -152,8 +186,8 @@ type AuditAPI interface {
 	// is not super sets Service or Caller (or both) to itself.
 	//
 	// Errors: asn.service.not_super; shared.request.param_invalid
-	// (RootIDs with NetworkID, a range over 92 days, the page);
-	// asn.network.not_found.
+	// (RootIDs with NetworkID, a range over 92 days, the page; Tags without
+	// Service or with a key it does not declare); asn.network.not_found.
 	ListAuditRecords(filter AuditFilter, page iam.Page) (records []*AuditRecord, total int, err error)
 
 	// SummarizeAudit summarizes the records filter selects, with the trend in

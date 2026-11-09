@@ -4,9 +4,9 @@ package log
 
 type Logger struct {
 	R ASNLogger // rlog | rtlog: Runtime log (default)
-	A ASNLogger // alog | apilog: API logger (gRPC, RESTful API, CLI, etc.)
-	P ASNLogger // plog | perflog: Performance logger (performance optimization purpose)
-	E ASNLogger // elog | entitylog: Entity logger (access, change, create, delete, etc.)
+	A ASNLogger // alog | apilog: API text log (gRPC, RESTful API, CLI, etc.); structured API records: capi.StructuredLogAPI
+	P ASNLogger // plog | perflog: Performance text log (performance optimization purpose; file only)
+	E ASNLogger // elog | entitylog: Entity text log (access, change, create, delete, etc.); structured entity records: capi.StructuredLogAPI
 }
 
 // ASNLogger is the logger interface

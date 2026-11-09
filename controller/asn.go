@@ -40,6 +40,7 @@ type ASNController interface {
 	EventsAPI
 	CollectionAPI
 	NodeAPI
+	StructuredLogAPI
 
 	// -------------------------------------------------------------------------
 	// Resource Initialization
@@ -571,8 +572,8 @@ type ASNController interface {
 	UpgradeNode(nodeID string) (requestID string, err error)
 
 	// SetNodeAutoUpgrade turns automatic upgrade of the node on or off. With it
-	// on, whenever the node is admitted normally (inside the controller's version
-	// window, whatever its line) and asnsn or any service deb on it is older than
+	// on, whenever the node is inside the controller's version window or below
+	// it (whatever its line; never above it) and asnsn or any service deb on it is older than
 	// this controller serves, the controller upgrades the whole node: asnsn
 	// restarts, and so does every service on the node, including other services'. Upgrades start as soon as the controller
 	// restarts with newer builds, a few nodes at a time, and also right after an

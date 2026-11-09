@@ -4,6 +4,7 @@ package capi
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -480,5 +481,23 @@ func validateAuditCatalog(a *AuditCatalog) error {
 		}
 		objects[o.Type] = true
 	}
+	if len(a.TagKeys) > AuditTagKeysMax {
+		return catalogInvalid("audit.tagKeys", fmt.Sprintf("at most %d tag keys", AuditTagKeysMax))
+	}
+	keys := map[string]bool{}
+	for i, k := range a.TagKeys {
+		p := fmt.Sprintf("audit.tagKeys[%d]", i)
+		switch {
+		case !auditTagKey.MatchString(k):
+			return catalogInvalid(p, "a tag key is an upper-case letter followed by letters, digits and '_'")
+		case slices.Contains(AuditReservedTagKeys, k):
+			return catalogInvalid(p, k+" is set by ASN or the audit store")
+		case keys[k]:
+			return catalogInvalid(p, k+" is declared twice")
+		}
+		keys[k] = true
+	}
 	return nil
 }
+
+var auditTagKey = regexp.MustCompile(`^[A-Z][A-Za-z0-9_]*$`)

@@ -17,7 +17,7 @@ asn.amiasys.com/asn-service-api/v27
 | `snapi` | `/servicenode` | Service-node-side interfaces and structs |
 | `commonapi` | `/common` | Shared enums, structs, DB/log abstractions |
 | `iam` | `/iam` | IAM interface |
-| `log` | `/log` | Structured logger interface |
+| `log` | `/log` | Logger interface (runtime, API, entity and performance text logs) and structured log records |
 
 ## What to Implement
 
@@ -106,7 +106,20 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
   `DocCollOptions.UseRawFormat` are gone.
 
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
-Target v27.1.0.
+Target v27.2.0.
+
+## Moving from v27.1 to v27.2
+
+- Audit: `AuditFilter.DeviceID` and `AuditFilter.Tags`; `AuditCatalog.TagKeys`
+  declares the keys of the service's own audit tags it queries by (at most
+  `AuditTagKeysMax`, none of `AuditReservedTagKeys`, checked by
+  `ValidateServiceCatalog`); `AuditSummary.ByTag`. `WriteAudit` accepts a
+  root or node deleted in the last 10 minutes.
+- Structured logs: `StructuredLogAPI` (embedded in `ASNController`) keeps the
+  service's own entity log (`log.EntityLog`) and API log (`log.APILog`),
+  apart from other services and from the operation audit. `AuditAPI`
+  stays the record operators review across services.
+- Source using v27.1 compiles unchanged; every plugin is rebuilt on v27.2.0.
 
 ## Getting started
 
