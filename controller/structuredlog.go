@@ -11,9 +11,9 @@ import (
 
 // StructuredLogAPI keeps the calling service's structured logs: its entity
 // log and its API log. ASN stores them for the service, apart from every
-// other service's records and from the operation audit (AuditAPI), keeps
-// them for the controller's configured retention, and deletes them when the
-// service is removed from the controller. A service reads only its own.
+// other service's records and from the operation audit (AuditAPI), and keeps
+// them for the controller's configured retention, also after the service is
+// removed from the controller. A service reads only its own.
 //
 // The operation audit stays the record of operations an operator reviews
 // across services; the entity log is the service's own trail, e.g. access to
@@ -21,9 +21,10 @@ import (
 type StructuredLogAPI interface {
 	// WriteEntityLogs stores records, all checked before any is stored.
 	//
-	// Errors: shared.request.param_invalid (a record without a subject type,
-	// a subject ID or device, an operation or a result; an object ID or part
-	// without its type; a reserved or empty tag; a field of another type);
+	// Errors: shared.request.required_field_missing (a nil record; a record
+	// without a subject type, a subject ID or an operation; an object ID or
+	// part without its type); shared.request.param_invalid (an unknown
+	// result; a reserved or empty tag; a field of another type);
 	// shared.system.unavailable.
 	WriteEntityLogs(records []*log.EntityLog) error
 
@@ -49,7 +50,7 @@ type StructuredLogAPI interface {
 
 	// WriteAPILogs stores API records.
 	//
-	// Errors: shared.request.param_invalid (a nil record);
+	// Errors: shared.request.required_field_missing (a nil record);
 	// shared.system.unavailable.
 	WriteAPILogs(records []*log.APILog) error
 
