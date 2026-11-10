@@ -106,7 +106,28 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
   `DocCollOptions.UseRawFormat` are gone.
 
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
-Target v27.2.0.
+Target v27.3.0.
+
+## Moving from v27.2 to v27.3
+
+- Audit: `AuditCatalog.TagKeys` is `[]AuditTagKey`: each `Key` (same rules
+  as before) has display `Names` (at least one locale) and optional `Values`
+  (`AuditTagValue{Value, Names}`, at most `AuditTagValuesMax`), for display
+  only. Change a declaration `TagKeys: []string{"Role"}` to
+  `TagKeys: []AuditTagKey{{Key: "Role", Names: map[string]string{"zh-CN": "角色", "en-US": "Role"}}}`.
+- Log parsers: optional `LogParser.Fields` (`LogParserField{Name, Label,
+  Type}`) names fields of the patterns for display; `Type` is read only.
+- Capture: `SnapLen` up to `CaptureSnapLenMax` (2048) with
+  `MaxPackets × SnapLen ≤ CaptureWindowBytesMax`; `CaptureMaxPacketsMax`
+  is exported. Fields and types of `CaptureSettings` are unchanged.
+- Default rules: a catalog's default rule may set `Scope` to
+  `EventScopePlatform`: ASN installs it once in the platform scope instead of
+  in each root. It reads items that are not node data. An empty `Scope` (or
+  `EventScopeRoot`) installs in each root as before.
+- Comments: `PacketMeta` and `CaptureWindow.Headers`, `AccountCreate` and
+  `AccountDelete`, the syslog receiver's format detection.
+- Only `TagKeys` declarations need a source change; every plugin is rebuilt
+  on v27.3.0.
 
 ## Moving from v27.1 to v27.2
 

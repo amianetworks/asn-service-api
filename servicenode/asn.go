@@ -168,6 +168,16 @@ type ASNServiceNode interface {
 
 // PacketMeta is one captured packet: value fields only, so a window holds
 // its packets in one slice.
+//
+// The fields come from the outermost headers; tunnels (GRE, ERSPAN, VXLAN
+// and others) are not decoded. The MACs and EtherType are the Ethernet
+// header's, after at most two 802.1Q/802.1ad tags; VLAN is the first tag's
+// VLAN ID. SrcIP, DstIP and Protocol are the first IP header's, so for a
+// tunnelled packet SrcIP is the outer source address and Protocol the outer
+// protocol (47 for GRE). SrcPort, DstPort and TCPFlags are set only when
+// that protocol is TCP or UDP and the packet is not a non-first fragment;
+// IPv6 skips at most one extension header. Anything deeper is read from the
+// packet's bytes in CaptureWindow.Headers.
 type PacketMeta struct {
 	TimeUnixNano     int64
 	Length           uint32 // on the wire
@@ -186,6 +196,12 @@ type PacketMeta struct {
 // CaptureWindow is one window of one interface. SampleRate N means one
 // packet in N was kept, so counts scale by N; NICPackets and NICBytes are
 // exact, from the interface counters over the window.
+//
+// Headers holds the kept bytes of every packet back to back: packet p's are
+// Headers[p.HeaderOff : p.HeaderOff+p.HeaderLen], starting at byte 0 of its
+// Ethernet frame (the destination MAC), at most SnapLen bytes. With the
+// afpacket backend a VLAN tag the NIC stripped is only in PacketMeta.VLAN,
+// not in these bytes; with dcube the frame's tags are kept as received.
 type CaptureWindow struct {
 	Interface  string
 	Start      time.Time

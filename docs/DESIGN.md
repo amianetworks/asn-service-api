@@ -314,7 +314,7 @@ All methods goroutine-safe after `Init()`. See `controller/asn.go` for the full 
 
 **Capabilities.** `ASNController` embeds `LabelsAPI` (`controller/labels.go`), `AuditAPI` (`controller/audit.go`), `EventsAPI` (`controller/events.go`), `CollectionAPI` (`controller/collection.go`), `NodeAPI` (`controller/node.go`) and `StructuredLogAPI` (`controller/structuredlog.go`). A service writes its own namespace: its audit records, event points of the items its catalog declares, its event rules, notify rules and contact groups. It reads its own namespace and the framework's (`asn`) where the data is about its own nodes: `asn` rules bound to it, `asn` incidents of its nodes, host metrics, logs, log, sFlow and capture switches and risk of its nodes. Rule and incident lists take conditions (data items, keyword, scope, devices, nodes); `ListDeliveries` reads the sends of its notify rules; saved audit filters are its own (scope `service`), a root's (roots where it is on a node) or the platform's (super), and `ExportAuditRecords` writes what `ListAuditRecords` reads as CSV or JSON lines. Audit reads also select by `DeviceID` and by `Tags`, the service's own dimensions: with `Service` set, keys that service declares in its audit catalog; `AuditSummary.ByTag` counts by each of them. A record of a root or node the service has just deleted (within 10 minutes) is still written on that root. A service marked super in the framework's configuration reads and writes every namespace and node. Lists are paged by `iam.Page` with `Limit` 1–500 and `Offset` a multiple of it.
 
-**Catalog.** `StaticResource().Catalog()` declares the service's display, grouping, configuration schema, data items, audit catalog (with the audit tag keys it is queried by, at most 8, checked at load) and default rules (`controller/catalog.go`). Event points are checked against the declared items. Default rules are installed disabled, once per root of the service's nodes, and cannot be deleted. An item declared on demand is produced only while enabled rules read it: the framework calls `OnDataDemand` with the full set after `Start` and on every change.
+**Catalog.** `StaticResource().Catalog()` declares the service's display, grouping, configuration schema, data items, audit catalog (with the audit tag keys it is queried by, at most 8, each with display names and optionally up to 64 values to offer, checked at load) and default rules (`controller/catalog.go`). Event points are checked against the declared items. Default rules are installed disabled, once per root of the service's nodes, or once in the platform scope for a rule with `Scope` platform (it reads items that are not node data), and cannot be deleted. An item declared on demand is produced only while enabled rules read it: the framework calls `OnDataDemand` with the full set after `Start` and on every change.
 
 **Metrics.** `GetMetricsTemplate(target)` and `GetMetrics(target, window)` take a network or a node (`MetricsTarget`). A template may declare windows (`1h`, `24h`, `7d`) and a default; a data call names one of them or none. `GetServiceMetricsTemplate` and `GetServiceMetrics` read another provider, `asn` (the framework's overview) included; a node target needs the caller's node unless super.
 
@@ -360,7 +360,12 @@ per node while an operator enables it (`CollectionAPI.SetNodeCapture`) and a ser
 installed on the node declares the need. It is bounded by windows, not by the line
 rate: one window of `Window` every `Interval` (200 ms every second by default), at most
 `MaxPackets` packet headers (30000) of `SnapLen` bytes (128) per window and interface,
-sampled evenly in the kernel. `SubscribeCapture` delivers one `CaptureWindow` per window
+sampled evenly in the kernel. `SnapLen` is at most `CaptureSnapLenMax` (2048) and
+`MaxPackets` at most `CaptureMaxPacketsMax` (100000), with `MaxPackets × SnapLen` at most
+`CaptureWindowBytesMax` (25,600,000) after the defaults; a setting over it is refused,
+neither value is shrunk. The fields of `PacketMeta` come from the outermost headers
+(tunnels are not decoded); `CaptureWindow.Headers` holds each packet from byte 0 of its
+Ethernet frame. `SubscribeCapture` delivers one `CaptureWindow` per window
 and interface; every subscriber gets the same read-only window, and a subscriber whose
 channel is full loses that window rather than slowing the capture. Counts scale by the
 window's `SampleRate`; `NICPackets` and `NICBytes` are exact. The `dcube` backend

@@ -109,8 +109,15 @@ type ServiceCatalog struct {
 	Items         []CatalogItem
 	PacketCapture bool
 	Audit         *AuditCatalog
-	// DefaultRules are event rules ASN installs, disabled, in each root
-	// network of the service's nodes, in the service's namespace, once.
+	// DefaultRules are event rules ASN installs, disabled and built in, in
+	// the service's namespace, once: a rule with Scope empty (or
+	// EventScopeRoot) in each root network of the service's nodes; a rule
+	// with Scope EventScopePlatform once in the platform scope, while the
+	// service is loaded, whether or not it has nodes. A platform rule reads
+	// items that are not node data (CatalogItem.Node false): their points
+	// written with no root are of the platform scope. A rule installed is
+	// never installed again by name, so changing a released rule's Scope
+	// leaves the copies installed before.
 	DefaultRules []EventRule
 }
 
@@ -280,8 +287,12 @@ func validateDefaultRule(c *ServiceCatalog, path string, r *EventRule) error {
 		return catalogInvalid(path+".item", "item "+r.Item+" is not declared")
 	}
 	switch {
-	case r.Scope != "" || (r.Devices != "" && r.Devices != EventDevicesAll):
-		return catalogInvalid(path, "a default rule names no scope and covers every device")
+	case r.Scope != "" && r.Scope != EventScopeRoot && r.Scope != EventScopePlatform:
+		return catalogInvalid(path+".scope", "a default rule's scope is empty, root or platform")
+	case r.Devices != "" && r.Devices != EventDevicesAll:
+		return catalogInvalid(path, "a default rule covers every device")
+	case r.Scope == EventScopePlatform && item.Node:
+		return catalogInvalid(path+".item", "a platform default rule reads no node data: "+r.Item+" is")
 	case !slices.Contains(eventLevels, r.Level) && r.LevelFrom == nil:
 		return catalogInvalid(path+".level", "level "+r.Level+" is not a level")
 	case r.Level != "" && !slices.Contains(eventLevels, r.Level):
@@ -313,6 +324,9 @@ func validateDefaultRule(c *ServiceCatalog, path string, r *EventRule) error {
 		if cond.Item != "" {
 			if ci = c.Item(cond.Item); ci == nil {
 				return catalogInvalid(at+".item", "item "+cond.Item+" is not declared")
+			}
+			if r.Scope == EventScopePlatform && ci.Node {
+				return catalogInvalid(at+".item", "a platform default rule reads no node data: "+cond.Item+" is")
 			}
 		}
 		if cond.Mode == EventModeInstant && len(r.Conditions) > 1 {
@@ -485,8 +499,9 @@ func validateAuditCatalog(a *AuditCatalog) error {
 		return catalogInvalid("audit.tagKeys", fmt.Sprintf("at most %d tag keys", AuditTagKeysMax))
 	}
 	keys := map[string]bool{}
-	for i, k := range a.TagKeys {
+	for i, t := range a.TagKeys {
 		p := fmt.Sprintf("audit.tagKeys[%d]", i)
+		k := t.Key
 		switch {
 		case !auditTagKey.MatchString(k):
 			return catalogInvalid(p, "a tag key is an upper-case letter followed by letters, digits and '_'")
@@ -494,10 +509,35 @@ func validateAuditCatalog(a *AuditCatalog) error {
 			return catalogInvalid(p, k+" is set by ASN or the audit store")
 		case keys[k]:
 			return catalogInvalid(p, k+" is declared twice")
+		case !hasName(t.Names):
+			return catalogInvalid(p, "a tag key has a display name")
+		case len(t.Values) > AuditTagValuesMax:
+			return catalogInvalid(p, fmt.Sprintf("at most %d values", AuditTagValuesMax))
 		}
 		keys[k] = true
+		values := map[string]bool{}
+		for j, v := range t.Values {
+			vp := fmt.Sprintf("%s.values[%d]", p, j)
+			switch {
+			case v.Value == "" || values[v.Value]:
+				return catalogInvalid(vp, "a value is set and unique")
+			case !hasName(v.Names):
+				return catalogInvalid(vp, "a value has a display name")
+			}
+			values[v.Value] = true
+		}
 	}
 	return nil
+}
+
+// hasName reports whether names holds a non-empty display name.
+func hasName(names map[string]string) bool {
+	for _, n := range names {
+		if n != "" {
+			return true
+		}
+	}
+	return false
 }
 
 var auditTagKey = regexp.MustCompile(`^[A-Z][A-Za-z0-9_]*$`)

@@ -99,15 +99,38 @@ type AuditCatalog struct {
 	Operations  []AuditOperation
 	ObjectTypes []AuditObjectType
 
-	// TagKeys are keys of AuditEvent.Tags the service's records are
-	// filtered (AuditFilter.Tags) and summed up (AuditSummary.ByTag) by: at
-	// most AuditTagKeysMax, each an upper-case letter followed by letters,
-	// digits and '_', none of AuditReservedTagKeys. They are not indexed.
-	TagKeys []string
+	// TagKeys are the keys of AuditEvent.Tags the service's records are
+	// filtered (AuditFilter.Tags) and summed up (AuditSummary.ByTag) by, with
+	// their display names and, optionally, the values to offer in a picker:
+	// at most AuditTagKeysMax. They are not indexed.
+	TagKeys []AuditTagKey
 }
 
-// AuditTagKeysMax bounds AuditCatalog.TagKeys.
-const AuditTagKeysMax = 8
+// AuditTagKey is a declared audit dimension.
+type AuditTagKey struct {
+	// Key is an upper-case letter followed by letters, digits and '_', none
+	// of AuditReservedTagKeys, unique in the catalog.
+	Key string
+	// Names are the display names by locale ("zh-CN", "en-US"); at least one.
+	Names map[string]string
+	// Values are the values to offer, optional, at most AuditTagValuesMax,
+	// each set and unique. They are for display only: neither written tags
+	// nor AuditFilter.Tags are checked against them.
+	Values []AuditTagValue
+}
+
+// AuditTagValue is a value of a dimension with its display names.
+type AuditTagValue struct {
+	Value string
+	Names map[string]string // by locale; at least one
+}
+
+// AuditTagKeysMax bounds AuditCatalog.TagKeys; AuditTagValuesMax bounds
+// AuditTagKey.Values.
+const (
+	AuditTagKeysMax   = 8
+	AuditTagValuesMax = 64
+)
 
 // AuditReservedTagKeys cannot be declared in AuditCatalog.TagKeys: ASN's own
 // audit tags and the audit store's record keys (am.modules v27.0.5 audit).

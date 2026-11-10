@@ -66,7 +66,10 @@ type Instance interface {
 	// Account Management
 	// -------------------------------------------------------------------------
 
-	// AccountCreate creates a new account.
+	// AccountCreate creates a normal account in the calling service only. It
+	// cannot create a service admin (Account.ServiceAdmin; managed by ASN) or
+	// add the account to another service. Which of its users may create
+	// accounts is the calling service's own authorization.
 	// Credential fields (password, email+code, phone+code) are optional; pass zero values to omit.
 	// skipEmailValidation / skipPhoneValidation bypass OTP pre-verification for admin-initiated creation.
 	AccountCreate(
@@ -76,7 +79,12 @@ type Instance interface {
 		phone *Phone, phoneCode string, skipPhoneValidation bool,
 	) (accountID string, err error)
 
-	// AccountDelete permanently deletes the account and all its associated data.
+	// AccountDelete removes the account from the calling service: its groups,
+	// metadata, third-party logins and MFA setting there; its sessions no
+	// longer work for this service. The account and its data in other
+	// services (ASN included) stay. Only when the calling service is the
+	// account's last one is the account itself deleted. A service admin
+	// (Account.ServiceAdmin) belongs to ASN, so it is never deleted this way.
 	AccountDelete(accountID string) error
 
 	// AccountExists reports whether an account with the given ID exists.

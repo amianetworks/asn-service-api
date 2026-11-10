@@ -95,10 +95,26 @@ type LogParser struct {
 	Builtin    bool
 	CreateTime time.Time
 	UpdateTime time.Time
+	Fields     []LogParserField // optional display names of fields; see LogParserField
+}
+
+// LogParserField names one field of a parser's patterns for display. Name is
+// a field one of Patterns names, listed once; a save whose Fields name a
+// field no pattern names (also after the patterns changed) is refused, ASN
+// drops nothing. Fields not listed are parsed and stored as before; the
+// order is kept and means nothing to ASN. A built-in parser keeps its
+// Fields, like its Path and Patterns.
+type LogParserField struct {
+	Name  string
+	Label map[string]string // "zh-CN", "en-US" → 1-64 characters; at least one
+	Type  string            // read only: int, float, tag or string, as stored; ignored on save
 }
 
 // LogCollection is a node's syslog sources: Local (nil: on) and the network
-// receiver (off by default).
+// receiver (off by default). The receiver needs no format setting: a UDP
+// datagram is one message; over TCP each frame is octet-counted when it
+// starts with a digit and newline-delimited otherwise (both of RFC 6587). A
+// message is parsed as RFC 5424, and as BSD syslog (RFC 3164) when it is not.
 type LogCollection struct {
 	Local          *bool
 	RemoteEnable   bool
@@ -118,6 +134,15 @@ const (
 	CaptureBackendDCube    = "dcube"    // the dcube packetcapture cube at XDP: before XDP programs drop
 )
 
+// Limits of CaptureSettings: MaxPackets × SnapLen, after the defaults, is at
+// most CaptureWindowBytesMax; a setting over it is refused, neither value is
+// shrunk.
+const (
+	CaptureSnapLenMax     = 2048
+	CaptureMaxPacketsMax  = 100000
+	CaptureWindowBytesMax = 25600000
+)
+
 // CaptureSettings is a node's packet capture: a window of Window every
 // Interval, at most MaxPackets headers of SnapLen bytes per window and
 // interface, sampled evenly over the window. Zero values take the defaults
@@ -129,8 +154,8 @@ type CaptureSettings struct {
 	Interfaces  []string
 	Interval    time.Duration // 1 s - 1 h
 	Window      time.Duration // 10 ms - Interval
-	MaxPackets  int           // 1 - 100000
-	SnapLen     int           // 0 - 256
+	MaxPackets  int           // 1 - CaptureMaxPacketsMax
+	SnapLen     int           // 0 - CaptureSnapLenMax; MaxPackets × SnapLen ≤ CaptureWindowBytesMax
 	Filter      string        // a subset of the pcap filter syntax: docs/DESIGN.md §6.3
 	IngressOnly bool          // dcube: the ingress cube only
 
@@ -155,6 +180,8 @@ type CollectionAPI interface {
 	// ListLogParsers lists the log parsers (super services only write them).
 	ListLogParsers() ([]*LogParser, error)
 	// SaveLogParser creates (empty ID) or replaces a parser; super only.
+	// Fields naming a field no pattern names, or listed twice, or with a
+	// bad Label: shared.request.param_invalid (errMeta.field fields).
 	SaveLogParser(p LogParser) (*LogParser, error)
 	// DeleteLogParser deletes a parser that is not built in; super only.
 	DeleteLogParser(parserID string) error
@@ -168,7 +195,10 @@ type CollectionAPI interface {
 	SetNodeSFlow(nodeID string, s SFlowSettings) error
 
 	// GetNodeCapture and SetNodeCapture read and set a node's packet
-	// capture; Active and Demanders are ignored on set.
+	// capture; Active and Demanders are ignored on set. A value out of range,
+	// or MaxPackets × SnapLen over CaptureWindowBytesMax after the defaults:
+	// shared.request.param_invalid (errMeta.field the setting, snap_len for
+	// the product).
 	GetNodeCapture(nodeID string) (*CaptureSettings, error)
 	SetNodeCapture(nodeID string, c CaptureSettings) error
 }
