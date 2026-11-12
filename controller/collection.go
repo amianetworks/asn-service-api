@@ -97,6 +97,9 @@ type LogParser struct {
 	CreateTime time.Time
 	UpdateTime time.Time
 	Fields     []LogParserField // optional display names of fields; see LogParserField
+	// Writable: the caller may save it (a super service). Deletable:
+	// Writable and not Builtin. Read only.
+	Writable, Deletable bool
 }
 
 // LogParserField names one field of a parser's patterns for display. Name is

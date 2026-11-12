@@ -35,6 +35,16 @@ import (
 // write reads its ID only; a read sets Name to the object's name now, empty
 // when the object no longer exists.
 
+// Writable, Deletable and Resolvable, on the objects a list shows with
+// actions (rules, notify rules, contact groups, incidents, labels, log
+// parsers), say what the calling service may do with the object now: ASN
+// sets them with the checks the write itself makes (access, built in,
+// references, state), as of the read. They are read only and ignored on
+// write; the write still decides. Which of the service's own users may act
+// is the service's to decide. A reference count beside them (NotifyRules,
+// Label.Rules, Label.Bindings) has the name the refusal's errMeta uses, and
+// says why an object is not Deletable.
+
 // Ref names another object: its ID, and its name when read.
 type Ref struct {
 	ID   string
@@ -160,10 +170,14 @@ type EventRule struct {
 	Capture      []string
 	// Bound is the service an "asn" rule reads the nodes of; set by ASN to
 	// the caller for a service that is not super.
-	Bound      string
-	Builtin    bool // installed from a catalog's DefaultRules; not deleted
-	CreateTime time.Time
-	UpdateTime time.Time
+	Bound   string
+	Builtin bool // installed from a catalog's DefaultRules; not deleted
+	// Writable: the caller may update, enable or disable the rule.
+	// Deletable: Writable, not Builtin and NotifyRules 0. Read only.
+	Writable, Deletable bool
+	NotifyRules         int // the notify rules naming the rule; read only
+	CreateTime          time.Time
+	UpdateTime          time.Time
 }
 
 // EventRuleFilter selects rules. A service that is not super reads, in
@@ -201,6 +215,9 @@ type Incident struct {
 	ClearTime   time.Time
 	EndTime     time.Time
 	CloseReason string
+	// Resolvable: the caller may close it by hand now (ResolveIncident): it
+	// is open and its rule's handling is manual or any. Read only.
+	Resolvable bool
 }
 
 // IncidentTotalMax caps the total ListIncidents counts (a total of it is
@@ -253,8 +270,11 @@ type NotifyRule struct {
 	Cooldown      time.Duration
 	MinInterval   time.Duration
 	ContactGroups []Ref // of the same namespace and root
-	CreateTime    time.Time
-	UpdateTime    time.Time
+	// Writable: the caller may update, enable or disable it; Deletable is
+	// Writable (nothing refers to a notify rule). Read only.
+	Writable, Deletable bool
+	CreateTime          time.Time
+	UpdateTime          time.Time
 }
 
 // NotifyRuleFilter selects notify rules.
@@ -277,8 +297,11 @@ type ContactGroup struct {
 	// cannot be deleted. Set when read and in what a write returns; ignored
 	// on write.
 	NotifyRules int
-	CreateTime  time.Time
-	UpdateTime  time.Time
+	// Writable: the caller may update it. Deletable: Writable and
+	// NotifyRules 0. Read only.
+	Writable, Deletable bool
+	CreateTime          time.Time
+	UpdateTime          time.Time
 }
 
 // ContactGroupFilter selects contact groups.

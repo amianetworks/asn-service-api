@@ -201,6 +201,30 @@ Target v27.3.0.
   rows, truncated, err := ctl.ExportIncidents(ctl.IncidentFilter{RootID: root}, "csv", w)
   ```
 
+- Objects shown with actions say what the calling service may do with
+  them now, read only, set by ASN with the checks the write makes:
+  `Writable` and `Deletable` on `EventRule`, `NotifyRule`, `ContactGroup`,
+  `Label` and `LogParser`, `Resolvable` on `Incident`. Counts beside them
+  say why an object is not deletable, named as the refusal's `errMeta`:
+  `EventRule.NotifyRules`, `ContactGroup.NotifyRules`, `Label.Rules` and
+  `Label.Bindings`; `Builtin` stays. A page grays an action out from them
+  instead of working the rules out itself; the write still decides, and
+  which of the service's users may act stays the service's call:
+
+  ```go
+  for _, r := range rules {
+      switch {
+      case !r.Writable:
+          // no access: edit and delete grayed
+      case r.Builtin:
+          // built in: delete grayed
+      case r.NotifyRules > 0:
+          // named by notify rules: delete grayed
+      }
+      _ = r.Deletable // true exactly when none of the above
+  }
+  ```
+
 - Events: `DeleteEventRule` (`asn.event.rule_in_use`) and
   `DeleteContactGroup` (`shared.resource.in_use`) refusals carry
   `errMeta.notify_rules`: the IDs of the notify rules naming the object,
