@@ -25,7 +25,16 @@ func tagKeys(keys ...string) []AuditTagKey {
 // withLicense adds an item that is not node data.
 func withLicense(c *ServiceCatalog) *ServiceCatalog {
 	c.Items = append(c.Items, CatalogItem{Name: "license", Demand: CatalogDemandAlways,
-		Fields: []CatalogItemField{{Name: "usage", Type: CatalogItemNumber}}})
+		Platform: true, Fields: []CatalogItemField{{Name: "usage", Type: CatalogItemNumber}}})
+	return c
+}
+
+// platformRule makes the first default rule read the platform item license.
+func platformRule(c *ServiceCatalog) *ServiceCatalog {
+	withLicense(c)
+	r := &c.DefaultRules[0]
+	r.Item, r.Conditions[0].Field = "license", "usage"
+	r.Filters, r.GroupBy = nil, nil
 	return c
 }
 
@@ -52,13 +61,15 @@ func TestValidateServiceCatalog(t *testing.T) {
 	if err := ValidateServiceCatalog(ok); err != nil {
 		t.Fatalf("categorical count: %v", err)
 	}
-	for _, scope := range []string{EventScopeRoot, EventScopePlatform} {
-		ok := withLicense(validCatalog())
-		ok.DefaultRules[0].Scope = scope
-		ok.DefaultRules[0].Item, ok.DefaultRules[0].Conditions[0].Field = "license", "usage"
+	for _, h := range []string{"", EventHandleNone, EventHandleManual} {
+		ok := validCatalog()
+		instantRule(ok, h)
 		if err := ValidateServiceCatalog(ok); err != nil {
-			t.Fatalf("default rule scope %s: %v", scope, err)
+			t.Fatalf("instant rule handled %q: %v", h, err)
 		}
+	}
+	if err := ValidateServiceCatalog(platformRule(validCatalog())); err != nil {
+		t.Fatalf("platform default rule: %v", err)
 	}
 	for name, mutate := range map[string]func(c *ServiceCatalog){
 		"nil display":       func(c *ServiceCatalog) { c.Display.Name = nil },
@@ -89,13 +100,17 @@ func TestValidateServiceCatalog(t *testing.T) {
 			}
 		},
 		"rule with root":     func(c *ServiceCatalog) { c.DefaultRules[0].RootID = "r" },
-		"rule all roots":     func(c *ServiceCatalog) { c.DefaultRules[0].Scope = EventScopeAllRoots },
-		"rule platform node": func(c *ServiceCatalog) { c.DefaultRules[0].Scope = EventScopePlatform },
+		"rule with nodes":    func(c *ServiceCatalog) { c.DefaultRules[0].Nodes = []Ref{{ID: "n"}} },
+		"rule with label":    func(c *ServiceCatalog) { c.DefaultRules[0].Label = &Ref{ID: "l"} },
+		"platform node item": func(c *ServiceCatalog) { c.Items[0].Platform = true },
 		"rule platform cond node": func(c *ServiceCatalog) {
+			r := &platformRule(c).DefaultRules[0]
+			r.Conditions = append(r.Conditions, EventCondition{Item: "scan", Mode: EventModeThreshold, Field: "found", Op: "gt", Value: 0})
+		},
+		"rule node cond platform": func(c *ServiceCatalog) {
 			*c = *withLicense(c)
 			r := &c.DefaultRules[0]
-			r.Scope, r.Item, r.Conditions[0].Field = EventScopePlatform, "license", "usage"
-			r.Conditions = append(r.Conditions, EventCondition{Item: "scan", Mode: EventModeThreshold, Field: "found", Op: "gt", Value: 0})
+			r.Conditions = append(r.Conditions, EventCondition{Item: "license", Mode: EventModeThreshold, Field: "usage", Op: "gt", Value: 0})
 		},
 		"rule other ns":     func(c *ServiceCatalog) { c.DefaultRules[0].Service = "asn" },
 		"rule own ns named": func(c *ServiceCatalog) { c.DefaultRules[0].Service = "svc" },
@@ -117,6 +132,8 @@ func TestValidateServiceCatalog(t *testing.T) {
 		"rule count": func(c *ServiceCatalog) {
 			c.DefaultRules[0].Conditions[0] = EventCondition{Mode: EventModeCount, Window: 60e9}
 		},
+		"rule instant auto": func(c *ServiceCatalog) { instantRule(c, EventHandleAuto) },
+		"rule instant any":  func(c *ServiceCatalog) { instantRule(c, EventHandleAny) },
 	} {
 		c := validCatalog()
 		mutate(c)
@@ -125,4 +142,10 @@ func TestValidateServiceCatalog(t *testing.T) {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
+}
+
+// instantRule makes the first default rule an instant one handled h.
+func instantRule(c *ServiceCatalog, h string) {
+	c.DefaultRules[0].Conditions = []EventCondition{{Mode: EventModeInstant, Tag: "Kind", Op: "eq", Values: []string{"a"}}}
+	c.DefaultRules[0].Handling = h
 }

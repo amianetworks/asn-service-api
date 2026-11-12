@@ -215,6 +215,13 @@ type ASNController interface {
 	// and ServiceInfo (service state, config source, active config ops).
 	GetNodeByID(nodeID string) (*Node, error)
 
+	// GetNodesByIDs returns the nodes of ids, as GetNodeByID returns them
+	// and in the order given; an ID of no node the caller reads is skipped.
+	// At most GetNodesByIDsMax IDs.
+	//
+	// Errors: shared.request.param_invalid (errMeta.field ids) for more.
+	GetNodesByIDs(ids []string) ([]*Node, error)
+
 	// UpdateNodeMetadata persists an opaque service-defined string on the node.
 	// Retrievable via GetNodeByID().Metadata.
 	UpdateNodeMetadata(nodeID, metadata string) error

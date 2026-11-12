@@ -473,3 +473,6 @@ type Script struct {
 	NodeID      string
 	Kind        ScriptKind
 }
+
+// GetNodesByIDsMax is the most IDs one ASNController.GetNodesByIDs takes.
+const GetNodesByIDsMax = 1000

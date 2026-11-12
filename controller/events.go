@@ -3,6 +3,7 @@
 package capi
 
 import (
+	"io"
 	"time"
 
 	"asn.amiasys.com/asn-service-api/v27/iam"
@@ -22,6 +23,23 @@ import (
 // rule, contact group or send of its own namespace reads back empty;
 // Service as input takes empty or the caller's own name for its own
 // namespace. Bound keeps the service's name.
+//
+// The lists of rules, incidents, notify rules and contact groups read
+// namespaces by Services: nil or empty is the caller's own, an element ""
+// or the caller's name is its own, and repeats are dropped; a namespace the
+// caller cannot read is asn.event.namespace. The namespaces are sorted,
+// paged and counted as one list. ListDeliveries reads one namespace
+// (DeliveryFilter.Service).
+//
+// A reference to a label, node, event rule or contact group is a Ref: a
+// write reads its ID only; a read sets Name to the object's name now, empty
+// when the object no longer exists.
+
+// Ref names another object: its ID, and its name when read.
+type Ref struct {
+	ID   string
+	Name string
+}
 
 // Event levels, lowest first.
 const (
@@ -33,18 +51,11 @@ const (
 	EventLevelCritical = "critical"
 )
 
-// Rule scopes.
-const (
-	EventScopeRoot     = "root"      // the rule's RootID
-	EventScopeAllRoots = "all_roots" // every root
-	EventScopePlatform = "platform"  // points of no root
-)
-
 // Rule device scopes.
 const (
 	EventDevicesAll   = "all"
-	EventDevicesLabel = "label" // the nodes carrying LabelID
-	EventDevicesNodes = "nodes" // NodeIDs
+	EventDevicesLabel = "label" // the nodes carrying Label
+	EventDevicesNodes = "nodes" // Nodes
 )
 
 // Condition modes.
@@ -59,7 +70,9 @@ const (
 	EventModeInstant   = "instant"   // each point compared; a rule's only condition
 )
 
-// Handling of a rule's incidents.
+// Handling of a rule's incidents. A rule of one instant condition is
+// handled none or manual (empty is none): its incident is one point, with
+// no condition that stops.
 const (
 	EventHandleNone   = "none"   // recorded, nothing to handle
 	EventHandleAuto   = "auto"   // closed when the conditions stop
@@ -132,11 +145,10 @@ type EventRule struct {
 	Name         string
 	Enable       bool
 	Service      string // namespace; the caller when empty, and empty when read back for the caller's own
-	Scope        string
-	RootID       string // EventScopeRoot
+	RootID       string // a root, or commonapi.PlatformScope for the points of no root
 	Devices      string
-	LabelID      string
-	NodeIDs      []string
+	Label        *Ref   // EventDevicesLabel
+	Nodes        []Ref  // EventDevicesNodes; nodes of RootID
 	Item         string // an item of the namespace: by source in the caller's own, in full in another
 	Filters      []EventTagFilter
 	Conditions   []EventCondition
@@ -154,16 +166,19 @@ type EventRule struct {
 	UpdateTime time.Time
 }
 
-// EventRuleFilter selects rules.
+// EventRuleFilter selects rules. A service that is not super reads, in
+// "asn", the rules bound to it.
 type EventRuleFilter struct {
-	Service string // namespace; the caller when empty
-	RootID  string // a root, or commonapi.PlatformScope; required
-	Keyword string // the name contains it, case-insensitive
-	Enable  *bool
-	Items   []string // rules on these data items, named as EventRule.Item
-	Scope   string   // EventScopeRoot, EventScopeAllRoots or EventScopePlatform
-	Devices string   // EventDevicesAll, EventDevicesLabel or EventDevicesNodes
-	NodeID  string   // rules whose devices include the node: all, its labels, or listed
+	Services []string // namespaces; see the package comment
+	RootID   string   // a root, or commonapi.PlatformScope; required
+	Keyword  string   // the name contains it, case-insensitive
+	Enable   *bool
+	Items    []string // rules on these data items, named as EventRule.Item
+	NodeID   string   // rules whose devices include the node: all, its labels, or listed
+	// Levels selects the rules of a fixed Level among them; a rule whose
+	// level comes from its data (LevelFrom) matches none.
+	Levels  []string
+	Builtin *bool // nil: either
 }
 
 // Incident is an incident of a rule.
@@ -174,6 +189,7 @@ type Incident struct {
 	Service     string // namespace; empty for the caller's own
 	RootID      string
 	NodeID      string // "-" for an incident of no node
+	NodeName    string // the node's name now; empty for "-" or a node no longer there
 	Group       map[string]string
 	Item        string // named as EventRule.Item
 	Level       string
@@ -187,15 +203,20 @@ type Incident struct {
 	CloseReason string
 }
 
+// IncidentTotalMax caps the total ListIncidents counts (a total of it is
+// that many or more) and the incidents ExportIncidents writes.
+const IncidentTotalMax = 10000
+
 // IncidentFilter selects incidents.
 type IncidentFilter struct {
-	Service           string // namespace; the caller when empty
-	RootID            string // a root, or commonapi.PlatformScope; or NetworkID
-	NetworkID         string // a network: incidents of its nodes now; or RootID
+	Services          []string // namespaces; see the package comment
+	RootID            string   // a root, or commonapi.PlatformScope; or NetworkID
+	NetworkID         string   // a network: incidents of its nodes now; or RootID
 	IncludeSubnetwork bool
 	RuleID            string
 	Levels            []string
-	State             string
+	States            []string  // any of IncidentOpen, IncidentClosed, IncidentRecorded
+	IDs               []string  // these incidents; at most 1000
 	Start, Stop       time.Time // when they started
 	NodeIDs           []string  // incidents of these nodes
 	Items             []string  // incidents of rules on these data items, named as EventRule.Item
@@ -215,36 +236,58 @@ const (
 
 // NotifyRule mails the incidents it selects to contact groups. It selects
 // either by level (Level, with LevelOp; every rule of the namespace and
-// root) or by event rules (EventRuleIDs, at least one; Level and LevelOp
+// root) or by event rules (EventRules, at least one; Level and LevelOp
 // empty), never both: both or neither is shared.request.param_invalid. A
 // rule by event rules reads back with Level and LevelOp empty.
 type NotifyRule struct {
-	ID              string
-	Name            string
-	Enable          bool
-	Service         string // namespace; the caller when empty, and empty when read back for the caller's own
-	RootID          string
-	LevelOp         string   // with Level: NotifyLevelGE (when empty), LE or EQ
-	Level           string   // by level
-	EventRuleIDs    []string // by event rules
-	NodeIDs         []string // empty: every node
-	SendOn          []string
-	Cooldown        time.Duration
-	MinInterval     time.Duration
-	ContactGroupIDs []string // of the same namespace and root
-	CreateTime      time.Time
-	UpdateTime      time.Time
+	ID            string
+	Name          string
+	Enable        bool
+	Service       string // namespace; the caller when empty, and empty when read back for the caller's own
+	RootID        string
+	LevelOp       string // with Level: NotifyLevelGE (when empty), LE or EQ
+	Level         string // by level
+	EventRules    []Ref  // by event rules
+	Nodes         []Ref  // empty: every node
+	SendOn        []string
+	Cooldown      time.Duration
+	MinInterval   time.Duration
+	ContactGroups []Ref // of the same namespace and root
+	CreateTime    time.Time
+	UpdateTime    time.Time
+}
+
+// NotifyRuleFilter selects notify rules.
+type NotifyRuleFilter struct {
+	Services       []string // namespaces; see the package comment
+	RootID         string   // a root, or commonapi.PlatformScope; required
+	Keyword        string   // the name contains it, case-insensitive
+	Enable         *bool
+	ContactGroupID string // the rules mailing this group
 }
 
 // ContactGroup is a group of mail recipients: address -> name.
 type ContactGroup struct {
-	ID         string
-	Name       string
-	Service    string // namespace; the caller when empty, and empty when read back for the caller's own
-	RootID     string
-	To, Cc     map[string]string
-	CreateTime time.Time
-	UpdateTime time.Time
+	ID      string
+	Name    string
+	Service string // namespace; the caller when empty, and empty when read back for the caller's own
+	RootID  string
+	To, Cc  map[string]string
+	// NotifyRules counts the notify rules naming the group; a group with any
+	// cannot be deleted. Set when read and in what a write returns; ignored
+	// on write.
+	NotifyRules int
+	CreateTime  time.Time
+	UpdateTime  time.Time
+}
+
+// ContactGroupFilter selects contact groups.
+type ContactGroupFilter struct {
+	Services []string // namespaces; see the package comment
+	RootID   string   // a root, or commonapi.PlatformScope; required
+	// Keyword is contained, case-insensitive, in the name or in an address
+	// of To or Cc.
+	Keyword string
 }
 
 // DeliveryFilter selects the sends of notify rules of a namespace and root.
@@ -289,7 +332,11 @@ type Dispatch struct {
 // EventsAPI writes points and manages rules, incidents, notify rules and
 // contact groups. A service that is not super reads and writes its own
 // namespace, and in "asn" the rules bound to it and the incidents of its
-// nodes. Lists are paged by page (Limit 1–500).
+// nodes, except the incidents of rules on asn.audit: GetIncident and
+// ResolveIncident of one are shared.resource.not_found, and
+// SubscribeIncidents does not send them. It reads no "asn" notify rules or
+// contact groups. A super service reads every namespace. Lists are paged by
+// page (Limit 1–500).
 //
 // Errors common to the methods: asn.event.namespace (another namespace);
 // asn.service.not_super; shared.resource.not_found (an unknown or
@@ -316,14 +363,27 @@ type EventsAPI interface {
 	UpdateEventRule(rule EventRule) (*EventRule, error)
 	// DeleteEventRule deletes a rule.
 	//
-	// Errors: asn.event.rule_in_use (a notify rule lists it);
-	// asn.event.rule_builtin.
+	// Errors: asn.event.rule_in_use (notify rules name it; errMeta.notify_rules
+	// is their IDs, comma-separated); asn.event.rule_builtin.
 	DeleteEventRule(ruleID string) error
 	// SetEventRuleEnable turns a rule on or off.
 	SetEventRuleEnable(ruleID string, enable bool) error
 
 	// ListIncidents lists the incidents filter selects, newest first.
+	//
+	// Errors: shared.request.param_invalid (errMeta.field states or ids) for
+	// an unknown state, more than 1000 IDs or one that is not an incident ID.
 	ListIncidents(filter IncidentFilter, page iam.Page) (incidents []*Incident, total int, err error)
+	// ExportIncidents writes the incidents filter selects to w as "csv" or
+	// "jsonl", newest first, at most IncidentTotalMax; truncated reports
+	// that more matched. The columns are id, startTime, endTime, level,
+	// state, ruleId, ruleName, service, rootId, root, nodeId, node, item,
+	// value, detail, closeReason. The export is audited. A refusal is
+	// returned before anything is written.
+	//
+	// Errors: as ListIncidents; shared.request.param_invalid (errMeta.field
+	// format) for another format.
+	ExportIncidents(filter IncidentFilter, format string, w io.Writer) (rows int, truncated bool, err error)
 	// GetIncident returns an incident.
 	GetIncident(incidentID string) (*Incident, error)
 	// ResolveIncident closes an open incident of a rule with handling
@@ -337,25 +397,25 @@ type EventsAPI interface {
 	// with ListIncidents.
 	SubscribeIncidents() (<-chan *Incident, error)
 
-	// ListNotifyRules lists the notify rules of a namespace (the caller when
-	// empty) and root (required; commonapi.PlatformScope for the platform).
-	ListNotifyRules(service, rootID string, page iam.Page) (rules []*NotifyRule, total int, err error)
+	// ListNotifyRules lists the notify rules filter selects.
+	ListNotifyRules(filter NotifyRuleFilter, page iam.Page) (rules []*NotifyRule, total int, err error)
 	GetNotifyRule(ruleID string) (*NotifyRule, error)
 	CreateNotifyRule(rule NotifyRule) (*NotifyRule, error)
 	UpdateNotifyRule(rule NotifyRule) (*NotifyRule, error)
 	DeleteNotifyRule(ruleID string) error
 	SetNotifyRuleEnable(ruleID string, enable bool) error
 	// ListDeliveries lists the sends of the notify rules filter selects,
-	// newest first, in the namespaces ListNotifyRules reads.
+	// newest first, in a namespace ListNotifyRules reads.
 	ListDeliveries(filter DeliveryFilter, page iam.Page) (dispatches []*Dispatch, total int, err error)
 
-	// ListContactGroups lists the contact groups of a namespace (the caller
-	// when empty) and root (required).
-	ListContactGroups(service, rootID string, page iam.Page) (groups []*ContactGroup, total int, err error)
+	// ListContactGroups lists the contact groups filter selects.
+	ListContactGroups(filter ContactGroupFilter, page iam.Page) (groups []*ContactGroup, total int, err error)
 	CreateContactGroup(group ContactGroup) (*ContactGroup, error)
 	UpdateContactGroup(group ContactGroup) (*ContactGroup, error)
-	// DeleteContactGroup deletes a group no notify rule uses.
+	// DeleteContactGroup deletes a group no notify rule uses
+	// (ContactGroup.NotifyRules is 0).
 	//
-	// Errors: shared.resource.in_use.
+	// Errors: shared.resource.in_use (errMeta.notify_rules is the IDs of the
+	// notify rules naming it, comma-separated).
 	DeleteContactGroup(groupID string) error
 }

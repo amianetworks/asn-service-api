@@ -23,13 +23,17 @@ type AuditFilter struct {
 	NodeIDs      []string
 	SubjectIDs   []string // any of these subjects
 	SubjectTypes []commonapi.AuditSubjectType
-	EventTypes   []string
-	Operations   []int64
-	Results      []commonapi.AuditResult
-	RiskLevels   []commonapi.AuditRiskLevel
-	ObjectTypes  []string
-	ObjectIDs    []string
-	Origins      []string // "local", or node IDs the records were reported from
+	// Usernames selects the records of any of these account names, as
+	// recorded when the record was written; exact match.
+	Usernames []string
+	// EventTypes, Operations and ObjectTypes are names and codes of one
+	// service's audit catalog: they need Service.
+	EventTypes  []string
+	Operations  []int64
+	Results     []commonapi.AuditResult
+	RiskLevels  []commonapi.AuditRiskLevel
+	ObjectTypes []string
+	ObjectIDs   []string // these objects, as AuditRecord.ObjectID
 
 	// DeviceID selects the records of one device (AuditEvent.DeviceID).
 	DeviceID string
@@ -52,6 +56,10 @@ type AuditRecord struct {
 	Caller  string
 	RootID  string // a root ID or commonapi.PlatformScope
 	Origin  string // "local", or the node ID it was reported from
+	// Username is the subject account's name when the record was written;
+	// empty for a subject that is not an account.
+	Username string
+	NodeName string // NodeID's name now; empty for none or a node no longer there
 }
 
 // AuditCount counts records.

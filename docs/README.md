@@ -108,6 +108,147 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
 Target v27.3.0.
 
+## Moving from v27.4 to v27.5
+
+- Events: `ContactGroup.NotifyRules` counts the notify rules naming the
+  group, in `ListContactGroups` and in what `CreateContactGroup` and
+  `UpdateContactGroup` return; it is ignored on write. A group with any
+  cannot be deleted (`DeleteContactGroup` is `shared.resource.in_use`), so a
+  list can tell before the call:
+
+  ```go
+  groups, total, err := ctl.ListContactGroups(ctl.ContactGroupFilter{RootID: root}, iam.Page{Limit: 100})
+  for _, g := range groups {
+      canDelete := g.NotifyRules == 0
+      _ = canDelete
+  }
+  ```
+
+- Events: `IncidentFilter.State` is replaced by `States` (any of them);
+  `IDs` selects up to 1000 incidents, as the management API's `states` and
+  `ids`. An unknown state, more than 1000 IDs or a bad ID is
+  `shared.request.param_invalid` (`errMeta.field` is `states` or `ids`):
+
+  ```go
+  incs, total, err := ctl.ListIncidents(ctl.IncidentFilter{RootID: root,
+      States: []string{ctl.IncidentOpen, ctl.IncidentRecorded}}, iam.Page{Limit: 50})
+  // The incidents a dispatch mailed, a page at a time:
+  merged, _, err := ctl.ListIncidents(ctl.IncidentFilter{RootID: root, IDs: dispatch.IncidentIDs},
+      iam.Page{Limit: 500})
+  ```
+
+- Events: the lists read several namespaces at once. `IncidentFilter` and
+  `EventRuleFilter` take `Services []string` in place of `Service`;
+  `ListNotifyRules` and `ListContactGroups` take a filter
+  (`NotifyRuleFilter`, `ContactGroupFilter`) with `Services` in place of
+  the `service, rootID` parameters. Nil or empty is the caller's own; `""`
+  or the caller's name in the list is its own. The namespaces are sorted,
+  paged and counted as one list; a namespace the caller cannot read is
+  `asn.event.namespace`. A service that is not super reads in `asn` the
+  rules bound to it and the incidents of its nodes as before, but no longer
+  the incidents of rules on `asn.audit` (`GetIncident` and
+  `ResolveIncident` of one are `shared.resource.not_found`,
+  `SubscribeIncidents` does not send them), and no `asn` notify rules or
+  contact groups. `ListIncidents` counts at most `IncidentTotalMax` (10000):
+  a total of it is that many or more. `ListDeliveries` keeps one `Service`:
+
+  ```go
+  // Its own incidents and the asn incidents of its nodes, in one list:
+  incs, total, err := ctl.ListIncidents(ctl.IncidentFilter{Services: []string{"", "asn"},
+      RootID: root, States: []string{ctl.IncidentOpen}}, iam.Page{Limit: 50})
+  ```
+
+- Events: list conditions. `EventRuleFilter.Levels` selects rules of a
+  fixed level (a rule whose level comes from its data matches none) and
+  `Builtin` the rules installed from a catalog or the others.
+  `NotifyRuleFilter` has `Keyword` (the name), `Enable` and
+  `ContactGroupID` (the rules mailing a group); `ContactGroupFilter.Keyword`
+  matches the name or an address of `To` or `Cc`. Keywords are contained,
+  case-insensitive:
+
+  ```go
+  builtin := true
+  rules, _, err := ctl.ListEventRules(ctl.EventRuleFilter{RootID: root,
+      Levels: []string{ctl.EventLevelHigh, ctl.EventLevelCritical}, Builtin: &builtin}, iam.Page{Limit: 50})
+  nrs, _, err := ctl.ListNotifyRules(ctl.NotifyRuleFilter{RootID: root, ContactGroupID: groupID},
+      iam.Page{Limit: 50})
+  ```
+
+- Events: references carry names. `Ref{ID, Name}` replaces the IDs:
+  `EventRule.LabelID` and `NodeIDs` are `Label *Ref` and `Nodes []Ref`;
+  `NotifyRule.EventRuleIDs`, `ContactGroupIDs` and `NodeIDs` are
+  `EventRules`, `ContactGroups` and `Nodes []Ref`. A write reads the IDs;
+  a read sets each `Name`, empty when the object no longer exists.
+  `Incident.NodeName`, `AuditRecord.NodeName` and `LogRecord.NodeName` are
+  the node's name; `AuditRecord.Username` is the account's name when the
+  record was written. `GetNodesByIDs` reads up to `GetNodesByIDsMax` (1000)
+  nodes, with their names and labels, in one call:
+
+  ```go
+  nr := ctl.NotifyRule{Name: "disk", RootID: root, EventRules: []ctl.Ref{{ID: diskRuleID}},
+      SendOn: []string{ctl.NotifyOnOpen}, ContactGroups: []ctl.Ref{{ID: groupID}}}
+  got, err := ctl.CreateNotifyRule(nr) // got.EventRules[0].Name is the rule's name
+  nodes, err := ctl.GetNodesByIDs(nodeIDs) // the nodes the caller reads, in order
+  ```
+
+- Events: `ExportIncidents(filter, format, w)` writes what `ListIncidents`
+  reads as `csv` or `jsonl`, newest first, at most 10000, with `truncated`
+  when more matched; the columns are the management API export's. It is
+  audited. Who among the service's users may export is the service's to
+  decide:
+
+  ```go
+  rows, truncated, err := ctl.ExportIncidents(ctl.IncidentFilter{RootID: root}, "csv", w)
+  ```
+
+- Events: `DeleteEventRule` (`asn.event.rule_in_use`) and
+  `DeleteContactGroup` (`shared.resource.in_use`) refusals carry
+  `errMeta.notify_rules`: the IDs of the notify rules naming the object,
+  comma-separated.
+- Catalog: `ValidateServiceCatalog` refuses a default rule of one instant
+  condition handled `auto` or `any` (`DefaultRules[i].handling`), as ASN
+  refuses it when it installs the rule. Such a rule is handled `none`,
+  `manual` or left empty (none):
+
+  ```go
+  {Name: "port-down", Item: "port", Level: "high", Handling: ctl.EventHandleNone,
+      Conditions: []ctl.EventCondition{{Mode: ctl.EventModeInstant, Tag: "State", Op: "eq", Values: []string{"down"}}}}
+  ```
+
+- Events: a rule has no scope. `EventRule.Scope`, `EventRuleFilter.Scope`
+  and the `EventScope*` constants are removed, and so are rules of every
+  root: a rule belongs to its `RootID`, a root or `commonapi.PlatformScope`
+  for the points of no root. A rule wanted in several roots is created in
+  each. `EventRuleFilter.Devices` is removed too: `NodeID` finds the rules
+  that cover a device.
+- Catalog: a default rule no longer sets `Scope`; the item decides. An item
+  whose points are written with no root declares `CatalogItem.Platform`
+  (not with `Node`), and a default rule on it is installed once for the
+  platform; any other default rule is installed in each root of the
+  service's nodes. The items one default rule reads are all `Platform` or
+  none:
+
+  ```go
+  Items: []ctl.CatalogItem{{Name: "license", Demand: ctl.CatalogDemandAlways, Platform: true,
+      Fields: []ctl.CatalogItemField{{Name: "usage", Type: ctl.CatalogItemNumber}}}},
+  DefaultRules: []ctl.EventRule{{Name: "license-high", Item: "license", Level: ctl.EventLevelHigh,
+      Conditions: []ctl.EventCondition{{Mode: ctl.EventModeThreshold, Field: "usage", Op: "gt", Value: 90}}}},
+  ```
+
+- Audit: `AuditFilter.EventTypes`, `Operations` and `ObjectTypes` need
+  `Service`, as `Tags` do: they are names and codes of one service's audit
+  catalog. Without it the query is `shared.request.param_invalid`
+  (`errMeta.field` is `event_types`, `operations` or `object_types`).
+- Audit: `AuditFilter.Usernames` selects records by the account name
+  recorded with them (exact match, any of them), for a page that knows the
+  name and not the account ID. `AuditFilter.Origins` is removed: the
+  record's `Origin` is still returned:
+
+  ```go
+  recs, total, err := ctl.ListAuditRecords(ctl.AuditFilter{Usernames: []string{"alice"},
+      Start: time.Now().Add(-24 * time.Hour), Stop: time.Now()}, iam.Page{Limit: 50})
+  ```
+
 ## Moving from v27.3 to v27.4
 
 - Audit: saved filters are removed: `ListAuditFilters`, `SaveAuditFilter`,

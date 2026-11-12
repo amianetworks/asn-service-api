@@ -102,9 +102,12 @@ type CatalogItem struct {
 	Name   string
 	Demand string
 	Node   bool // its points are about a node and carry NodeID
-	Fields []CatalogItemField
-	Tags   []CatalogItemField
-	Label  map[string]string
+	// Platform says its points are written with no root (WriteEventPoints
+	// with rootID empty), such as a license's; not with Node.
+	Platform bool
+	Fields   []CatalogItemField
+	Tags     []CatalogItemField
+	Label    map[string]string
 }
 
 // ServiceCatalog is one service's catalog. It does not name the service.
@@ -116,14 +119,12 @@ type ServiceCatalog struct {
 	PacketCapture bool
 	Audit         *AuditCatalog
 	// DefaultRules are event rules ASN installs, disabled and built in, in
-	// the service's namespace, once: a rule with Scope empty (or
-	// EventScopeRoot) in each root network of the service's nodes; a rule
-	// with Scope EventScopePlatform once in the platform scope, while the
-	// service is loaded, whether or not it has nodes. A platform rule reads
-	// items that are not node data (CatalogItem.Node false): their points
-	// written with no root are of the platform scope. A rule installed is
-	// never installed again by name, so changing a released rule's Scope
-	// leaves the copies installed before. A default rule's Service is
+	// the service's namespace, once: a rule on a Platform item once for the
+	// platform (commonapi.PlatformScope) while the service is loaded,
+	// whether or not it has nodes; any other rule in each root network of
+	// the service's nodes. The items a rule reads (Item and
+	// Conditions[].Item) are all Platform or none. A rule installed is never
+	// installed again by name. A default rule's Service and RootID are
 	// empty; its Item and Conditions[].Item are names of Items.
 	DefaultRules []EventRule
 }
@@ -220,6 +221,9 @@ func ValidateServiceCatalog(c *ServiceCatalog) error {
 		if len(it.Fields) == 0 {
 			return catalogInvalid(path+".fields", "an item has at least one field")
 		}
+		if it.Platform && it.Node {
+			return catalogInvalid(path+".platform", "a platform item is not node data")
+		}
 		names := map[string]string{}
 		for kind, list := range map[string][]CatalogItemField{"fields": it.Fields, "tags": it.Tags} {
 			for j, f := range list {
@@ -261,7 +265,7 @@ func ValidateServiceCatalog(c *ServiceCatalog) error {
 		switch {
 		case r.Name == "" || ruleNames[r.Name]:
 			return catalogInvalid(path+".name", "a default rule has a unique name")
-		case r.ID != "" || r.RootID != "" || len(r.NodeIDs) > 0 || r.LabelID != "" || r.Bound != "":
+		case r.ID != "" || r.RootID != "" || len(r.Nodes) > 0 || r.Label != nil || r.Bound != "":
 			return catalogInvalid(path, "a default rule names no ID, root, nodes, label or bound service")
 		case r.Service != "":
 			return catalogInvalid(path+".service", "a default rule names no namespace: it is the service's")
@@ -291,18 +295,19 @@ func validateDefaultRule(c *ServiceCatalog, path string, r *EventRule) error {
 		return catalogInvalid(path+".item", "item "+r.Item+" is not declared")
 	}
 	switch {
-	case r.Scope != "" && r.Scope != EventScopeRoot && r.Scope != EventScopePlatform:
-		return catalogInvalid(path+".scope", "a default rule's scope is empty, root or platform")
 	case r.Devices != "" && r.Devices != EventDevicesAll:
 		return catalogInvalid(path, "a default rule covers every device")
-	case r.Scope == EventScopePlatform && item.Node:
-		return catalogInvalid(path+".item", "a platform default rule reads no node data: "+r.Item+" is")
 	case !slices.Contains(eventLevels, r.Level) && r.LevelFrom == nil:
 		return catalogInvalid(path+".level", "level "+r.Level+" is not a level")
 	case r.Level != "" && !slices.Contains(eventLevels, r.Level):
 		return catalogInvalid(path+".level", "level "+r.Level+" is not a level")
 	case !slices.Contains(eventHandling, r.Handling):
 		return catalogInvalid(path+".handling", "handling "+r.Handling+" is not none, auto, manual or any")
+	}
+	// An instant incident is one point: no condition stops to close it.
+	if len(r.Conditions) == 1 && r.Conditions[0].Mode == EventModeInstant &&
+		(r.Handling == EventHandleAuto || r.Handling == EventHandleAny) {
+		return catalogInvalid(path+".handling", "an instant rule is handled as none or manual, not "+r.Handling)
 	}
 	if lf := r.LevelFrom; lf != nil {
 		if (lf.Tag == "") == (lf.Field == "") {
@@ -329,8 +334,8 @@ func validateDefaultRule(c *ServiceCatalog, path string, r *EventRule) error {
 			if ci = c.Item(cond.Item); ci == nil {
 				return catalogInvalid(at+".item", "item "+cond.Item+" is not declared")
 			}
-			if r.Scope == EventScopePlatform && ci.Node {
-				return catalogInvalid(at+".item", "a platform default rule reads no node data: "+cond.Item+" is")
+			if ci.Platform != item.Platform {
+				return catalogInvalid(at+".item", "a default rule reads platform items only or none: "+cond.Item+" and "+r.Item+" differ")
 			}
 		}
 		if cond.Mode == EventModeInstant && len(r.Conditions) > 1 {

@@ -77,10 +77,11 @@ type LogQuery struct {
 
 // LogRecord is one log record.
 type LogRecord struct {
-	Time   time.Time
-	NodeID string
-	Tags   map[string]string
-	Fields map[string]any
+	Time     time.Time
+	NodeID   string
+	NodeName string // the node's name now; empty for a node no longer there
+	Tags     map[string]string
+	Fields   map[string]any
 }
 
 // LogParser tails files on the nodes carrying one of LabelIDs and parses
