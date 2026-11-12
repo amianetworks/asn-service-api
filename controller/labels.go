@@ -11,7 +11,7 @@ type Label struct {
 	// Writable: the caller may rename it (see CreateLabel). Deletable:
 	// Writable, and no rule or log parser binding refers to it. Read only.
 	Writable, Deletable bool
-	Rules               int // the event rules naming it; read only
+	Rules               int // the event rules of any namespace naming it; read only
 	Bindings            int // the log parser bindings naming it; read only
 }
 

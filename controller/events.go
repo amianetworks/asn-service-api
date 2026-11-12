@@ -39,11 +39,13 @@ import (
 // actions (rules, notify rules, contact groups, incidents, labels, log
 // parsers), say what the calling service may do with the object now: ASN
 // sets them with the checks the write itself makes (access, built in,
-// references, state), as of the read. They are read only and ignored on
-// write; the write still decides. Which of the service's own users may act
-// is the service's to decide. A reference count beside them (NotifyRules,
-// Label.Rules, Label.Bindings) has the name the refusal's errMeta uses, and
-// says why an object is not Deletable.
+// references, state), as of the read, on what reads and writes return.
+// They are read only and ignored on write; the write still decides, and
+// Resolvable leaves out whether an auto incident's rule still judges it.
+// Which of the service's own users may act is the service's to decide. A
+// reference count beside them (NotifyRules, Label.Rules, Label.Bindings)
+// has the name the refusal's errMeta uses, and says why an object is not
+// Deletable.
 
 // Ref names another object: its ID, and its name when read.
 type Ref struct {
@@ -215,8 +217,8 @@ type Incident struct {
 	ClearTime   time.Time
 	EndTime     time.Time
 	CloseReason string
-	// Resolvable: the caller may close it by hand now (ResolveIncident): it
-	// is open and its rule's handling is manual or any. Read only.
+	// Resolvable: the caller may close it by hand (ResolveIncident) and it
+	// is open. Read only.
 	Resolvable bool
 }
 
@@ -409,10 +411,12 @@ type EventsAPI interface {
 	ExportIncidents(filter IncidentFilter, format string, w io.Writer) (rows int, truncated bool, err error)
 	// GetIncident returns an incident.
 	GetIncident(incidentID string) (*Incident, error)
-	// ResolveIncident closes an open incident of a rule with handling
-	// manual or any.
+	// ResolveIncident closes an open incident by hand. An auto incident is
+	// closed only while its rule does not judge it: a condition has no
+	// point to judge, or the rule was deleted, disabled or regrouped.
 	//
-	// Errors: shared.resource.state_invalid.
+	// Errors: shared.resource.state_invalid (not open, or an auto incident
+	// its rule still judges).
 	ResolveIncident(incidentID string) (*Incident, error)
 	// SubscribeIncidents returns a channel of the incidents the caller reads
 	// as they start, change level or close. One-shot. Delivery is best
