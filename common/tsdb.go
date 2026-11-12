@@ -7,10 +7,13 @@ import "time"
 // The time-series database of a service (ASNController.InitTSDB,
 // ASNServiceNode.InitTSDB). Its store is PostgreSQL (TimescaleDB) on the
 // controller; queries are built from TSQuery, never in a store's own
-// language.
+// language. Rollups and the series lookup are kept on PostgreSQL only;
+// another store checks the options and reads the points.
 
 // TSCollOptions are the options of a collection, applied when it is
-// created: a collection that exists is used as it is.
+// created: a collection that exists is used as it is. An existing
+// collection gets new Indexes and SeriesLookup from
+// TSDBHandler.BuildIndexes, and new Rollups from TSDBHandler.BuildRollups.
 type TSCollOptions struct {
 	// Retention is how long points are kept, 0 for ever; whole seconds. A
 	// chunk is dropped once all its points are older.
@@ -23,7 +26,64 @@ type TSCollOptions struct {
 	// a point written later replaces the values of the fields it has and
 	// keeps the others. Without it both points are kept.
 	ReplaceSameTime bool
+
+	// Rollups are pre-aggregates of the collection, 4 at most, that make
+	// TSCollection.Aggregate read fewer rows (see TSRollup). Results do not
+	// change: rollups change speed only.
+	Rollups []TSRollup
+
+	// SeriesLookup keeps a table of the collection's series and their
+	// tags: a read with tag conditions looks up the matching series first
+	// and reads only theirs. It pays for a collection read a few series at
+	// a time (one node's metrics or logs), not for one whose series hold a
+	// few points each (one series per user or per object), where it is
+	// slower. Results do not change.
+	SeriesLookup bool
 }
+
+// TSRollup is a pre-aggregate of a collection: per series and window of
+// Window, the number of points and their first and last times, and per
+// field of Fields its count, first and last values, and for numbers its
+// sum, minimum and maximum. It keeps its buckets as long as the collection
+// keeps its points.
+//
+// Aggregate reads a rollup instead of the points when its Window is a
+// multiple of the rollup's, its Query.Start a multiple of the rollup's
+// Window since the epoch, the rollup keeps every field it aggregates, and
+// its Query has tag conditions only (Tags, NotTags, Where on tags). The
+// newest window is computed from the points at query time; a point written
+// late behind it is included within a minute.
+//
+// Declare rollups for the dashboards' fixed windows, for example:
+//
+//	opts := &commonapi.TSCollOptions{
+//	    Retention: 30 * 24 * time.Hour,
+//	    Indexes:   []commonapi.TSIndex{{Tags: []string{"NodeID"}}},
+//	    Rollups: []commonapi.TSRollup{
+//	        {Window: time.Minute, Fields: map[string]commonapi.TSFieldType{"rx": commonapi.TSFieldFloat, "tx": commonapi.TSFieldFloat}},
+//	        {Window: time.Hour, Fields: map[string]commonapi.TSFieldType{"rx": commonapi.TSFieldFloat, "tx": commonapi.TSFieldFloat}},
+//	    },
+//	    SeriesLookup: true,
+//	}
+type TSRollup struct {
+	// Window is the width of a bucket, aligned to the epoch: whole seconds,
+	// a minute at least. The rollups of a collection have distinct windows.
+	Window time.Duration
+
+	// Fields are the fields kept, with their types; a field has one type
+	// in every rollup of the collection.
+	Fields map[string]TSFieldType
+}
+
+// TSFieldType is the type of a field kept by a rollup.
+type TSFieldType string
+
+const (
+	TSFieldInt    TSFieldType = "int"    // an integer, read back as an int64
+	TSFieldFloat  TSFieldType = "float"  // a float, read back as a float64
+	TSFieldString TSFieldType = "string" // a string
+	TSFieldBool   TSFieldType = "bool"   // a bool
+)
 
 // TSIndex is an index of a combination of tags, in order.
 type TSIndex struct {
@@ -208,6 +268,28 @@ type TSDBHandler interface {
 	// FindOrCreateCollection returns the collection name, creating it with
 	// options when it does not exist.
 	FindOrCreateCollection(name string, options *TSCollOptions) (TSCollection, error)
+
+	// BuildIndexes gives the existing collection name the Indexes of
+	// options missing, and with options.SeriesLookup its series lookup,
+	// filled from the points it holds while writes go on; reads use it once
+	// filled. It is for an upgrade that adds them, and runs without timeout,
+	// so call it from a goroutine. Calling it again does nothing; other
+	// options are ignored.
+	//
+	// Errors: shared.resource.not_found; shared.request.param_invalid.
+	BuildIndexes(name string, options *TSCollOptions) error
+
+	// BuildRollups makes the rollups of the existing collection name
+	// exactly options.Rollups: it builds the missing ones, builds again one
+	// whose fields changed, and drops one whose Window is not listed. It is
+	// for an upgrade that changes them, and runs without timeout; the
+	// rollups built are filled in the background, Aggregate computing from
+	// the points what is not yet. Calling it again does nothing; other
+	// options are ignored.
+	//
+	// Errors: shared.resource.not_found; shared.request.param_invalid (a
+	// rollup field whose stored type differs: nothing changes).
+	BuildRollups(name string, options *TSCollOptions) error
 
 	// DeleteCollection deletes a collection and its points.
 	DeleteCollection(name string) error

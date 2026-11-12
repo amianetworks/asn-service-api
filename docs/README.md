@@ -108,6 +108,105 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
 Target v27.3.0.
 
+## Moving from v27.3 to v27.4
+
+- Audit: saved filters are removed: `ListAuditFilters`, `SaveAuditFilter`,
+  `DeleteAuditFilter`, `SavedAuditFilter`, the `AuditFilterScope*` and
+  `AuditPreset*` constants. A service that keeps query templates stores them
+  itself.
+- Audit: `AuditFilter.SubjectID` becomes `AuditFilter.SubjectIDs`, matching
+  any of its subjects. Replace `SubjectID: id` with
+  `SubjectIDs: []string{id}`:
+
+  ```go
+  records, total, err := ctl.ListAuditRecords(controller.AuditFilter{
+      Service:    "myservice",
+      SubjectIDs: []string{accountA, accountB},
+      Start:      start,
+      Stop:       stop,
+  }, iam.Page{Limit: 100})
+  ```
+
+- Events: a `NotifyRule` selects either by level (`Level`, with `LevelOp`)
+  or by event rules (`EventRuleIDs`, at least one, with `Level` and `LevelOp`
+  empty), never both; both or neither is `shared.request.param_invalid`. An
+  empty `EventRuleIDs` no longer means "every rule" next to a level: a rule
+  by level reads every rule of the namespace and root. To keep only some
+  levels of one event rule, put a filter on its level tag in the event rule.
+
+  ```go
+  byRules := controller.NotifyRule{Name: "disk", RootID: root,
+      EventRuleIDs: []string{diskRuleID}, SendOn: []string{controller.NotifyOnOpen},
+      ContactGroupIDs: []string{groupID}}
+  byLevel := controller.NotifyRule{Name: "high", RootID: root,
+      LevelOp: controller.NotifyLevelGE, Level: "high", SendOn: []string{controller.NotifyOnOpen},
+      ContactGroupIDs: []string{groupID}}
+  ```
+
+- Catalog: `ServiceCatalog.Service` is removed. ASN knows a service by the
+  name it loaded the plugin with (the `.so` file name, which is the
+  service's name in `asn.conf`). A data item is declared by its source
+  alone, not empty and with no `.`; ASN stores and shows it as
+  `<service>.<source>`. A default rule leaves `Service` empty and names
+  items by source.
+
+  ```go
+  // v27.3
+  catalog := &controller.ServiceCatalog{Service: "myservice", /* ... */
+      Items:        []controller.CatalogItem{{Name: "myservice.probe", /* ... */}},
+      DefaultRules: []controller.EventRule{{Name: "slow", Item: "myservice.probe", /* ... */}}}
+  // v27.4
+  catalog := &controller.ServiceCatalog{ /* ... */
+      Items:        []controller.CatalogItem{{Name: "probe", /* ... */}},
+      DefaultRules: []controller.EventRule{{Name: "slow", Item: "probe", /* ... */}}}
+  ```
+
+- Events: on the service API a service names its own items by source and
+  every other item in full (`asn.host`, another service's
+  `<service>.<source>`), in points, rules, conditions and the `Items`
+  filters; ASN returns its own items by source the same way (rules,
+  incidents, `DataDemand.Item`, its own catalog from `GetServiceCatalog`).
+  Naming an own item in full (`myservice.probe`) is
+  `shared.request.param_invalid`. A rule, incident, notify rule, contact
+  group or send of the service's own namespace reads back with `Service`
+  empty; `Service` still takes the service's own name as its own namespace.
+  Code that tells its own records by name (`inc.Service == "myservice"`)
+  checks for empty instead.
+
+  ```go
+  err := ctl.WriteEventPoints("", []controller.EventPoint{{
+      Item:   "probe", // was "myservice.probe"
+      Tags:   map[string]string{"NodeID": nodeID},
+      Fields: map[string]any{"latency_ms": 12.5},
+  }})
+  for inc := range incidents {
+      if inc.Service == "" && inc.Item == "probe" { /* own */ }
+      if inc.Service == "asn" && inc.Item == "asn.host" { /* framework */ }
+  }
+  ```
+
+- Time series: `TSCollOptions.Rollups` (`TSRollup`, `TSFieldType`) and
+  `TSCollOptions.SeriesLookup` speed up `Aggregate` and reads by tags, with
+  the same results. They apply when a collection is created; for a
+  collection that exists, call `TSDBHandler.BuildIndexes` (series lookup,
+  new indexes) and `TSDBHandler.BuildRollups` (rollups) once, for example
+  from `Start()`, in a goroutine: both run without timeout and do nothing
+  the second time. Use the series lookup for collections read a few series
+  at a time (one node), not for many series of a few points each. A type
+  that implements `TSDBHandler` adds the two methods.
+
+  ```go
+  opts := &commonapi.TSCollOptions{Retention: 30 * 24 * time.Hour,
+      Indexes:      []commonapi.TSIndex{{Tags: []string{"NodeID"}}},
+      Rollups:      []commonapi.TSRollup{{Window: time.Hour, Fields: map[string]commonapi.TSFieldType{"rx": commonapi.TSFieldFloat}}},
+      SeriesLookup: true}
+  coll, err := ts.FindOrCreateCollection("traffic", opts) // new collections get both
+  go func() {                                            // existing ones, once
+      if err := ts.BuildIndexes("traffic", opts); err != nil { /* log */ }
+      if err := ts.BuildRollups("traffic", opts); err != nil { /* log */ }
+  }()
+  ```
+
 ## Moving from v27.2 to v27.3
 
 - Audit: `AuditCatalog.TagKeys` is `[]AuditTagKey`: each `Key` (same rules

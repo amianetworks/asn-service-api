@@ -15,6 +15,12 @@ import (
 // ValidateServiceCatalog at load and refuses the plugin when it is invalid.
 // Every service reads any catalog with ASNController.GetServiceCatalog,
 // "asn" included.
+//
+// A catalog does not name its service: ASN knows the service by the name
+// it loaded the plugin with. A data item is declared by its source alone;
+// ASN stores and shows it as <service>.<source>. On the service API a
+// service names its own items by source and every other item (another
+// service's, "asn"'s) in full, and reads its own items back by source.
 
 // Grouping values: whether the service uses ASN node groups.
 const (
@@ -89,8 +95,9 @@ type CatalogItemField struct {
 	Label  map[string]string
 }
 
-// CatalogItem is a data item: the points of measurement <service>.<source>
-// a service writes with WriteEventPoints.
+// CatalogItem is a data item: the points of measurement a service writes
+// with WriteEventPoints. Name is the source, not empty and with no '.';
+// ASN stores and shows the item as <service>.<Name>.
 type CatalogItem struct {
 	Name   string
 	Demand string
@@ -100,9 +107,8 @@ type CatalogItem struct {
 	Label  map[string]string
 }
 
-// ServiceCatalog is one service's catalog.
+// ServiceCatalog is one service's catalog. It does not name the service.
 type ServiceCatalog struct {
-	Service       string
 	Display       CatalogDisplay
 	Grouping      string
 	Config        *CatalogSchema // nil: the service declares no configuration
@@ -117,7 +123,8 @@ type ServiceCatalog struct {
 	// items that are not node data (CatalogItem.Node false): their points
 	// written with no root are of the platform scope. A rule installed is
 	// never installed again by name, so changing a released rule's Scope
-	// leaves the copies installed before.
+	// leaves the copies installed before. A default rule's Service is
+	// empty; its Item and Conditions[].Item are names of Items.
 	DefaultRules []EventRule
 }
 
@@ -186,9 +193,6 @@ func ValidateServiceCatalog(c *ServiceCatalog) error {
 	if c == nil {
 		return catalogInvalid("", "no catalog")
 	}
-	if c.Service == "" || strings.Contains(c.Service, ".") {
-		return catalogInvalid("service", "the service name is empty or has a '.'")
-	}
 	if c.Grouping != CatalogGroupingASN && c.Grouping != CatalogGroupingNone {
 		return catalogInvalid("grouping", "grouping is asn-groups or none")
 	}
@@ -203,8 +207,8 @@ func ValidateServiceCatalog(c *ServiceCatalog) error {
 	seen := map[string]bool{}
 	for i, it := range c.Items {
 		path := fmt.Sprintf("items[%d]", i)
-		if !strings.HasPrefix(it.Name, c.Service+".") || len(it.Name) == len(c.Service)+1 {
-			return catalogInvalid(path+".name", "an item is named <service>.<source>")
+		if it.Name == "" || strings.Contains(it.Name, ".") {
+			return catalogInvalid(path+".name", "an item is named by its source: not empty, no '.'")
 		}
 		if seen[it.Name] {
 			return catalogInvalid(path+".name", "item "+it.Name+" declared twice")
@@ -259,8 +263,8 @@ func ValidateServiceCatalog(c *ServiceCatalog) error {
 			return catalogInvalid(path+".name", "a default rule has a unique name")
 		case r.ID != "" || r.RootID != "" || len(r.NodeIDs) > 0 || r.LabelID != "" || r.Bound != "":
 			return catalogInvalid(path, "a default rule names no ID, root, nodes, label or bound service")
-		case r.Service != "" && r.Service != c.Service:
-			return catalogInvalid(path+".service", "a default rule is of the service's namespace")
+		case r.Service != "":
+			return catalogInvalid(path+".service", "a default rule names no namespace: it is the service's")
 		case len(r.Conditions) == 0:
 			return catalogInvalid(path+".conditions", "a default rule has conditions")
 		}

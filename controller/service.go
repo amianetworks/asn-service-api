@@ -109,7 +109,7 @@ type ASNServiceController interface {
 
 // DataDemand is the demand for an on-demand data item.
 type DataDemand struct {
-	Item        string
+	Item        string   // the source of an item of the service's catalog
 	NodeIDs     []string // none: every node of the service
 	MinInterval time.Duration
 }

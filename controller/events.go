@@ -14,6 +14,14 @@ import (
 // belongs to a namespace: a service's name, or "asn" for the framework's
 // own data. A service writes its own namespace, and "asn" rules bound to
 // it (Bound), which read only its nodes; a super service writes any.
+//
+// Names as the calling service sees them: its own data items by source
+// (the catalog's CatalogItem.Name), every other item in full ("asn.host",
+// "<service>.<source>"); an own item named in full is
+// shared.request.param_invalid. The Service of a rule, incident, notify
+// rule, contact group or send of its own namespace reads back empty;
+// Service as input takes empty or the caller's own name for its own
+// namespace. Bound keeps the service's name.
 
 // Event levels, lowest first.
 const (
@@ -73,7 +81,7 @@ const (
 // the item declares; ASN sets Service, RootID and NodeID ("-" for a point
 // of no node). A node item's point carries the NodeID tag.
 type EventPoint struct {
-	Item   string
+	Item   string // the source of an item of the caller's catalog
 	Tags   map[string]string
 	Fields map[string]any // numbers and strings, as declared
 	Time   time.Time      // zero: when ASN takes it
@@ -83,7 +91,7 @@ type EventPoint struct {
 // Values instead of Value makes it categorical on Tag or Field. Aggregate
 // is avg, min, max, sum or last; Change is delta, rate or percent.
 type EventCondition struct {
-	Item      string              // the item read, when not the rule's
+	Item      string              // the item read, when not the rule's; of the rule's namespace
 	Tags      map[string][]string // narrows the item's points
 	Mode      string
 	Field     string
@@ -123,13 +131,13 @@ type EventRule struct {
 	ID           string
 	Name         string
 	Enable       bool
-	Service      string
+	Service      string // namespace; the caller when empty, and empty when read back for the caller's own
 	Scope        string
 	RootID       string // EventScopeRoot
 	Devices      string
 	LabelID      string
 	NodeIDs      []string
-	Item         string
+	Item         string // an item of the namespace: by source in the caller's own, in full in another
 	Filters      []EventTagFilter
 	Conditions   []EventCondition
 	GroupBy      []string
@@ -152,7 +160,7 @@ type EventRuleFilter struct {
 	RootID  string // a root, or commonapi.PlatformScope; required
 	Keyword string // the name contains it, case-insensitive
 	Enable  *bool
-	Items   []string // rules on these data items
+	Items   []string // rules on these data items, named as EventRule.Item
 	Scope   string   // EventScopeRoot, EventScopeAllRoots or EventScopePlatform
 	Devices string   // EventDevicesAll, EventDevicesLabel or EventDevicesNodes
 	NodeID  string   // rules whose devices include the node: all, its labels, or listed
@@ -163,11 +171,11 @@ type Incident struct {
 	ID          string
 	RuleID      string
 	RuleName    string
-	Service     string
+	Service     string // namespace; empty for the caller's own
 	RootID      string
 	NodeID      string // "-" for an incident of no node
 	Group       map[string]string
-	Item        string
+	Item        string // named as EventRule.Item
 	Level       string
 	State       string
 	Handling    string
@@ -190,7 +198,7 @@ type IncidentFilter struct {
 	State             string
 	Start, Stop       time.Time // when they started
 	NodeIDs           []string  // incidents of these nodes
-	Items             []string  // incidents of rules on these data items
+	Items             []string  // incidents of rules on these data items, named as EventRule.Item
 	Keyword           string    // the rule name contains it, case-insensitive
 }
 
@@ -205,16 +213,20 @@ const (
 	NotifyOnRecorded = "recorded" // a record-only incident is written
 )
 
-// NotifyRule mails the incidents it selects to contact groups.
+// NotifyRule mails the incidents it selects to contact groups. It selects
+// either by level (Level, with LevelOp; every rule of the namespace and
+// root) or by event rules (EventRuleIDs, at least one; Level and LevelOp
+// empty), never both: both or neither is shared.request.param_invalid. A
+// rule by event rules reads back with Level and LevelOp empty.
 type NotifyRule struct {
 	ID              string
 	Name            string
 	Enable          bool
-	Service         string // namespace; the caller when empty
+	Service         string // namespace; the caller when empty, and empty when read back for the caller's own
 	RootID          string
-	LevelOp         string
-	Level           string
-	EventRuleIDs    []string // empty: every rule of the namespace and root
+	LevelOp         string   // with Level: NotifyLevelGE (when empty), LE or EQ
+	Level           string   // by level
+	EventRuleIDs    []string // by event rules
 	NodeIDs         []string // empty: every node
 	SendOn          []string
 	Cooldown        time.Duration
@@ -228,7 +240,7 @@ type NotifyRule struct {
 type ContactGroup struct {
 	ID         string
 	Name       string
-	Service    string // namespace; the caller when empty
+	Service    string // namespace; the caller when empty, and empty when read back for the caller's own
 	RootID     string
 	To, Cc     map[string]string
 	CreateTime time.Time
@@ -265,7 +277,7 @@ type Dispatch struct {
 	ID          string
 	RuleID      string
 	RuleName    string // as it was when it sent
-	Service     string
+	Service     string // namespace; empty for the caller's own
 	RootID      string
 	IncidentIDs []string
 	Omitted     int    // incidents past the limit of one mail, counted but not listed

@@ -103,7 +103,10 @@ type ASNController interface {
 	ListAvailableServices() ([]*AvailableService, error)
 
 	// GetServiceCatalog returns the catalog of a loaded service, "asn"
-	// included; nil when the service declares none.
+	// included; nil when the service declares none. serviceName empty or
+	// the caller's own name returns the caller's catalog with items and
+	// default rules by source; another catalog names them in full
+	// (<service>.<source>).
 	//
 	// Errors: shared.service.not_found.
 	GetServiceCatalog(serviceName string) (*ServiceCatalog, error)

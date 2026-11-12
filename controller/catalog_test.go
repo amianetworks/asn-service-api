@@ -24,22 +24,21 @@ func tagKeys(keys ...string) []AuditTagKey {
 
 // withLicense adds an item that is not node data.
 func withLicense(c *ServiceCatalog) *ServiceCatalog {
-	c.Items = append(c.Items, CatalogItem{Name: "svc.license", Demand: CatalogDemandAlways,
+	c.Items = append(c.Items, CatalogItem{Name: "license", Demand: CatalogDemandAlways,
 		Fields: []CatalogItemField{{Name: "usage", Type: CatalogItemNumber}}})
 	return c
 }
 
 func validCatalog() *ServiceCatalog {
 	return &ServiceCatalog{
-		Service:  "svc",
 		Display:  CatalogDisplay{Name: map[string]string{"en-US": "Svc"}},
 		Grouping: CatalogGroupingNone,
-		Items: []CatalogItem{{Name: "svc.scan", Demand: CatalogDemandAlways, Node: true,
+		Items: []CatalogItem{{Name: "scan", Demand: CatalogDemandAlways, Node: true,
 			Fields: []CatalogItemField{{Name: "found", Type: CatalogItemNumber}},
 			Tags:   []CatalogItemField{{Name: "Kind", Type: CatalogItemEnum, Values: []string{"a", "b"}}}}},
 		Audit: &AuditCatalog{EventTypes: []AuditEventType{{Type: "svc.scan"}},
 			Operations: []AuditOperation{{Code: 1, EventType: "svc.scan"}}, TagKeys: []AuditTagKey{tagKey("Role", AuditTagValue{Value: "admin", Names: zh("管理员")}), tagKey("Kind_2")}},
-		DefaultRules: []EventRule{{Name: "found", Item: "svc.scan", Level: EventLevelHigh,
+		DefaultRules: []EventRule{{Name: "found", Item: "scan", Level: EventLevelHigh,
 			Conditions: []EventCondition{{Mode: EventModeThreshold, Field: "found", Op: "gt", Value: 0}}}},
 	}
 }
@@ -56,14 +55,16 @@ func TestValidateServiceCatalog(t *testing.T) {
 	for _, scope := range []string{EventScopeRoot, EventScopePlatform} {
 		ok := withLicense(validCatalog())
 		ok.DefaultRules[0].Scope = scope
-		ok.DefaultRules[0].Item, ok.DefaultRules[0].Conditions[0].Field = "svc.license", "usage"
+		ok.DefaultRules[0].Item, ok.DefaultRules[0].Conditions[0].Field = "license", "usage"
 		if err := ValidateServiceCatalog(ok); err != nil {
 			t.Fatalf("default rule scope %s: %v", scope, err)
 		}
 	}
 	for name, mutate := range map[string]func(c *ServiceCatalog){
 		"nil display":       func(c *ServiceCatalog) { c.Display.Name = nil },
-		"item prefix":       func(c *ServiceCatalog) { c.Items[0].Name = "other.scan" },
+		"item qualified":    func(c *ServiceCatalog) { c.Items[0].Name = "svc.scan" },
+		"item empty":        func(c *ServiceCatalog) { c.Items[0].Name = "" },
+		"item twice":        func(c *ServiceCatalog) { c.Items = append(c.Items, c.Items[0]) },
 		"reserved tag":      func(c *ServiceCatalog) { c.Items[0].Tags[0].Name = "NodeID" },
 		"number tag":        func(c *ServiceCatalog) { c.Items[0].Tags[0].Type = CatalogItemNumber },
 		"asn event type":    func(c *ServiceCatalog) { c.Audit.EventTypes[0].Type = "asn.x" },
@@ -93,12 +94,14 @@ func TestValidateServiceCatalog(t *testing.T) {
 		"rule platform cond node": func(c *ServiceCatalog) {
 			*c = *withLicense(c)
 			r := &c.DefaultRules[0]
-			r.Scope, r.Item, r.Conditions[0].Field = EventScopePlatform, "svc.license", "usage"
-			r.Conditions = append(r.Conditions, EventCondition{Item: "svc.scan", Mode: EventModeThreshold, Field: "found", Op: "gt", Value: 0})
+			r.Scope, r.Item, r.Conditions[0].Field = EventScopePlatform, "license", "usage"
+			r.Conditions = append(r.Conditions, EventCondition{Item: "scan", Mode: EventModeThreshold, Field: "found", Op: "gt", Value: 0})
 		},
 		"rule other ns":     func(c *ServiceCatalog) { c.DefaultRules[0].Service = "asn" },
+		"rule own ns named": func(c *ServiceCatalog) { c.DefaultRules[0].Service = "svc" },
+		"rule qualified":    func(c *ServiceCatalog) { c.DefaultRules[0].Item = "svc.scan" },
 		"rule no condition": func(c *ServiceCatalog) { c.DefaultRules[0].Conditions = nil },
-		"rule item":         func(c *ServiceCatalog) { c.DefaultRules[0].Item = "svc.other" },
+		"rule item":         func(c *ServiceCatalog) { c.DefaultRules[0].Item = "other" },
 		"rule level":        func(c *ServiceCatalog) { c.DefaultRules[0].Level = "severe" },
 		"rule handling":     func(c *ServiceCatalog) { c.DefaultRules[0].Handling = "later" },
 		"rule field":        func(c *ServiceCatalog) { c.DefaultRules[0].Conditions[0].Field = "lost" },
