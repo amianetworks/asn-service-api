@@ -66,18 +66,45 @@ type Instance interface {
 	// Account Management
 	// -------------------------------------------------------------------------
 
-	// AccountCreate creates a normal account in the calling service only. It
-	// cannot create a service admin (Account.ServiceAdmin; managed by ASN) or
-	// add the account to another service. Which of its users may create
-	// accounts is the calling service's own authorization.
-	// Credential fields (password, email+code, phone+code) are optional; pass zero values to omit.
-	// skipEmailValidation / skipPhoneValidation bypass OTP pre-verification for admin-initiated creation.
+	// AccountCreate creates a normal account in the calling service only, or
+	// adds an existing account to it. It cannot create a service admin
+	// (Account.ServiceAdmin; managed by ASN) or add the account to another
+	// service. Which of its users may create accounts is the calling service's
+	// own authorization.
+	//
+	// Accounts are global: a username names the same account, and so the same
+	// person, in every service. When the account already exists outside the
+	// calling service, it is added to the calling service, accountID is its
+	// existing ID and existed is true. A username already in the calling
+	// service is shared.account.name_already_exists.
+	//
+	// byAdmin true: an administrator of the calling service creates the
+	// account. An existing username is added as it is: the password, email and
+	// phone in the request are neither checked nor written, and the account
+	// keeps its own. To create a different person, use another username.
+	//
+	// byAdmin false: the person registers themselves and must prove that an
+	// existing account is theirs, by its password or by a code sent to the
+	// account's own email or phone (emailCode for the email it holds, phoneCode
+	// for its phone). Without a username, the account is found by its email,
+	// or else by its phone. After a code proof, a password in the request
+	// replaces the account's and every session of the account ends, as in a
+	// password recovery. Without proof, a wrong password is
+	// shared.auth.password_wrong and an email or phone held by an account is
+	// shared.account.email_already_exists or
+	// shared.account.phone_already_exists.
+	//
+	// Credential fields (password, email+code, phone+code) are optional; pass
+	// zero values to omit. skipEmailValidation / skipPhoneValidation bypass the
+	// code check of a new account's email / phone; they never prove an
+	// existing account.
 	AccountCreate(
 		username, metadata string,
 		password string,
 		email, emailCode string, skipEmailValidation bool,
 		phone *Phone, phoneCode string, skipPhoneValidation bool,
-	) (accountID string, err error)
+		byAdmin bool,
+	) (accountID string, existed bool, err error)
 
 	// AccountDelete removes the account from the calling service: its groups,
 	// metadata, third-party logins and MFA setting there; its sessions no
@@ -282,6 +309,9 @@ type Instance interface {
 	) (account *Account, state LoginFlowState, tokenSet *TokenSet, flowToken string, availableMfaMethods []MfaMethodInfo, availableSetupMethods []MfaType, err error)
 
 	// Logout invalidates the session for the given device and revokes its tokens.
+	// Its refresh token is refused at once; its access token once IAM syncs the
+	// revocation, within IAM's authentication.revoke_sync_interval (1 s by
+	// default). A service does not call TokenRevoke as well.
 	Logout(accountID, deviceID string) error
 
 	// AppleRedirect handles the Apple OAuth redirect callback.
@@ -301,7 +331,8 @@ type Instance interface {
 	// until the MFA flow (re-entered via AuthFlowResume) upgrades the session.
 	TokenVerify(accessToken string) (mfaNeeded bool, accountID, username, deviceID, userClaims string, err error)
 
-	// TokenRevoke immediately invalidates the given access token.
+	// TokenRevoke invalidates the given access token, refused once IAM syncs the
+	// revocation (as Logout).
 	TokenRevoke(accessToken string) error
 
 	// -------------------------------------------------------------------------

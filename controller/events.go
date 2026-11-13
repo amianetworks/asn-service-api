@@ -389,7 +389,7 @@ type EventsAPI interface {
 	// DeleteEventRule deletes a rule.
 	//
 	// Errors: asn.event.rule_in_use (notify rules name it; errMeta.notify_rules
-	// is their IDs, comma-separated); asn.event.rule_builtin.
+	// is their IDs, sorted and comma-separated); asn.event.rule_builtin.
 	DeleteEventRule(ruleID string) error
 	// SetEventRuleEnable turns a rule on or off.
 	SetEventRuleEnable(ruleID string, enable bool) error
@@ -424,10 +424,21 @@ type EventsAPI interface {
 	// with ListIncidents.
 	SubscribeIncidents() (<-chan *Incident, error)
 
+	// EventRetention returns how long incidents are kept, set by the
+	// deployment (1–3650 days, 365 by default). A notify rule's Cooldown
+	// and MinInterval are at most this.
+	EventRetention() time.Duration
+
 	// ListNotifyRules lists the notify rules filter selects.
 	ListNotifyRules(filter NotifyRuleFilter, page iam.Page) (rules []*NotifyRule, total int, err error)
 	GetNotifyRule(ruleID string) (*NotifyRule, error)
+	// CreateNotifyRule creates a notify rule and returns it with its ID.
+	//
+	// Errors: shared.request.param_invalid (Cooldown or MinInterval over
+	// EventRetention).
 	CreateNotifyRule(rule NotifyRule) (*NotifyRule, error)
+	// UpdateNotifyRule replaces a notify rule (rule.ID). Errors as
+	// CreateNotifyRule.
 	UpdateNotifyRule(rule NotifyRule) (*NotifyRule, error)
 	DeleteNotifyRule(ruleID string) error
 	SetNotifyRuleEnable(ruleID string, enable bool) error

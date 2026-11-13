@@ -72,6 +72,7 @@ type AuditCount struct {
 type AuditSubjectCount struct {
 	SubjectID   string
 	SubjectType commonapi.AuditSubjectType // of its latest alarm
+	Username    string                     // an account's, as its latest record names it
 	Alarms      int
 }
 
@@ -177,9 +178,10 @@ type AuditAPI interface {
 	// written after it keeps its root.
 	//
 	// Errors: shared.request.param_invalid (a reserved tag, an "asn." event
-	// type, a subject, result or level value, a root that is not one, a
-	// root and node mismatch); asn.network.not_found; asn.node.not_found;
-	// shared.system.unavailable (the queue is full).
+	// type, a subject, result or level value, an account subject without
+	// SubjectID, a root that is not one, a root and node mismatch);
+	// asn.network.not_found; asn.node.not_found; shared.system.unavailable
+	// (the queue is full).
 	WriteAudit(rootID string, event commonapi.AuditEvent) error
 
 	// ListAuditRecords lists the records filter selects, newest first.
@@ -197,7 +199,7 @@ type AuditAPI interface {
 	SummarizeAudit(filter AuditFilter, bucket time.Duration, top int) (*AuditSummary, error)
 
 	// ExportAuditRecords writes the records filter selects to w as "csv" or
-	// "jsonl", oldest first, and returns how many it wrote. Bounds as
+	// "jsonl", newest first, and returns how many it wrote. Bounds as
 	// ListAuditRecords; a refusal is returned before anything is written.
 	ExportAuditRecords(filter AuditFilter, format string, w io.Writer) (rows int, err error)
 }

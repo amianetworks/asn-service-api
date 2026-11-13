@@ -108,6 +108,106 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
 Target v27.3.0.
 
+## Moving from v27.5 to v27.6
+
+Five changes affect the compiled API: `EventsAPI.EventRetention`,
+`AuditSubjectCount.Username`, `TSCollection.FindPage` and
+`TSCollection.CountWindows`, and the `byAdmin` parameter and `existed` result of
+`iam.Instance.AccountCreate`. The rest documents rules ASN already applies.
+
+- Time series: `TSCollection` gains `FindPage` and `CountWindows`, the
+  am.modules `tsdb.Collection` methods of the same names, so that a service
+  adapting the handler to `tsdb.Database` (for the am.modules audit, log and
+  event modules) passes them through. `FindPage` returns a page of the points
+  having a field, newest first; `CountWindows` counts them per window of the
+  range and per tag values, returning every window (`TSWindow`), empty ones
+  without groups. A type that implements `TSCollection` adds the two methods.
+
+  ```go
+  wins, err := coll.CountWindows(commonapi.TSQuery{Start: from, Stop: to},
+      "action", time.Hour, "result")
+  for _, w := range wins {
+      for _, g := range w.Groups {
+          _ = g.Values["result"] // g.Count points in [w.Start, w.Start+1h)
+      }
+  }
+  ```
+
+- Events: `EventRetention()` returns how long incidents are kept, set by the
+  deployment (1–3650 days, 365 by default). A notify rule's `Cooldown` and
+  `MinInterval` are at most this: `CreateNotifyRule` and `UpdateNotifyRule`
+  refuse a longer one with `shared.request.param_invalid`. A form can bound
+  its inputs before the call:
+
+  ```go
+  limit := ctl.EventRetention()
+  if rule.Cooldown > limit || rule.MinInterval > limit {
+      // tell the user the most is limit
+  }
+  ```
+
+- Events: `asn.event.rule_in_use` from `DeleteEventRule` gives the notify
+  rules naming the rule in `errMeta.notify_rules`, their IDs sorted and
+  comma-separated.
+- Audit: `SummarizeAudit` fills `AuditSubjectCount.Username` for an account
+  subject: the username its latest record names. It is empty for system and
+  service subjects. Show it in place of the account ID:
+
+  ```go
+  sum, err := ctl.SummarizeAudit(filter, time.Hour, 10)
+  for _, s := range sum.TopAlarmSubjects {
+      who := s.SubjectID
+      if s.Username != "" {
+          who = s.Username
+      }
+      _ = who
+  }
+  ```
+
+- Audit: `WriteAudit` of an `account` subject needs its `SubjectID` (the
+  account ID); without one it is `shared.request.param_invalid`. A `service`
+  subject leaves `SubjectID` empty and ASN sets the caller.
+- Audit: `ExportAuditRecords` writes newest first, as `ListAuditRecords`
+  lists.
+- IAM: `AccountCreate` takes `byAdmin` and returns `existed`. Accounts are
+  global, so a username that already exists outside the service names that
+  account, and the call adds it to the service with its existing ID.
+  - `byAdmin` true, for an administrator creating the account: an existing
+    account is added as it is, keeping its own password, email and phone;
+    nothing in the request is checked against it. To create a different person,
+    use another username.
+  - `byAdmin` false, for self-registration: the person proves the account is
+    theirs by its password or by a code sent to the account's own email or
+    phone. Without a username, the account is found by its email, or else by its
+    phone. After a code proof, the password in the request becomes the
+    account's password and the account's sessions end, as in a password
+    recovery.
+
+  Tell the administrator when an account was added rather than created:
+
+  ```go
+  iamInst := ctl.GetIAM()
+  id, existed, err := iamInst.AccountCreate(username, "", password,
+      email, "", true, phone, "", true, true)
+  if err == nil && existed {
+      // "username already exists; the account was added and keeps its own
+      // password, email and phone"
+  }
+  ```
+
+  A self-registration form sends a code to the email and passes it:
+
+  ```go
+  // after AccountEmailCodeSend(email, false)
+  id, existed, err := iamInst.AccountCreate("", "", newPassword,
+      email, code, false, nil, "", true, false)
+  ```
+
+- IAM: after `Logout`, the device's refresh token is refused at once and its
+  access token once IAM syncs the revocation, within
+  `authentication.revoke_sync_interval` (1 s by default). `TokenRevoke` takes
+  effect the same way. A service does not call `TokenRevoke` after `Logout`.
+
 ## Moving from v27.4 to v27.5
 
 - Events: `ContactGroup.NotifyRules` counts the notify rules naming the

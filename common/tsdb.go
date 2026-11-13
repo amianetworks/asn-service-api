@@ -256,6 +256,12 @@ type TSGroup struct {
 	Count  uint64
 }
 
+// TSWindow holds the groups of the points of [Start, Start+window).
+type TSWindow struct {
+	Start  time.Time
+	Groups []TSGroup // none for a window without points
+}
+
 // TSDBHandler is a service's time-series database.
 type TSDBHandler interface {
 	// Name returns the actual database name: the name given to InitTSDB with
@@ -323,6 +329,18 @@ type TSCollection interface {
 	// CountBy counts the points q selects having presenceField, per
 	// combination of values of tags.
 	CountBy(q TSQuery, presenceField string, tags ...string) ([]TSGroup, error)
+
+	// FindPage returns the points q selects having presenceField, newest
+	// first across all series whatever q.Desc, ties ordered by their tags;
+	// with q.Limit the page q.Page, without one every point.
+	FindPage(q TSQuery, presenceField string) ([]*TSPoint, error)
+
+	// CountWindows counts the points q selects having presenceField in each
+	// window of q's range, per combination of values of tags. The range
+	// needs both q.Start and q.Stop, and holds 1,000,000 windows at most.
+	// Every window is returned, the first starting at q.Start and the last
+	// possibly ending after q.Stop; a window without points has no groups.
+	CountWindows(q TSQuery, presenceField string, window time.Duration, tags ...string) ([]TSWindow, error)
 
 	// Scan calls fn with every point q selects, in Find's order, reading a
 	// batch at a time; an error from fn stops it and is returned.

@@ -484,7 +484,8 @@ pre-aggregates `Aggregate` reads instead of the points) and its series lookup (r
 look up the matching series first). Options apply when the collection is created; an
 existing collection gets new indexes and the series lookup from `BuildIndexes`, and new
 rollups from `BuildRollups`. Rollups and the lookup change speed only, never results. Points are read with `Find` (or `Scan` and
-`FindAfter` for large reads), counted with `Count` and `CountBy`, and aggregated with
+`FindAfter` for large reads, `FindPage` for newest-first pages), counted with `Count`,
+`CountBy` and `CountWindows` (per window, every window of the range), and aggregated with
 `Aggregate` (`TSAggregation`: per window and tags, optionally a second stage, ordered and
 paged). Conditions (`TSCond`) are structured, never in a store's own query language; a
 regular expression keeps to the subset documented on `TSCond`.

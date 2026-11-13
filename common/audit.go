@@ -13,7 +13,7 @@ const PlatformScope = "platform"
 type AuditSubjectType string
 
 const (
-	AuditSubjectAccount AuditSubjectType = "account" // SubjectID: the account ID
+	AuditSubjectAccount AuditSubjectType = "account" // SubjectID: the account ID, required
 	AuditSubjectSystem  AuditSubjectType = "system"  // SubjectID empty
 	AuditSubjectService AuditSubjectType = "service" // SubjectID empty: ASN sets the caller
 )
