@@ -56,5 +56,5 @@ type AuditEvent struct {
 	NodeID      string // the node the record concerns; empty: none
 	Message     string
 	Tags        map[string]string // the service's own; keys of capi.AuditReservedTagKeys refused
-	Fields      map[string]string
+	Fields      map[string]string // no "username": ASN sets it, and refuses one here
 }

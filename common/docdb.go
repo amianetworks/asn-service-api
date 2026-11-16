@@ -95,6 +95,11 @@ type DocCollection interface {
 	// CountRecords returns the number of records q matches, DocAll() to count every record.
 	CountRecords(q DocQuery) (int, error)
 
+	// CountRecordsUpTo returns the number of records q matches, or max when
+	// more match: max means max or more. Stores stop counting at max. max
+	// must be positive.
+	CountRecordsUpTo(q DocQuery, max int) (int, error)
+
 	// UpdateRecord applies u to the one record q matches, as a whole: all its
 	// changes are made, or none of them. A record that no longer matches q
 	// when it is written is not updated, so that q may hold a condition, such

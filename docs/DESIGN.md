@@ -485,7 +485,8 @@ look up the matching series first). Options apply when the collection is created
 existing collection gets new indexes and the series lookup from `BuildIndexes`, and new
 rollups from `BuildRollups`. Rollups and the lookup change speed only, never results. Points are read with `Find` (or `Scan` and
 `FindAfter` for large reads, `FindPage` for newest-first pages), counted with `Count`,
-`CountBy` and `CountWindows` (per window, every window of the range), and aggregated with
+`CountBy`, `CountWindows` (per window, every window of the range) and `CountUpTo` (up to a
+cap, for totals shown as "N or more"), and aggregated with
 `Aggregate` (`TSAggregation`: per window and tags, optionally a second stage, ordered and
 paged). Conditions (`TSCond`) are structured, never in a store's own query language; a
 regular expression keeps to the subset documented on `TSCond`.
@@ -506,7 +507,8 @@ Records are changed with a `commonapi.DocUpdate`, built with `DocSet`, `DocUnset
 `Set`/`Unset`/`Inc` methods); like `DocQuery` it is plain data, field for field the update of
 am.modules, and is applied to each record as a whole. `UpdateRecord`, `ReplaceRecord` and
 `DeleteRecord` act on the one record a query matches; `UpsertRecord` updates it or adds a
-record when there is none, and `ReplaceOrAddRecord` replaces or adds. Give the fields of an
+record when there is none, and `ReplaceOrAddRecord` replaces or adds. `CountRecords` counts
+the records a query matches, and `CountRecordsUpTo` counts them up to a cap. Give the fields of an
 upsert's query a unique index.
 
 Times in records are stored as RFC 3339 strings, which do not compare in time order, so a

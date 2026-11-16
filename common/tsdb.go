@@ -19,7 +19,12 @@ type TSCollOptions struct {
 	// chunk is dropped once all its points are older.
 	Retention time.Duration
 
-	// Indexes are the tag combinations to index.
+	// Indexes are the tag combinations to index. On Postgres, the tags they
+	// name when the collection is created get a column each, which reads by
+	// those tags use and compressed chunks are segmented by first, in the
+	// order the indexes first name them: name the tag with the fewest values
+	// first, such as a root before a node. A collection that exists keeps its
+	// columns and their order.
 	Indexes []TSIndex
 
 	// ReplaceSameTime merges the points of the same tags and time into one:
@@ -329,6 +334,13 @@ type TSCollection interface {
 	// CountBy counts the points q selects having presenceField, per
 	// combination of values of tags.
 	CountBy(q TSQuery, presenceField string, tags ...string) ([]TSGroup, error)
+
+	// CountUpTo counts the points FindPage pages, up to max: it returns the
+	// smaller of their number and max, so that max means max or more. Limit,
+	// Page and Desc do not change it. Postgres and MongoDB stop after max
+	// points; choose a small presence field, since Postgres decompresses it
+	// to test it.
+	CountUpTo(q TSQuery, presenceField string, max uint64) (uint64, error)
 
 	// FindPage returns the points q selects having presenceField, newest
 	// first across all series whatever q.Desc, ties ordered by their tags;

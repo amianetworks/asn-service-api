@@ -108,6 +108,50 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
 Target v27.3.0.
 
+## Moving from v27.6 to v27.7
+
+Three changes affect the compiled API: `EventsAPI.GetContactGroup`,
+`DocCollection.CountRecordsUpTo` and `TSCollection.CountUpTo`. A type that
+implements `EventsAPI` (or `ASNController`), `DocCollection` or
+`TSCollection`, such as a test fake or an adapter, adds them. The rest
+documents rules ASN already applies.
+
+- Events: `GetContactGroup` reads one contact group by ID, as
+  `ListContactGroups` lists it, with `NotifyRules`, `Writable` and
+  `Deletable`. A group in a namespace the caller does not read, or an
+  unknown ID, is `shared.resource.not_found`.
+
+  ```go
+  g, err := ctl.GetContactGroup(rule.ContactGroups[0].ID)
+  if err == nil {
+      _ = g.To // address → display name
+  }
+  ```
+
+- Counts up to a cap: `DocCollection.CountRecordsUpTo` and
+  `TSCollection.CountUpTo` stop counting at `max`, so a returned `max` means
+  "`max` or more". A list showing "10,000 or more" counts up to 10,001
+  rather than counting every match. `max` must be positive. `CountUpTo`
+  counts the points `FindPage` pages; give it a small presence field.
+
+  ```go
+  n, err := coll.CountUpTo(q, "severity", 10001)
+  more := n > 10000 // show "10,000+"
+  ```
+
+- Time series on Postgres: each tag that `TSCollOptions.Indexes` names gets a
+  column when the collection is created. Reads by that tag use the column,
+  and compressed chunks are segmented by these columns in the order the
+  indexes first name them. Name the tag with the fewest values first, for
+  example a root before a node. A collection that already exists keeps its
+  columns and their order.
+- Audit: `AuditEvent.Fields` may not contain `username`. ASN sets it from the
+  account subject and refuses a record that has one
+  (`shared.request.param_invalid`, `errMeta.field` = `fields`). A service
+  node's `WriteAudit` only queues the record, so the controller drops such a
+  record and logs a warning. Records a service node writes for an account
+  subject get `username` from ASN too.
+
 ## Moving from v27.5 to v27.6
 
 Five changes affect the compiled API: `EventsAPI.EventRetention`,

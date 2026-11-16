@@ -177,9 +177,10 @@ type AuditAPI interface {
 	// deleted node on the root it was in, so that a record of the deletion
 	// written after it keeps its root.
 	//
-	// Errors: shared.request.param_invalid (a reserved tag, an "asn." event
-	// type, a subject, result or level value, an account subject without
-	// SubjectID, a root that is not one, a root and node mismatch);
+	// Errors: shared.request.param_invalid (a reserved tag, "username" in
+	// Fields, an "asn." event type, a subject, result or level value, an
+	// account subject without SubjectID, a root that is not one, a root and
+	// node mismatch);
 	// asn.network.not_found; asn.node.not_found; shared.system.unavailable
 	// (the queue is full).
 	WriteAudit(rootID string, event commonapi.AuditEvent) error

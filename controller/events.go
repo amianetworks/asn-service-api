@@ -448,6 +448,12 @@ type EventsAPI interface {
 
 	// ListContactGroups lists the contact groups filter selects.
 	ListContactGroups(filter ContactGroupFilter, page iam.Page) (groups []*ContactGroup, total int, err error)
+	// GetContactGroup returns the contact group groupID, as ListContactGroups
+	// lists it: with NotifyRules, Writable and Deletable. A group in a
+	// namespace ListContactGroups does not read is not found.
+	//
+	// Errors: shared.resource.not_found.
+	GetContactGroup(groupID string) (*ContactGroup, error)
 	CreateContactGroup(group ContactGroup) (*ContactGroup, error)
 	UpdateContactGroup(group ContactGroup) (*ContactGroup, error)
 	// DeleteContactGroup deletes a group no notify rule uses
