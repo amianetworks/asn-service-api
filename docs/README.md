@@ -108,6 +108,38 @@ It rejects anything but `vX.Y.0` and a tag that already exists.
 v27.0.0 is not used: its `NotifyOnClose` value did not match the framework.
 Target v27.3.0.
 
+## Moving from v27.7 to v27.8
+
+One change affects the compiled API: `TSRollup` adds the fields `GroupBy`
+and `Keep`. Code that names the fields of a `TSRollup` literal builds
+unchanged; an unkeyed literal such as `TSRollup{time.Minute, fields}` names
+them instead.
+
+- Time series: a `TSRollup` with `GroupBy` is a grouped rollup, for a mean of
+  means such as the mean CPU of a root's nodes. Per window and per value of
+  the `Keep` tags it stores the number of `GroupBy` groups and the sum of
+  their means, so `Aggregate` reads one row per window and kept value however
+  many groups there are. It serves an `Aggregate` with `Fn` `TSAggMean` and
+  the rollup's `GroupBy`, a `Then` of `TSAggMean`, `TSAggSum` or `TSAggCount`
+  by `Keep` tags only, tag conditions on `Keep` tags only, and the rollup's
+  `Window` with `Query.Start` aligned to it; any other aggregation reads the
+  rollups without `GroupBy` or the points, with the same results. Its fields
+  are numbers, each also kept by a rollup without `GroupBy` of the same
+  `Window`. A collection holds 4 rollups without `GroupBy` and 4 grouped ones
+  at most.
+
+  ```go
+  cpu := map[string]commonapi.TSFieldType{"cpu": commonapi.TSFieldFloat}
+  opts.Rollups = []commonapi.TSRollup{
+      {Window: time.Minute, Fields: cpu},
+      {Window: time.Minute, Fields: cpu, GroupBy: []string{"RootID", "NodeID"}, Keep: []string{"RootID"}},
+  }
+  // a collection that exists gets the new rollup from BuildRollups, once
+  go func() {
+      if err := ts.BuildRollups("host", opts); err != nil { /* log */ }
+  }()
+  ```
+
 ## Moving from v27.6 to v27.7
 
 Three changes affect the compiled API: `EventsAPI.GetContactGroup`,

@@ -480,7 +480,9 @@ queries are the plain structs `TSPoint` / `TSQuery`.
 
 A time-series collection is created with `TSCollOptions`: its retention, tag indexes,
 whether points of the same tags and time merge, its rollups (`TSRollup`: per-window
-pre-aggregates `Aggregate` reads instead of the points) and its series lookup (reads by tags
+pre-aggregates `Aggregate` reads instead of the points, per series or, with `GroupBy` and
+`Keep`, grouped: the number and sum of the groups' means per window and kept tags, for a
+mean of means such as the mean CPU of a root's nodes) and its series lookup (reads by tags
 look up the matching series first). Options apply when the collection is created; an
 existing collection gets new indexes and the series lookup from `BuildIndexes`, and new
 rollups from `BuildRollups`. Rollups and the lookup change speed only, never results. Points are read with `Find` (or `Scan` and

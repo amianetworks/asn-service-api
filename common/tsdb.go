@@ -32,9 +32,9 @@ type TSCollOptions struct {
 	// keeps the others. Without it both points are kept.
 	ReplaceSameTime bool
 
-	// Rollups are pre-aggregates of the collection, 4 at most, that make
-	// TSCollection.Aggregate read fewer rows (see TSRollup). Results do not
-	// change: rollups change speed only.
+	// Rollups are pre-aggregates of the collection, 4 without GroupBy and
+	// 4 with GroupBy at most, that make TSCollection.Aggregate read fewer
+	// rows (see TSRollup). Results do not change: rollups change speed only.
 	Rollups []TSRollup
 
 	// SeriesLookup keeps a table of the collection's series and their
@@ -52,10 +52,11 @@ type TSCollOptions struct {
 // sum, minimum and maximum. It keeps its buckets as long as the collection
 // keeps its points.
 //
-// Aggregate reads a rollup instead of the points when its Window is a
-// multiple of the rollup's, its Query.Start a multiple of the rollup's
-// Window since the epoch, the rollup keeps every field it aggregates, and
-// its Query has tag conditions only (Tags, NotTags, Where on tags). The
+// Aggregate reads a rollup without GroupBy instead of the points when its
+// Window is a multiple of the rollup's, its Query.Start a multiple of the
+// rollup's Window since the epoch, the rollup keeps every field it
+// aggregates, and its Query has tag conditions only (Tags, NotTags, Where
+// on tags). The
 // newest window is computed from the points at query time; a point written
 // late behind it is included within a minute.
 //
@@ -70,14 +71,54 @@ type TSCollOptions struct {
 //	    },
 //	    SeriesLookup: true,
 //	}
+//
+// A TSRollup with GroupBy is a grouped rollup, for a mean of means such as
+// the mean CPU of a root's nodes: per window and per value of the Keep
+// tags, and per field, the number of groups of the GroupBy tags having the
+// field and the sum of their means, each group's mean taken over all its
+// series. Aggregate reads it when its Fn is TSAggMean and its GroupBy is the
+// rollup's (in any order), its Then aggregates with TSAggMean, TSAggSum or
+// TSAggCount by Keep tags only, its Query names Keep tags only (Tags,
+// NotTags, Where), its Window equals the rollup's and its Query.Start is a
+// multiple of that Window since the epoch: one row per window and value of
+// the Keep tags is read, whatever the number of groups. Each field of a
+// grouped rollup is a number kept by a rollup without GroupBy of the same
+// Window too, which serves the aggregations the grouped one does not. A
+// point written late is included within a minute. For example:
+//
+//	cpu := map[string]commonapi.TSFieldType{"cpu": commonapi.TSFieldFloat}
+//	opts.Rollups = []commonapi.TSRollup{
+//	    {Window: time.Minute, Fields: cpu},
+//	    {Window: time.Minute, Fields: cpu, GroupBy: []string{"RootID", "NodeID"}, Keep: []string{"RootID"}},
+//	}
+//	// per minute, the mean over root r's nodes of each node's mean CPU
+//	agg := commonapi.TSAggregation{
+//	    Query:   commonapi.TSQuery{Tags: map[string][]string{"RootID": {r}}, Start: start, Stop: stop},
+//	    Fields:  []string{"cpu"},
+//	    Fn:      commonapi.TSAggMean,
+//	    GroupBy: []string{"RootID", "NodeID"},
+//	    Window:  time.Minute,
+//	    Then:    &commonapi.TSStage{Fn: commonapi.TSAggMean, GroupBy: []string{"RootID"}},
+//	}
 type TSRollup struct {
 	// Window is the width of a bucket, aligned to the epoch: whole seconds,
-	// a minute at least. The rollups of a collection have distinct windows.
+	// a minute at least. The rollups without GroupBy of a collection have
+	// distinct windows.
 	Window time.Duration
 
 	// Fields are the fields kept, with their types; a field has one type
-	// in every rollup of the collection.
+	// in every rollup of the collection. A grouped rollup keeps numbers only
+	// (TSFieldInt, TSFieldFloat), at least one.
 	Fields map[string]TSFieldType
+
+	// GroupBy, when set, makes the rollup grouped: the tags whose values
+	// make a group, such as RootID and NodeID. A point without a tag groups
+	// under "" for it, as Aggregate groups it.
+	GroupBy []string
+
+	// Keep are the tags of GroupBy the grouped rollup's rows keep, such as
+	// RootID; none keeps one row per window. Empty without GroupBy.
+	Keep []string
 }
 
 // TSFieldType is the type of a field kept by a rollup.
@@ -292,8 +333,10 @@ type TSDBHandler interface {
 
 	// BuildRollups makes the rollups of the existing collection name
 	// exactly options.Rollups: it builds the missing ones, builds again one
-	// whose fields changed, and drops one whose Window is not listed. It is
-	// for an upgrade that changes them, and runs without timeout; the
+	// whose fields changed, and drops one without GroupBy whose Window is
+	// not listed and a grouped one no listed one equals. It is for an
+	// upgrade that changes them, such as one adding a grouped rollup to a
+	// collection that exists, and runs without timeout; the
 	// rollups built are filled in the background, Aggregate computing from
 	// the points what is not yet. Calling it again does nothing; other
 	// options are ignored.
