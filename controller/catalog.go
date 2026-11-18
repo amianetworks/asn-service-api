@@ -97,7 +97,12 @@ type CatalogItemField struct {
 
 // CatalogItem is a data item: the points of measurement a service writes
 // with WriteEventPoints. Name is the source, not empty and with no '.';
-// ASN stores and shows the item as <service>.<Name>.
+// ASN stores and shows the item as <service>.<Name>. A field keeps its
+// kind, number or not, once stored, also when it is no longer declared:
+// declared as the other kind the catalog is refused, so a new kind takes a
+// new field name. When the service is loaded, an enabled rule of its
+// namespace that reads an item, field, tag or enum value no longer
+// declared is disabled.
 type CatalogItem struct {
 	Name   string
 	Demand string
@@ -119,13 +124,16 @@ type ServiceCatalog struct {
 	PacketCapture bool
 	Audit         *AuditCatalog
 	// DefaultRules are event rules ASN installs, disabled and built in, in
-	// the service's namespace, once: a rule on a Platform item once for the
+	// the service's namespace: a rule on a Platform item once for the
 	// platform (commonapi.PlatformScope) while the service is loaded,
 	// whether or not it has nodes; any other rule in each root network of
 	// the service's nodes. The items a rule reads (Item and
-	// Conditions[].Item) are all Platform or none. A rule installed is never
-	// installed again by name. A default rule's Service and RootID are
-	// empty; its Item and Conditions[].Item are names of Items.
+	// Conditions[].Item) are all Platform or none. A built-in rule follows
+	// the declaration, by name: each time the service is loaded, a changed
+	// rule is updated in place (its ID and enable kept), a rule no longer
+	// declared is deleted, with it a notify rule that names only it; only
+	// its enable is changed otherwise. A default rule's Service and RootID
+	// are empty; its Item and Conditions[].Item are names of Items.
 	DefaultRules []EventRule
 }
 
